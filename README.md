@@ -1,7 +1,11 @@
 
 # WinCleaner Pro (Cpulse)
 
+[![Live UI Demo](https://img.shields.io/badge/Live_UI_Demo-Try_It_Here-indigo?style=for-the-badge)](https://your-live-demo-link.vercel.app/)
+
 WinCleaner Pro is a modern, responsive, and robust system optimization tool built with React, Tailwind CSS, and Tauri. It offers a suite of features to keep your PC running at peak performance, including system metrics monitoring, junk file cleaning, startup program management, and privacy tracing sweeps.
+
+*(Note: The Live UI Demo runs a mock version of the application in the browser. System-level functions like cleaning and registry scanning require the full Tauri desktop app.)*
 
 ## Features
 
