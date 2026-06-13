@@ -48,13 +48,13 @@ interface StartupItem {
   icon?: string;
 }
 
-const HISTORY = [
-  { date: "Jun 11, 2026", freed: "6.8 GB", fixed: 42, duration: "2m 14s", type: "Deep Clean" },
-  { date: "Jun 8, 2026", freed: "3.2 GB", fixed: 18, duration: "1m 47s", type: "Quick Clean" },
-  { date: "Jun 5, 2026", freed: "9.1 GB", fixed: 67, duration: "3m 02s", type: "Deep Clean" },
-  { date: "Jun 1, 2026", freed: "4.4 GB", fixed: 29, duration: "2m 31s", type: "Quick Clean" },
-  { date: "May 27, 2026", freed: "5.9 GB", fixed: 38, duration: "2m 48s", type: "Deep Clean" },
-];
+interface SessionLog {
+  date: string;
+  freed: string;
+  fixed: number;
+  duration: string;
+  type: string;
+}
 
 const PRIVACY_ITEMS = [
   { id: "chrome_hist", label: "Chrome Browsing History", desc: "1,842 URLs found", found: true, color: C.indigo },
@@ -270,7 +270,7 @@ function DashboardTab() {
                 </defs>
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} formatter={(v: number) => [`${v}%`, "CPU"]} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "CPU"]} />
                 <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -310,7 +310,7 @@ function DashboardTab() {
                 </defs>
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} formatter={(v: number) => [`${v}%`, "RAM"]} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "RAM"]} />
                 <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -1072,71 +1072,85 @@ function SettingsTab() {
 
 // ─── history ─────────────────────────────────────────────────────────────────
 function HistoryTab() {
-  const FREED_DATA = [
-    { month: "Jan", freed: 4.2 }, { month: "Feb", freed: 7.8 }, { month: "Mar", freed: 5.1 },
-    { month: "Apr", freed: 9.3 }, { month: "May", freed: 6.7 }, { month: "Jun", freed: 8.4 },
-  ];
+  const [history, setHistory] = useState<SessionLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const historyStore = await load("history.json");
+        const logs = await historyStore.get<SessionLog[]>("logs") || [];
+        setHistory(logs);
+      } catch (error) {
+        console.error("Failed to load history", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadHistory();
+  }, []);
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { icon: <HardDrive size={18} />, label: "Total Freed", value: "23.5 GB", sub: "All time", color: C.indigo },
-          { icon: <BarChart3 size={18} />, label: "Scans Run", value: "5", sub: "Last 30 days", color: C.violet },
-          { icon: <Star size={18} />, label: "Issues Fixed", value: "196", sub: "All time", color: C.amber },
-        ].map((s) => (
-          <GradientCard key={s.label} style={{ background: `${s.color}05`, borderColor: `${s.color}15` }}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>
-                {s.icon}
-              </div>
-              <span className="text-xs font-medium text-slate-500">{s.label}</span>
-            </div>
-            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-            <div className="text-xs text-slate-400 mt-0.5">{s.sub}</div>
+      {isLoading ? (
+        <div className="py-10 text-center text-slate-400 text-sm">Loading history...</div>
+      ) : history.length === 0 ? (
+        <GradientCard className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
+            <BarChart3 size={32} />
+          </div>
+          <div className="text-slate-500 font-medium mb-1">Belum ada riwayat pembersihan.</div>
+          <div className="text-sm text-slate-400">Jalankan pemindaian pertama Anda!</div>
+        </GradientCard>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { icon: <HardDrive size={18} />, label: "Total Freed", value: `${history.reduce((acc, curr) => acc + parseFloat(curr.freed), 0).toFixed(1)} GB`, sub: "All time", color: C.indigo },
+              { icon: <BarChart3 size={18} />, label: "Scans Run", value: history.length.toString(), sub: "Last 30 days", color: C.violet },
+              { icon: <Star size={18} />, label: "Issues Fixed", value: history.reduce((acc, curr) => acc + curr.fixed, 0).toString(), sub: "All time", color: C.amber },
+            ].map((s) => (
+              <GradientCard key={s.label} style={{ background: `${s.color}05`, borderColor: `${s.color}15` }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>
+                    {s.icon}
+                  </div>
+                  <span className="text-xs font-medium text-slate-500">{s.label}</span>
+                </div>
+                <div className="text-2xl font-bold text-slate-800">{s.value}</div>
+                <div className="text-xs text-slate-400 mt-0.5">{s.sub}</div>
+              </GradientCard>
+            ))}
+          </div>
+
+          <GradientCard>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Space Freed Per Month</h3>
+            <div className="py-10 text-center text-slate-400 text-sm">Data grafik akan muncul setelah beberapa pembersihan.</div>
           </GradientCard>
-        ))}
-      </div>
 
-      <GradientCard>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Space Freed Per Month</h3>
-        <ResponsiveContainer width="100%" height={140}>
-          <AreaChart data={FREED_DATA} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="freGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop key="fre-stop-top" offset="5%" stopColor={C.indigo} stopOpacity={0.18} />
-                <stop key="fre-stop-bot" offset="95%" stopColor={C.indigo} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} unit=" GB" />
-            <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: "none", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }} formatter={(v: number) => [`${v} GB`, "Freed"]} />
-            <Area type="monotone" dataKey="freed" stroke={C.indigo} strokeWidth={2.5} fill="url(#freGrad)" dot={{ fill: C.indigo, r: 4, strokeWidth: 0 }} activeDot={{ r: 5 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </GradientCard>
-
-      <GradientCard>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Session Log</h3>
-        <div className="space-y-2">
-          {HISTORY.map((h, i) => (
-            <div key={i} className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: h.type === "Deep Clean" ? `${C.indigo}10` : `${C.emerald}10`, color: h.type === "Deep Clean" ? C.indigo : C.emerald }}>
-                {h.type === "Deep Clean" ? <Sparkles size={15} /> : <Zap size={15} />}
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-700">{h.date}</div>
-                <div className="text-xs text-slate-400">{h.type} · {h.duration} · {h.fixed} issues fixed</div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold" style={{ color: C.indigo }}>{h.freed}</div>
-                <div className="text-xs text-slate-400">freed</div>
-              </div>
+          <GradientCard>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">Session Log</h3>
+            <div className="space-y-2">
+              {history.map((h, i) => (
+                <div key={i} className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: h.type === "Deep Clean" ? `${C.indigo}10` : `${C.emerald}10`, color: h.type === "Deep Clean" ? C.indigo : C.emerald }}>
+                    {h.type === "Deep Clean" ? <Sparkles size={15} /> : <Zap size={15} />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-700">{h.date}</div>
+                    <div className="text-xs text-slate-400">{h.type} · {h.duration} · {h.fixed} issues fixed</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold" style={{ color: C.indigo }}>{h.freed}</div>
+                    <div className="text-xs text-slate-400">freed</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </GradientCard>
+          </GradientCard>
+        </>
+      )}
     </div>
   );
 }
@@ -1181,13 +1195,35 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [time, setTime] = useState(new Date());
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Deep Clean Recommended", desc: "You haven't run a deep clean in 7 days.", time: "2h ago", unread: true },
-    { id: 2, title: "Disk Space Low", desc: "C: Drive is at 78% capacity.", time: "5h ago", unread: true },
-    { id: 3, title: "Definitions Updated", desc: "Junk file definitions updated to latest version.", time: "1d ago", unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  useEffect(() => {
+    let unlisten: () => void;
+    let hasNotifiedDisk = false;
+
+    const setup = async () => {
+      unlisten = await listen<any>("system-metrics", (event) => {
+        const metrics = event.payload;
+        if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
+          hasNotifiedDisk = true;
+          setNotifications(prev => [{
+            id: Date.now(),
+            title: "Disk Space Low",
+            desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
+            time: "Just now",
+            unread: true
+          }, ...prev]);
+        }
+      });
+    };
+    setup();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
 
   useEffect(() => {
     const handleGlobalClick = () => setShowNotif(false);
@@ -1262,7 +1298,7 @@ export default function App() {
                   {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                       <Bell size={24} className="mb-2 opacity-50" />
-                      <span className="text-xs">No new notifications</span>
+                      <span className="text-xs text-center">Belum ada notifikasi baru.</span>
                     </div>
                   ) : (
                     <div className="flex flex-col">
@@ -1346,8 +1382,8 @@ export default function App() {
             {/* last scan */}
             <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs">
               <div className="text-slate-400 mb-1">Last cleaned</div>
-              <div className="font-semibold text-slate-700">Jun 11, 2026</div>
-              <div className="text-slate-400">6.8 GB freed</div>
+              <div className="font-semibold text-slate-700">Belum ada</div>
+              <div className="text-slate-400">0 GB freed</div>
             </div>
           </div>
         </aside>
