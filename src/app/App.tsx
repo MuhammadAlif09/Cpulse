@@ -25,12 +25,7 @@ const C = {
 };
 
 // ─── mock data ────────────────────────────────────────────────────────────────
-const CPU_HISTORY = Array.from({ length: 20 }, (_, i) => ({
-  t: i, v: Math.round(20 + Math.sin(i * 0.5) * 15 + Math.random() * 10),
-}));
-const RAM_HISTORY = Array.from({ length: 20 }, (_, i) => ({
-  t: i, v: Math.round(55 + Math.sin(i * 0.3) * 8 + Math.random() * 5),
-}));
+const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
 
 interface JunkItem {
   name: string;
@@ -120,12 +115,16 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 
 // ─── dashboard ────────────────────────────────────────────────────────────────
 import { listen } from "@tauri-apps/api/event";
-import { Store } from "@tauri-apps/plugin-store";
+import { load } from "@tauri-apps/plugin-store";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 
-const store = new Store("settings.json");
+let store: any;
+const initStore = async () => {
+  store = await load("settings.json");
+};
+initStore();
 
 interface SystemMetrics {
   cpu_usage: number;
@@ -140,8 +139,8 @@ interface SystemMetrics {
 }
 
 function DashboardTab() {
-  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(CPU_HISTORY);
-  const [ramData, setRamData] = useState<{t: number, v: number}[]>(RAM_HISTORY);
+  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
+  const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
 
   useEffect(() => {
@@ -169,10 +168,10 @@ function DashboardTab() {
     { label: "Disk Usage", value: `${Math.round(metrics.disk_usage)}%`, sub: `${metrics.used_disk.toFixed(1)} / ${metrics.total_disk.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
   ] : [
-    { label: "CPU Usage", value: "34%", sub: "Intel i7-12700K · 8°C cool", icon: <Cpu size={18} />, color: C.indigo, trend: -3, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
-    { label: "RAM Usage", value: "61%", sub: "9.8 / 16 GB in use", icon: <MemoryStick size={18} />, color: C.violet, trend: +4, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: "78%", sub: "234 / 512 GB · SSD", icon: <HardDrive size={18} />, color: C.amber, trend: +2, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
-    { label: "Network", value: "142 Mbps", sub: "Ethernet · 12ms ping", icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
+    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "RAM Usage", value: "...", sub: "Waiting for data", icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
+    { label: "Disk Usage", value: "...", sub: "Waiting for data", icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
+    { label: "Network", value: "...", sub: "Waiting for data", icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
   ];
 
   return (
@@ -195,10 +194,10 @@ function DashboardTab() {
             </div>
             <p className="text-indigo-100 text-sm mt-1">Your PC needs some attention — 3 issues found</p>
           </div>
-          <div className="flex gap-6">
-            <RadialGauge value={34} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={61} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={78} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+          <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
+            <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge value={metrics ? Math.round(metrics.ram_usage) : 0} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge value={metrics ? Math.round(metrics.disk_usage) : 0} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
@@ -325,15 +324,15 @@ function DashboardTab() {
           </div>
           <div className="flex items-center gap-3">
             <PieChart width={80} height={80}>
-              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 78 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 22 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
+              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 0 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 100 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
                 <Cell key="used" fill={C.amber} />
                 <Cell key="free" fill="#f1f5f9" />
               </Pie>
             </PieChart>
             <div>
-              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 78}%</div>
-              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : 234} GB used</div>
-              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : 66} GB free</div>
+              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 0}%</div>
+              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : "..."} GB used</div>
+              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : "..."} GB free</div>
             </div>
           </div>
         </GradientCard>
@@ -889,7 +888,7 @@ function SettingsTab() {
 
   useEffect(() => {
     const loadSettings = async () => {
-      const saved = await store.get<{
+      const saved = await store.get("user-settings") as {
         startWithWindows: boolean,
         minimizeToTray: boolean,
         autoUpdate: boolean,
@@ -898,7 +897,7 @@ function SettingsTab() {
         contextMenu: boolean,
         notifications: boolean,
         soundEffects: boolean
-      }>("user-settings");
+      } | null;
       
       const autostart = await isEnabled();
 

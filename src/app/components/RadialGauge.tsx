@@ -29,9 +29,9 @@ export function RadialGauge({
   const gap = circ - dash;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90" style={{ display: "block" }}>
+    <div className="flex flex-col items-center gap-1.5 w-full h-full justify-center">
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size, maxWidth: '100%', maxHeight: '100%' }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90 w-full h-full" style={{ display: "block" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackColor} strokeWidth={strokeW} />
           <circle
             cx={size / 2}
