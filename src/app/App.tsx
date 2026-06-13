@@ -120,6 +120,10 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 
 // ─── dashboard ────────────────────────────────────────────────────────────────
 import { listen } from "@tauri-apps/api/event";
+import { Store } from "@tauri-apps/plugin-store";
+import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
+
+const store = new Store("settings.json");
 
 interface SystemMetrics {
   cpu_usage: number;
@@ -868,7 +872,7 @@ function PrivacyTab() {
 // ─── settings ────────────────────────────────────────────────────────────────
 function SettingsTab() {
   const [settings, setSettings] = useState({
-    startWithWindows: true,
+    startWithWindows: false,
     minimizeToTray: true,
     autoUpdate: true,
     autoClean: false,
@@ -878,8 +882,41 @@ function SettingsTab() {
     soundEffects: false,
   });
 
-  const toggle = (key: keyof typeof settings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    const loadSettings = async () => {
+      const saved = await store.get<{
+        startWithWindows: boolean,
+        minimizeToTray: boolean,
+        autoUpdate: boolean,
+        autoClean: boolean,
+        realTimeMonitoring: boolean,
+        contextMenu: boolean,
+        notifications: boolean,
+        soundEffects: boolean
+      }>("user-settings");
+      
+      const autostart = await isEnabled();
+
+      if (saved) {
+        setSettings({ ...saved, startWithWindows: autostart });
+      } else {
+        setSettings(prev => ({ ...prev, startWithWindows: autostart }));
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const toggle = async (key: keyof typeof settings) => {
+    const newVal = !settings[key];
+    setSettings((prev) => ({ ...prev, [key]: newVal }));
+
+    if (key === "startWithWindows") {
+      if (newVal) await enable();
+      else await disable();
+    }
+
+    await store.set("user-settings", { ...settings, [key]: newVal });
+    await store.save();
   };
 
   return (

@@ -1,12 +1,12 @@
+use serde::Serialize;
 use std::fs;
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use sysinfo::{System, Networks, Disks, Components};
-use tauri::{Manager, Emitter};
-use serde::Serialize;
+use sysinfo::{Components, Disks, Networks, System};
+use tauri::{Emitter, Manager};
 use trash::delete as move_to_trash;
-use std::os::windows::process::CommandExt;
 use winreg::enums::*;
 use winreg::RegKey;
 
@@ -59,11 +59,17 @@ fn get_dir_size_and_count(path: &Path) -> (u64, usize) {
 }
 
 fn format_size(bytes: u64) -> String {
-    if bytes < 1024 { return format!("{} B", bytes); }
+    if bytes < 1024 {
+        return format!("{} B", bytes);
+    }
     let kb = bytes as f64 / 1024.0;
-    if kb < 1024.0 { return format!("{:.1} KB", kb); }
+    if kb < 1024.0 {
+        return format!("{:.1} KB", kb);
+    }
     let mb = kb / 1024.0;
-    if mb < 1024.0 { return format!("{:.1} MB", mb); }
+    if mb < 1024.0 {
+        return format!("{:.1} MB", mb);
+    }
     let gb = mb / 1024.0;
     format!("{:.1} GB", gb)
 }
@@ -77,12 +83,14 @@ fn scan_junk() -> Result<Vec<JunkItem>, String> {
     let mut temp_count = 0;
     let local_temp = std::env::temp_dir();
     let (s, c) = get_dir_size_and_count(&local_temp);
-    temp_bytes += s; temp_count += c;
+    temp_bytes += s;
+    temp_count += c;
 
     if is_elevated::is_elevated() {
         let win_temp = PathBuf::from("C:\\Windows\\Temp");
         let (s, c) = get_dir_size_and_count(&win_temp);
-        temp_bytes += s; temp_count += c;
+        temp_bytes += s;
+        temp_count += c;
     }
 
     if temp_bytes > 0 || temp_count > 0 {
@@ -101,14 +109,16 @@ fn scan_junk() -> Result<Vec<JunkItem>, String> {
     let mut browser_count = 0;
     if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
         let local_app_data = PathBuf::from(local_app_data);
-        
+
         let chrome_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache");
         let (s, c) = get_dir_size_and_count(&chrome_cache);
-        browser_bytes += s; browser_count += c;
+        browser_bytes += s;
+        browser_count += c;
 
         let edge_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache");
         let (s, c) = get_dir_size_and_count(&edge_cache);
-        browser_bytes += s; browser_count += c;
+        browser_bytes += s;
+        browser_count += c;
     }
 
     if browser_bytes > 0 || browser_count > 0 {
@@ -144,12 +154,14 @@ fn scan_junk() -> Result<Vec<JunkItem>, String> {
     if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
         let crash_dumps = PathBuf::from(local_app_data).join("CrashDumps");
         let (s, c) = get_dir_size_and_count(&crash_dumps);
-        dump_bytes += s; dump_count += c;
+        dump_bytes += s;
+        dump_count += c;
     }
     if is_elevated::is_elevated() {
         let minidump = PathBuf::from("C:\\Windows\\Minidump");
         let (s, c) = get_dir_size_and_count(&minidump);
-        dump_bytes += s; dump_count += c;
+        dump_bytes += s;
+        dump_count += c;
     }
     if dump_bytes > 0 || dump_count > 0 {
         results.push(JunkItem {
@@ -166,7 +178,9 @@ fn scan_junk() -> Result<Vec<JunkItem>, String> {
 }
 
 fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
-    if !path.exists() { return Ok(()); }
+    if !path.exists() {
+        return Ok(());
+    }
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
             let entry_path = entry.path();
@@ -198,13 +212,22 @@ fn clean_junk(categories: Vec<String>) -> Result<String, String> {
     if categories.contains(&"Browser Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let local_app_data = PathBuf::from(local_app_data);
-            let _ = clear_dir(&local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"), true);
-            let _ = clear_dir(&local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"), true);
+            let _ = clear_dir(
+                &local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"),
+                true,
+            );
+            let _ = clear_dir(
+                &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"),
+                true,
+            );
         }
     }
 
     if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
-        let _ = clear_dir(&PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"), true);
+        let _ = clear_dir(
+            &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
+            true,
+        );
     }
 
     if categories.contains(&"Crash Dumps & Logs".to_string()) {
@@ -226,7 +249,7 @@ fn flush_dns() -> Result<String, String> {
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()
         .map_err(|e| e.to_string())?;
-        
+
     if output.status.success() {
         Ok("DNS cache flushed successfully".into())
     } else {
@@ -293,16 +316,21 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
         return Err("Administrator privileges required to change HKLM startup items".into());
     }
 
-    let root = if is_hkcu { RegKey::predef(HKEY_CURRENT_USER) } else { RegKey::predef(HKEY_LOCAL_MACHINE) };
+    let root = if is_hkcu {
+        RegKey::predef(HKEY_CURRENT_USER)
+    } else {
+        RegKey::predef(HKEY_LOCAL_MACHINE)
+    };
     let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    let run_approved = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    let run_approved =
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
     // Windows 10/11 uses StartupApproved to toggle without deleting the key.
     // We will just do a simple write to StartupApproved (Binary: 0x02 0x00 ... for enabled, 0x03 ... for disabled)
     // For simplicity here, we just delete and add, but real app should use StartupApproved or just warn.
-    // Due to complexity of StartupApproved binary struct, we will just simulate success here 
+    // Due to complexity of StartupApproved binary struct, we will just simulate success here
     // or you could actually delete it from Run and back it up.
-    
+
     // For now we'll just acknowledge the toggle. Real implementation needs binary registry writing.
     println!("Toggled {} to {}", name, enable);
 
@@ -313,7 +341,7 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
 fn apply_boost(profile: String) -> Result<String, String> {
     let mut sys = System::new_all();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-    
+
     // Simple mock for killing background apps
     if profile == "gaming" {
         println!("Gaming mode: Killing non-essential background processes");
@@ -326,7 +354,7 @@ fn apply_boost(profile: String) -> Result<String, String> {
 fn set_power_plan(plan: String) -> Result<String, String> {
     let guid = match plan.as_str() {
         "performance" | "gaming" => "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", // High Performance
-        _ => "381b4222-f694-41f0-9685-ff5bb260df2e", // Balanced
+        _ => "381b4222-f694-41f0-9685-ff5bb260df2e",                        // Balanced
     };
 
     let output = std::process::Command::new("powercfg")
@@ -344,80 +372,100 @@ fn set_power_plan(plan: String) -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
-      Ok(())
-    })
-    .plugin(tauri_plugin_fs::init())
-    .plugin(tauri_plugin_shell::init())
-    .plugin(tauri_plugin_process::init())
-    .setup(|app| {
-        let app_handle = app.handle().clone();
-        
-        std::thread::spawn(move || {
-            let mut sys = System::new_all();
-            let mut networks = Networks::new_with_refreshed_list();
-            let mut disks = Disks::new_with_refreshed_list();
-            let mut components = Components::new_with_refreshed_list();
-
-            loop {
-                sys.refresh_all();
-                networks.refresh(true);
-                disks.refresh(true);
-                components.refresh(true);
-
-                let cpu_usage = sys.global_cpu_usage();
-                
-                let total_ram = sys.total_memory() as f64 / 1_073_741_824.0; // GB
-                let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
-                let ram_usage = if total_ram > 0.0 { (used_ram / total_ram * 100.0) as f32 } else { 0.0 };
-
-                let mut total_disk_bytes = 0;
-                let mut used_disk_bytes = 0;
-                for disk in disks.list() {
-                    total_disk_bytes += disk.total_space();
-                    used_disk_bytes += disk.total_space() - disk.available_space();
-                }
-                
-                let total_disk = total_disk_bytes as f64 / 1_073_741_824.0;
-                let used_disk = used_disk_bytes as f64 / 1_073_741_824.0;
-                let disk_usage = if total_disk > 0.0 { (used_disk / total_disk * 100.0) as f32 } else { 0.0 };
-
-                let mut network_up = 0.0;
-                let mut network_down = 0.0;
-                for (_, data) in networks.iter() {
-                    network_up += data.transmitted() as f64 / 1_048_576.0; // MB/s (approx per sec due to 1s sleep)
-                    network_down += data.received() as f64 / 1_048_576.0;
-                }
-
-                let metrics = SystemMetrics {
-                    cpu_usage,
-                    ram_usage,
-                    total_ram,
-                    used_ram,
-                    disk_usage,
-                    total_disk,
-                    used_disk,
-                    network_up,
-                    network_down,
-                };
-
-                let _ = app_handle.emit("system-metrics", metrics);
-
-                std::thread::sleep(Duration::from_secs(1));
+    tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
+        .setup(|app| {
+            if cfg!(debug_assertions) {
+                app.handle().plugin(
+                    tauri_plugin_log::Builder::default()
+                        .level(log::LevelFilter::Info)
+                        .build(),
+                )?;
             }
-        });
+            Ok(())
+        })
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            let app_handle = app.handle().clone();
 
-        Ok(())
-    })
-    .invoke_handler(tauri::generate_handler![scan_junk, clean_junk, flush_dns, sweep_privacy, is_admin, get_startup_items, toggle_startup_item, apply_boost, set_power_plan])
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+            std::thread::spawn(move || {
+                let mut sys = System::new_all();
+                let mut networks = Networks::new_with_refreshed_list();
+                let mut disks = Disks::new_with_refreshed_list();
+                let mut components = Components::new_with_refreshed_list();
+
+                loop {
+                    sys.refresh_all();
+                    networks.refresh(true);
+                    disks.refresh(true);
+                    components.refresh(true);
+
+                    let cpu_usage = sys.global_cpu_usage();
+
+                    let total_ram = sys.total_memory() as f64 / 1_073_741_824.0; // GB
+                    let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
+                    let ram_usage = if total_ram > 0.0 {
+                        (used_ram / total_ram * 100.0) as f32
+                    } else {
+                        0.0
+                    };
+
+                    let mut total_disk_bytes = 0;
+                    let mut used_disk_bytes = 0;
+                    for disk in disks.list() {
+                        total_disk_bytes += disk.total_space();
+                        used_disk_bytes += disk.total_space() - disk.available_space();
+                    }
+
+                    let total_disk = total_disk_bytes as f64 / 1_073_741_824.0;
+                    let used_disk = used_disk_bytes as f64 / 1_073_741_824.0;
+                    let disk_usage = if total_disk > 0.0 {
+                        (used_disk / total_disk * 100.0) as f32
+                    } else {
+                        0.0
+                    };
+
+                    let mut network_up = 0.0;
+                    let mut network_down = 0.0;
+                    for (_, data) in networks.iter() {
+                        network_up += data.transmitted() as f64 / 1_048_576.0; // MB/s (approx per sec due to 1s sleep)
+                        network_down += data.received() as f64 / 1_048_576.0;
+                    }
+
+                    let metrics = SystemMetrics {
+                        cpu_usage,
+                        ram_usage,
+                        total_ram,
+                        used_ram,
+                        disk_usage,
+                        total_disk,
+                        used_disk,
+                        network_up,
+                        network_down,
+                    };
+
+                    let _ = app_handle.emit("system-metrics", metrics);
+
+                    std::thread::sleep(Duration::from_secs(1));
+                }
+            });
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            scan_junk,
+            clean_junk,
+            flush_dns,
+            sweep_privacy,
+            is_admin,
+            get_startup_items,
+            toggle_startup_item,
+            apply_boost,
+            set_power_plan
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }
