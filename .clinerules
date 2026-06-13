@@ -10,7 +10,6 @@
 
 ## 2. Aturan Komunikasi Backend-Frontend (Tauri)
 
-saat frontend update langsung integrasikan ke backend
 * **Metrik Latar Belakang (Streaming):** Data metrik real-time (CPU, RAM, GPU, Network) wajib dikirim dari Rust ke React menggunakan sistem *Tauri Events* (`emit`) berbasis interval/loop (per 1 detik), bukan dipanggil berulang kali menggunakan `invoke`.
 * **Aksi Sekali Eksekusi (On-Demand):** Fungsi seperti `scan_garbage()`, `clean_garbage()`, dan `trigger_admin_restart()` wajib menggunakan *Tauri Commands* (`#[tauri::command]`).
 * **Cleanup Event Listener:** Setiap komponen React yang melakukan `listen()` terhadap Tauri event wajib memanggil fungsi `unlisten` pada `useEffect` cleanup (return function), agar tidak terjadi listener ganda/memory leak saat komponen re-render atau unmount.
@@ -39,3 +38,12 @@ saat frontend update langsung integrasikan ke backend
   4. Jika **valid**, Cline bump version (sesuai aturan semver di atas), lalu merge/push branch tersebut ke `main` — sehingga `main` selalu berisi versi yang sudah terbukti bisa di-download dan dijalankan.
   5. Jika **gagal/error**, Cline lanjut memperbaiki di branch yang sama tanpa merge ke `main` dan tanpa bump version, ulangi dari langkah 1-2.
   * Intinya: `main` (dan version number resmi) hanya diupdate setelah hasil build dari Actions sudah terbukti valid oleh user, bukan kode percobaan yang belum divalidasi.
+* **Catatan Perubahan (`CHANGELOG.md`) sebagai Patokan Versi:** Setiap kali sebuah prompt/task selesai dieksekusi (kode berubah), Cline wajib menambahkan entri baru di file `CHANGELOG.md` (format mengikuti [Keep a Changelog](https://keepachangelog.com)), dengan aturan:
+  * Entri ditulis di bawah heading **`[Unreleased]`** selama belum divalidasi user (lihat poin sebelumnya), dikelompokkan dalam kategori: `Added` (fitur baru → kandidat MINOR), `Fixed`/`Changed` minor (→ kandidat PATCH), `Changed`/`Removed`/`Breaking` besar (→ kandidat MAJOR).
+  * Setiap entri singkat & jelas, contoh: `- Added: tooltip description & warning pada opsi pembersihan cache browser`.
+  * Saat user konfirmasi build **valid** dan Cline melakukan bump version, heading `[Unreleased]` diubah menjadi `## [x.y.z] - YYYY-MM-DD` (tanggal hari validasi), lalu buat heading `[Unreleased]` baru yang kosong untuk perubahan selanjutnya. Tingkat kategori entri (`Added`/`Fixed`/`Breaking`) menentukan apakah bump-nya PATCH, MINOR, atau MAJOR — jika campuran, ambil yang tertinggi (Breaking > Added > Fixed).
+  * `CHANGELOG.md` ini menjadi **satu-satunya sumber kebenaran versi**, dan dipakai sinkron ke 3 tempat saat bump terjadi:
+    1. `package.json` (`version`)
+    2. `src-tauri/tauri.conf.json` (`version`)
+    3. Tag Git (`vX.Y.Z`) + GitHub Release (judul rilis, deskripsi rilis diambil/diringkas dari entri `CHANGELOG.md` versi tersebut, dan asset build dari GitHub Actions dilampirkan ke Release tersebut).
+  * Semua 3 tempat di atas wajib selalu memiliki angka versi yang identik.
