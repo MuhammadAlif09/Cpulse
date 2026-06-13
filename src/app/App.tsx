@@ -127,14 +127,20 @@ const initStore = async () => {
 };
 initStore();
 
+interface DiskInfo {
+  name: string;
+  used: number;
+  total: number;
+}
+
 interface SystemMetrics {
   cpu_usage: number;
+  cpu_temp: number;
+  cpu_name: string;
   ram_usage: number;
   total_ram: number;
   used_ram: number;
-  disk_usage: number;
-  total_disk: number;
-  used_disk: number;
+  disks: DiskInfo[];
   network_up: number;
   network_down: number;
 }
@@ -142,6 +148,8 @@ interface SystemMetrics {
 function DashboardTab({ 
   setTab, 
   metrics, 
+  cpuData,
+  ramData,
   junkItems, 
   setJunkItems,
   startupItems, 
@@ -151,6 +159,8 @@ function DashboardTab({
 }: { 
   setTab: (t: Tab) => void;
   metrics: SystemMetrics | null;
+  cpuData: {t: number, v: number}[];
+  ramData: {t: number, v: number}[];
   junkItems: JunkItem[];
   setJunkItems: (items: JunkItem[]) => void;
   startupItems: StartupItem[];
@@ -158,23 +168,24 @@ function DashboardTab({
   issues: string[];
   healthText: string;
 }) {
-  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
-  const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
-  const [isCleaningJunk, setIsCleaningJunk] = useState(false);
-  const [isJunkCleaned, setIsJunkCleaned] = useState(false);
+  const [cleanJunkState, setCleanJunkState] = useState<"scan" | "clean" | "done">("scan");
+  const [freedJunk, setFreedJunk] = useState("0 MB");
 
+  const [ramCleanState, setRamCleanState] = useState<"ready" | "cleaning" | "done">("ready");
+  const [freedRam, setFreedRam] = useState("0 MB");
+
+  // Re-evaluate Junk state on data change
   useEffect(() => {
-    if (metrics) {
-      setCpuData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.cpu_usage) }]);
-      setRamData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.ram_usage) }]);
+    if (junkItems.length > 0 && cleanJunkState === "scan") {
+      setCleanJunkState("clean");
+    } else if (junkItems.length === 0 && cleanJunkState === "clean") {
+      setCleanJunkState("scan");
     }
-  }, [metrics]);
+  }, [junkItems]);
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
   let junkSize = "0 MB ready";
-  if (junkItems.length === 0 && !isJunkCleaned) {
-    junkSize = "Scanning...";
-  } else if (junkBytes > 0) {
+  if (junkBytes > 0) {
     if (junkBytes < 1024 * 1024 * 1024) {
       junkSize = `${(junkBytes / 1048576).toFixed(1)} MB ready`;
     } else {
@@ -185,13 +196,22 @@ function DashboardTab({
   const enabledStartupCount = startupItems.filter(i => i.enabled).length;
   const startupCountStr = startupItems.length > 0 ? `${enabledStartupCount} items active` : "Checking...";
 
+  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
+  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+  const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+
+  let cpuTempStr = "N/A";
+  if (metrics && metrics.cpu_temp > 0.0) {
+    cpuTempStr = `${Math.round(metrics.cpu_temp)}°C`;
+  }
+
   const STATS = metrics ? [
-    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: metrics.cpu_name, icon: <Cpu size={18} />, color: C.indigo, temp: cpuTempStr, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: `${Math.round(metrics.ram_usage)}%`, sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`, icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: `${Math.round(metrics.disk_usage)}%`, sub: `${metrics.used_disk.toFixed(1)} / ${metrics.total_disk.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
+    { label: "Disk Usage", value: `${diskUsagePct}%`, sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
   ] : [
-    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, temp: "", trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: "...", sub: "Waiting for data", icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
     { label: "Disk Usage", value: "...", sub: "Waiting for data", icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network", value: "...", sub: "Waiting for data", icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
@@ -199,15 +219,17 @@ function DashboardTab({
 
   return (
     <div className="space-y-5">
-      {/* hero health */}
+      {/* hero health (Glassmorphism) */}
       <GradientCard
-        gradient="linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%)"
-        className="text-white border-0"
+        className="text-white border border-white/40 shadow-xl relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, rgba(79,70,229,0.9) 0%, rgba(124,58,237,0.85) 50%, rgba(14,165,233,0.9) 100%)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
       >
-        <div className="absolute inset-0 opacity-10" style={{
+        <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{
           backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }} />
+        {/* iOS Glass Edge Reflection */}
+        <div className="absolute inset-0 border-t border-white/30 rounded-2xl pointer-events-none" />
         <div className="relative flex items-center justify-between flex-wrap gap-6">
           <div>
             <p className="text-indigo-100 text-sm mb-1">System Health Score</p>
@@ -222,7 +244,7 @@ function DashboardTab({
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
             <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
             <RadialGauge value={metrics ? Math.round(metrics.ram_usage) : 0} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={metrics ? Math.round(metrics.disk_usage) : 0} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge value={diskUsagePct} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
@@ -256,8 +278,10 @@ function DashboardTab({
                 {s.trend !== 0 ? `${Math.abs(s.trend)}%` : "—"}
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{s.sub}</div>
+            <div className="text-2xl font-bold text-slate-800">
+              {s.label === "CPU Usage" && s.temp ? s.temp : s.value}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5 truncate">{s.sub}</div>
             <div className="text-xs font-medium mt-2" style={{ color: s.color }}>{s.label}</div>
           </GradientCard>
         ))}
@@ -299,7 +323,7 @@ function DashboardTab({
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "CPU"]} />
-                <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} />
+                <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -339,29 +363,32 @@ function DashboardTab({
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "RAM"]} />
-                <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} />
+                <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </GradientCard>
 
         {/* Disk pie */}
-        <GradientCard className="md:col-span-1">
-          <div className="flex items-center justify-between mb-2">
+        <GradientCard className="md:col-span-1" style={{ background: "white", overflow: "auto" }}>
+          <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-slate-700">Disk Space</span>
           </div>
-          <div className="flex items-center gap-3">
-            <PieChart width={80} height={80}>
-              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 0 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 100 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
-                <Cell key="used" fill={C.amber} />
-                <Cell key="free" fill="#f1f5f9" />
-              </Pie>
-            </PieChart>
-            <div>
-              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 0}%</div>
-              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : "..."} GB used</div>
-              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : "..."} GB free</div>
-            </div>
+          <div className="space-y-3">
+            {metrics?.disks.map((d, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs font-medium text-slate-700">
+                  <span>{d.name}</span>
+                  <span>{Math.round((d.used / d.total) * 100)}%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-slate-100">
+                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${(d.used / d.total) * 100}%`, background: C.amber }} />
+                </div>
+                <div className="text-[10px] text-slate-400 text-right">
+                  {d.used.toFixed(1)} GB / {d.total.toFixed(1)} GB
+                </div>
+              </div>
+            )) || <div className="text-xs text-slate-400">Loading disks...</div>}
           </div>
         </GradientCard>
       </div>
@@ -370,46 +397,110 @@ function DashboardTab({
       <GradientCard>
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          
+          {/* Junk Cleaner Action */}
+          <div className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all"
+            style={{ background: `${C.indigo}08`, borderColor: `${C.indigo}20` }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.indigo}15`, color: C.indigo }}>
+              {cleanJunkState === "done" ? <CheckCircle2 size={18} /> : <Trash2 size={18} />}
+            </div>
+            <div className="text-center mb-2">
+              <div className="text-xs font-semibold text-slate-700">
+                {cleanJunkState === "scan" ? "Clean Junk" : cleanJunkState === "clean" ? "Found Junk" : "Cleaned!"}
+              </div>
+              <div className="text-[10px] text-slate-400">
+                {cleanJunkState === "scan" ? "Scan PC" : cleanJunkState === "clean" ? junkSize : `Freed ${freedJunk}`}
+              </div>
+            </div>
+            {cleanJunkState === "scan" && (
+              <button onClick={() => setTab("cleaner")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
+                style={{ color: "#3730a3", background: `${C.indigo}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.indigo}20` }}>
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+                Scan
+              </button>
+            )}
+            {cleanJunkState === "clean" && (
+              <button onClick={async () => {
+                const jSize = junkSize.replace(" ready", "");
+                try {
+                  await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
+                  setJunkItems([]);
+                  setFreedJunk(jSize);
+                  setCleanJunkState("done");
+                } catch(e) {}
+              }} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
+                style={{ color: "#3730a3", background: `${C.indigo}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.indigo}20` }}>
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+                Clean
+              </button>
+            )}
+            {cleanJunkState === "done" && (
+              <button onClick={() => setCleanJunkState("scan")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
+                style={{ color: "#475569", background: "rgba(241,245,249,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.6)" }}>
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent pointer-events-none" />
+                Done
+              </button>
+            )}
+          </div>
+
+          {/* RAM Cleaner Action */}
+          <div className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all"
+            style={{ background: `${C.violet}08`, borderColor: `${C.violet}20` }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.violet}15`, color: C.violet }}>
+              {ramCleanState === "cleaning" ? <RefreshCw size={18} className="animate-spin" /> : ramCleanState === "done" ? <CheckCircle2 size={18} /> : <MemoryStick size={18} />}
+            </div>
+            <div className="text-center mb-2">
+              <div className="text-xs font-semibold text-slate-700">RAM Cleaner</div>
+              <div className="text-[10px] text-slate-400">
+                {ramCleanState === "ready" ? "Free up memory" : ramCleanState === "cleaning" ? "Optimizing..." : `Freed ${freedRam}`}
+              </div>
+            </div>
+            {ramCleanState === "ready" && (
+              <button onClick={async () => {
+                setRamCleanState("cleaning");
+                try {
+                  const bytes: number = await invoke("clean_ram");
+                  const mb = (bytes / 1048576).toFixed(1);
+                  setFreedRam(`${mb} MB`);
+                } catch(e) {}
+                setTimeout(() => setRamCleanState("done"), 1200);
+              }} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
+                style={{ color: "#5b21b6", background: `${C.violet}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.violet}20` }}>
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+                Clean
+              </button>
+            )}
+            {ramCleanState === "cleaning" && (
+              <button disabled className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm cursor-not-allowed"
+                style={{ color: "#7c3aed", background: "rgba(124,58,237,0.05)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(124,58,237,0.1)" }}>
+                Wait...
+              </button>
+            )}
+            {ramCleanState === "done" && (
+              <button onClick={() => setRamCleanState("ready")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
+                style={{ color: "#475569", background: "rgba(241,245,249,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.6)" }}>
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent pointer-events-none" />
+                Done
+              </button>
+            )}
+          </div>
+
           {[
-            { id: "cleaner", icon: <Trash2 size={18} />, label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk", sub: junkSize, color: C.indigo, tab: "cleaner" as Tab },
-            { id: "booster", icon: <Zap size={18} />, label: "Boost Now", sub: "8 tweaks ready", color: C.violet, tab: "booster" as Tab },
             { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCountStr, color: C.amber, tab: "startup" as Tab },
             { id: "privacy", icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose, tab: "privacy" as Tab },
           ].map((a) => (
             <button
               key={a.id}
-              onClick={async (e) => {
-                if (a.id === "cleaner") {
-                  if (junkSize === "Scanning..." || junkItems.length === 0 || isCleaningJunk || isJunkCleaned) {
-                    if (junkItems.length === 0 && junkSize === "0 MB ready") {
-                      setTab(a.tab);
-                    }
-                    return;
-                  }
-                  setIsCleaningJunk(true);
-                  try {
-                    await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
-                    setJunkItems([]);
-                    setIsJunkCleaned(true);
-                    setTimeout(() => setIsJunkCleaned(false), 3000);
-                  } catch (err) {
-                    console.error(err);
-                  } finally {
-                    setIsCleaningJunk(false);
-                  }
-                } else {
-                  setTab(a.tab);
-                }
-              }}
+              onClick={() => setTab(a.tab)}
               className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               style={{ background: `${a.color}08`, borderColor: `${a.color}20` }}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${a.color}15`, color: a.color }}>
-                {a.id === "cleaner" && isCleaningJunk ? <RefreshCw size={18} className="animate-spin" /> : a.icon}
+                {a.icon}
               </div>
               <div className="text-center">
                 <div className="text-xs font-semibold text-slate-700">{a.label}</div>
-                <div className="text-xs text-slate-400">{a.sub}</div>
+                <div className="text-[10px] text-slate-400">{a.sub}</div>
               </div>
             </button>
           ))}
@@ -1117,7 +1208,7 @@ function SettingsTab({ appName, appVersion }: { appName: string, appVersion: str
           </div>
           <div className="flex flex-col items-center justify-center py-2">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-white border border-slate-100 shadow-sm overflow-hidden">
-              <img src="/src/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+              <img src="/app-icon.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
             <div className="text-base font-bold text-slate-800">{appName}</div>
             <div className="text-xs text-slate-500 mb-2">Version {appVersion}</div>
@@ -1262,6 +1353,8 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
+  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
+  const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [appVersion, setAppVersion] = useState("0.8.0");
   const [appName, setAppName] = useState("Cpulse");
 
@@ -1284,7 +1377,11 @@ export default function App() {
   let score = 100;
   let issues: string[] = [];
 
-  const diskUsage = metrics ? metrics.disk_usage : 0;
+  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
+  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+  const diskUsagePctGlobal = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+
+  const diskUsage = diskUsagePctGlobal;
   if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
   else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
 
@@ -1316,16 +1413,22 @@ export default function App() {
       unlisten = await listen<any>("system-metrics", (event) => {
         const metrics = event.payload;
         setMetrics(metrics);
+        setCpuData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.cpu_usage) }]);
+        setRamData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.ram_usage) }]);
 
         if (!globalSettings.realTimeMonitoring) return;
         
-        if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
+        const tDiskUsed = metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0);
+        const tDiskSize = metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0) || 1;
+        const dPct = Math.round((tDiskUsed / tDiskSize) * 100);
+
+        if (dPct > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
           if (globalSettings.notifications) {
             setNotifications(prev => [{
               id: Date.now(),
               title: "Disk Space Low",
-              desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
+              desc: `Overall disk usage is at ${dPct}% capacity.`,
               time: "Just now",
               unread: true
             }, ...prev]);
@@ -1369,7 +1472,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
             style={{ background: "white" }}>
-            <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/app-icon.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
             <span className="text-sm font-bold text-slate-800">{appName}</span>
@@ -1424,8 +1527,12 @@ export default function App() {
                       {notifications.map(n => (
                         <div 
                           key={n.id} 
-                          className={cn("px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-default", n.unread ? "bg-indigo-50/30" : "")} 
-                          onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? {...x, unread: false} : x))}
+                          className={cn("px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-pointer", n.unread ? "bg-indigo-50/30" : "")} 
+                          onClick={() => {
+                            setNotifications(prev => prev.map(x => x.id === n.id ? {...x, unread: false} : x));
+                            setShowNotif(false);
+                            if (n.title.includes("Disk")) setTab("cleaner");
+                          }}
                         >
                           <div className="flex gap-3">
                             <div className={cn("w-2 h-2 rounded-full mt-1.5 flex-shrink-0 transition-all", n.unread ? "bg-indigo-500" : "bg-transparent")} />
@@ -1497,21 +1604,29 @@ export default function App() {
 
           <div className="mt-auto px-1 transition-all duration-500 ease-in-out">
             {/* score card */}
-            <div className="rounded-xl p-3.5 mb-2"
-              style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.3)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={13} color="rgba(255,255,255,0.8)" />
-                <span className="text-xs text-indigo-100 font-medium">Health Score</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{score} / 100</div>
-              <div className="text-xs text-indigo-200 mt-0.5">{healthText} — {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
-              <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
-                <div className="h-1.5 rounded-full bg-white/80 transition-all" style={{ width: `${score}%` }} />
+            <div className="rounded-xl p-3.5 mb-2 relative overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.15)]"
+              style={{ 
+                background: "rgba(79,70,229,0.15)", 
+                backdropFilter: "blur(24px) saturate(180%)", 
+                WebkitBackdropFilter: "blur(24px) saturate(180%)",
+                border: "1px solid rgba(79,70,229,0.2)"
+              }}>
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent pointer-events-none mix-blend-overlay" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={13} style={{ color: C.indigo }} />
+                  <span className="text-xs font-semibold tracking-wide" style={{ color: C.indigo }}>Health Score</span>
+                </div>
+                <div className="text-3xl font-black tracking-tight" style={{ color: C.indigo }}>{score} <span className="text-lg opacity-60 font-bold">/ 100</span></div>
+                <div className="text-xs mt-0.5 font-medium opacity-80" style={{ color: C.indigo }}>{healthText} — {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
+                <div className="w-full h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: "rgba(79,70,229,0.15)" }}>
+                  <div className="h-full rounded-full transition-all shadow-[0_0_8px_rgba(79,70,229,0.4)]" style={{ width: `${score}%`, background: "linear-gradient(90deg, #4f46e5, #7c3aed)" }} />
+                </div>
               </div>
             </div>
 
             {/* last scan */}
-            <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs">
+            <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs mt-2">
               <div className="text-slate-400 mb-1">Last cleaned</div>
               <div className="font-semibold text-slate-700">Belum ada</div>
               <div className="text-slate-400">0 GB freed</div>
@@ -1529,7 +1644,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mt-0.5">{TAB_DESC[tab]}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
+            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} cpuData={cpuData} ramData={ramData} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
             {tab === "cleaner" && <CleanerTab />}
             {tab === "booster" && <BoosterTab />}
             {tab === "startup" && <StartupTab />}
