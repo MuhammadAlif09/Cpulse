@@ -32,14 +32,14 @@ const RAM_HISTORY = Array.from({ length: 20 }, (_, i) => ({
   t: i, v: Math.round(55 + Math.sin(i * 0.3) * 8 + Math.random() * 5),
 }));
 
-const JUNK_CATEGORIES = [
-  { name: "Windows Temp Files", size: "2.4 GB", bytes: 2400, count: 18432, color: C.indigo, icon: "🗃️" },
-  { name: "Browser Cache", size: "1.1 GB", bytes: 1100, count: 7209, color: C.violet, icon: "🌐" },
-  { name: "Recycle Bin", size: "834 MB", bytes: 834, count: 294, color: C.amber, icon: "🗑️" },
-  { name: "Windows Update Cache", size: "1.8 GB", bytes: 1800, count: 43, color: C.emerald, icon: "🔄" },
-  { name: "Crash Dumps & Logs", size: "412 MB", bytes: 412, count: 1872, color: C.rose, icon: "💥" },
-  { name: "Thumbnail Cache", size: "267 MB", bytes: 267, count: 9341, color: C.pink, icon: "🖼️" },
-];
+interface JunkItem {
+  name: string;
+  size: string;
+  bytes: number;
+  count: number;
+  color: string;
+  icon: string;
+}
 
 const STARTUP_ITEMS = [
   { name: "Microsoft Teams", impact: "High", delay: 4.2, enabled: true, publisher: "Microsoft Corp.", icon: "🔵" },
@@ -369,19 +369,27 @@ function CleanerTab() {
   const [done, setDone] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [cleaned, setCleaned] = useState(false);
-  const [selected, setSelected] = useState<Record<string, boolean>>(
-    Object.fromEntries(JUNK_CATEGORIES.map((c) => [c.name, true]))
-  );
+  const [junkCats, setJunkCats] = useState<JunkItem[]>([]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startScan = () => {
+  const startScan = async () => {
     setDone(false); setCleaned(false); setProgress(0); setScanning(true);
+    
+    try {
+      const results: JunkItem[] = await invoke("scan_junk");
+      setJunkCats(results);
+      setSelected(Object.fromEntries(results.map((c) => [c.name, true])));
+    } catch (e) {
+      console.error("Scan failed:", e);
+    }
+
     let p = 0;
     intervalRef.current = setInterval(() => {
       p += Math.random() * 3.5 + 0.8;
       if (p >= 100) { p = 100; clearInterval(intervalRef.current!); setScanning(false); setDone(true); }
       setProgress(Math.min(p, 100));
-    }, 180);
+    }, 50); // faster fake progress
   };
 
   const doClean = async () => {
@@ -398,9 +406,9 @@ function CleanerTab() {
     setTimeout(() => { setCleaning(false); setCleaned(true); }, 2400);
   };
 
-  const totalSelected = JUNK_CATEGORIES.filter((c) => selected[c.name]).reduce((s, c) => s + c.bytes, 0);
-  const totalGB = (totalSelected / 1000).toFixed(1);
-  const totalFiles = JUNK_CATEGORIES.filter((c) => selected[c.name]).reduce((s, c) => s + c.count, 0);
+  const totalSelected = junkCats.filter((c) => selected[c.name]).reduce((s, c) => s + c.bytes, 0);
+  const totalGB = (totalSelected / 1_073_741_824).toFixed(2);
+  const totalFiles = junkCats.filter((c) => selected[c.name]).reduce((s, c) => s + c.count, 0);
 
   return (
     <div className="space-y-5">
@@ -472,15 +480,16 @@ function CleanerTab() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setSelected(Object.fromEntries(JUNK_CATEGORIES.map((c) => [c.name, true])))}
+              <button onClick={() => setSelected(Object.fromEntries(junkCats.map((c) => [c.name, true])))}
                 className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition">Select All</button>
-              <button onClick={() => setSelected(Object.fromEntries(JUNK_CATEGORIES.map((c) => [c.name, false])))}
+              <button onClick={() => setSelected(Object.fromEntries(junkCats.map((c) => [c.name, false])))}
                 className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition">None</button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {JUNK_CATEGORIES.map((cat) => {
-              const pct = (cat.bytes / 2400) * 100;
+            {junkCats.map((cat) => {
+              const maxBytes = Math.max(...junkCats.map(c => c.bytes), 1);
+              const pct = (cat.bytes / maxBytes) * 100;
               const isOn = selected[cat.name];
               return (
                 <button

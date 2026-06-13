@@ -26,3 +26,4 @@
 * **Perubahan Dependensi:** Jika memerlukan crate Rust atau package npm baru, jalankan `cargo check` atau `pnpm tauri dev` untuk memastikan tidak ada konflik dependensi sebelum melanjutkan penulisan kode.
 * **Update ATTRIBUTIONS.md:** Jika menggunakan library pihak ketiga yang besar, catat esensinya di file `ATTRIBUTIONS.md` untuk transparansi proyek.
 * **Test Fungsi Kritis:** Fungsi-fungsi krusial yang berkaitan dengan path matching, identifikasi file sampah, dan logika scan wajib memiliki unit test minimal di sisi Rust, untuk mencegah regresi yang berisiko menghapus file yang salah.
+* **Versioning:** Selama fase development awal, version number di `package.json` dan `src-tauri/tauri.conf.json` tidak perlu dinaikkan setiap commit kecil. Bump versi (misal 0.1.0 → 0.2.0) hanya dilakukan saat ada penambahan fitur besar yang stabil atau rilis baru, dan harus konsisten antara kedua file tersebut.
