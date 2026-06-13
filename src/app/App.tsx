@@ -921,7 +921,7 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
 }
 
 // ─── settings ────────────────────────────────────────────────────────────────
-function SettingsTab() {
+function SettingsTab({ appName, appVersion }: { appName: string, appVersion: string }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
   
@@ -1372,8 +1372,7 @@ export default function App() {
             <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
-            <span className="text-sm font-bold text-slate-800">{appName.replace(" Pro", "")}</span>
-            <span className="text-sm font-bold ml-0.5" style={{ color: C.indigo }}>Pro</span>
+            <span className="text-sm font-bold text-slate-800">{appName}</span>
             <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
               style={{ background: "#ede9fe", color: C.indigo }}>v{appVersion}</span>
           </div>
@@ -1536,7 +1535,7 @@ export default function App() {
             {tab === "startup" && <StartupTab />}
             {tab === "privacy" && <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />}
             {tab === "history" && <HistoryTab />}
-            {tab === "settings" && <SettingsTab />}
+            {tab === "settings" && <SettingsTab appName={appName} appVersion={appVersion} />}
           </div>
         </main>
       </div>
