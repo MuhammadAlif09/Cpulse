@@ -1115,8 +1115,8 @@ function SettingsTab() {
             <h3 className="text-sm font-semibold text-slate-800">About WinCleaner</h3>
           </div>
           <div className="flex flex-col items-center justify-center py-2">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 12px rgba(79,70,229,0.35)" }}>
-              <Shield size={24} color="white" />
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-white border border-slate-100 shadow-sm overflow-hidden">
+              <img src="/src/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
             <div className="text-base font-bold text-slate-800">WinCleaner Pro</div>
             <div className="text-xs text-slate-500 mb-2">Version 0.1.0</div>
@@ -1352,16 +1352,16 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="h-screen w-full flex flex-col overflow-hidden"
       style={{ background: "#f0f4ff", fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
     >
       {/* topbar */}
       <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
         style={{ borderColor: "#e2e8f0" }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 12px rgba(79,70,229,0.35)" }}>
-            <Shield size={17} color="white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
+            style={{ background: "white" }}>
+            <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
             <span className="text-sm font-bold text-slate-800">WinCleaner</span>
@@ -1488,7 +1488,7 @@ export default function App() {
             );
           })}
 
-          <div className="mt-auto px-1">
+          <div className="mt-auto px-1 transition-all duration-500 ease-in-out">
             {/* score card */}
             <div className="rounded-xl p-3.5 mb-2"
               style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.3)" }}>
