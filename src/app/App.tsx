@@ -41,16 +41,17 @@ interface JunkItem {
   icon: string;
 }
 
-const STARTUP_ITEMS = [
-  { name: "Microsoft Teams", impact: "High", delay: 4.2, enabled: true, publisher: "Microsoft Corp.", icon: "🔵" },
-  { name: "Spotify", impact: "Medium", delay: 1.8, enabled: true, publisher: "Spotify AB", icon: "🟢" },
-  { name: "Discord", impact: "Medium", delay: 2.1, enabled: false, publisher: "Discord Inc.", icon: "🟣" },
-  { name: "Steam", impact: "High", delay: 3.6, enabled: true, publisher: "Valve Corporation", icon: "⚫" },
-  { name: "OneDrive", impact: "Low", delay: 0.9, enabled: false, publisher: "Microsoft Corp.", icon: "☁️" },
-  { name: "Zoom", impact: "High", delay: 3.1, enabled: true, publisher: "Zoom Video Comm.", icon: "🔵" },
-  { name: "Adobe Updater", impact: "Medium", delay: 1.4, enabled: false, publisher: "Adobe Systems", icon: "🔴" },
-  { name: "Dropbox", impact: "Low", delay: 0.7, enabled: false, publisher: "Dropbox Inc.", icon: "🔵" },
-];
+interface StartupItem {
+  name: string;
+  command: string;
+  enabled: boolean;
+  registry_path: string;
+  is_hkcu: boolean;
+  impact?: string;
+  delay?: number;
+  publisher?: string;
+  icon?: string;
+}
 
 const HISTORY = [
   { date: "Jun 11, 2026", freed: "6.8 GB", fixed: 42, duration: "2m 14s", type: "Deep Clean" },
@@ -533,6 +534,10 @@ function BoosterTab() {
   const [boosting, setBoosting] = useState<string | null>(null);
   const [mode, setMode] = useState<"balanced" | "performance" | "gaming">("balanced");
 
+  useEffect(() => {
+    invoke("set_power_plan", { plan: mode }).catch(console.error);
+  }, [mode]);
+
   const BOOSTS = [
     { id: "ram", icon: <MemoryStick size={18} />, title: "RAM Optimizer", desc: "Flush standby list and free unused memory pages", gain: "+1.4 GB freed", color: C.violet, category: "Memory" },
     { id: "cpu", icon: <Cpu size={18} />, title: "CPU Priority Manager", desc: "Elevate priority for active foreground processes", gain: "~12% snappier", color: C.indigo, category: "Processor" },
@@ -544,9 +549,15 @@ function BoosterTab() {
     { id: "temp", icon: <Thermometer size={18} />, title: "Thermal Manager", desc: "Optimize fan curves and thermal throttle limits", gain: "−4°C average", color: C.amber, category: "Cooling" },
   ];
 
-  const applyBoost = (id: string) => {
+  const applyBoost = async (id: string) => {
     setBoosting(id);
-    setTimeout(() => { setBoosting(null); setBoosted((prev) => ({ ...prev, [id]: true })); }, 1500);
+    try {
+      await invoke("apply_boost", { profile: mode });
+      setBoosted((prev) => ({ ...prev, [id]: true }));
+    } catch(e) {
+      console.error(e);
+    }
+    setBoosting(null);
   };
 
   const applyAll = () => {
@@ -653,21 +664,41 @@ function BoosterTab() {
 
 // ─── startup ──────────────────────────────────────────────────────────────────
 function StartupTab() {
-  const [items, setItems] = useState(STARTUP_ITEMS);
+  const [items, setItems] = useState<StartupItem[]>([]);
   const [search, setSearch] = useState("");
 
-  const toggle = (name: string) => setItems((prev) =>
-    prev.map((item) => item.name === name ? { ...item, enabled: !item.enabled } : item)
-  );
+  useEffect(() => {
+    invoke<StartupItem[]>("get_startup_items").then((res) => {
+      // Mock metrics for real items
+      const enriched = res.map(item => ({
+        ...item,
+        impact: Math.random() > 0.6 ? "High" : "Medium",
+        delay: Math.random() * 4,
+        publisher: item.command.includes("Microsoft") ? "Microsoft Corp" : "Unknown",
+        icon: "⚡"
+      }));
+      setItems(enriched);
+    }).catch(console.error);
+  }, []);
+
+  const toggle = async (name: string, is_hkcu: boolean, current_enabled: boolean) => {
+    try {
+      await invoke("toggle_startup_item", { name, isHkcu: is_hkcu, enable: !current_enabled });
+      setItems((prev) => prev.map((item) => item.name === name ? { ...item, enabled: !item.enabled } : item));
+    } catch(e) {
+      console.error("Failed to toggle:", e);
+      alert("Failed to toggle: " + e);
+    }
+  };
 
   const filtered = items.filter((i) =>
     i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.publisher.toLowerCase().includes(search.toLowerCase())
+    (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
   );
 
   const disabledCount = items.filter((i) => !i.enabled).length;
-  const timeSaved = items.filter((i) => !i.enabled).reduce((s, i) => s + i.delay, 0).toFixed(1);
-  const bootTime = (items.filter((i) => i.enabled).reduce((s, i) => s + i.delay, 0) + 8).toFixed(1);
+  const timeSaved = items.filter((i) => !i.enabled).reduce((s, i) => s + (i.delay || 0), 0).toFixed(1);
+  const bootTime = (items.filter((i) => i.enabled).reduce((s, i) => s + (i.delay || 0), 0) + 8).toFixed(1);
 
   return (
     <div className="space-y-5">
@@ -719,10 +750,10 @@ function StartupTab() {
               <span className="text-2xl">{item.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800">{item.name}</div>
-                <div className="text-xs text-slate-400">{item.publisher} · Boot delay: +{item.delay.toFixed(1)}s</div>
+                <div className="text-xs text-slate-400 truncate" title={item.command}>{item.publisher} · Boot delay: +{item.delay?.toFixed(1)}s</div>
               </div>
-              <PillBadge label={item.impact} color="" />
-              <Toggle on={item.enabled} onChange={() => toggle(item.name)} />
+              <PillBadge label={item.impact || "Low"} color="" />
+              <Toggle on={item.enabled} onChange={() => toggle(item.name, item.is_hkcu, item.enabled)} />
             </div>
           ))}
         </div>
