@@ -1262,8 +1262,8 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.0.0");
-  const [appName, setAppName] = useState("App");
+  const [appVersion, setAppVersion] = useState("0.2.0");
+  const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
     getVersion().then(setAppVersion).catch(console.error);

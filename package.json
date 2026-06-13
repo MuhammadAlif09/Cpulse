@@ -1,7 +1,7 @@
 {
-  "name": "WinCleaner",
+  "name": "cpulse",
   "private": true,
-  "version": "4.2.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
