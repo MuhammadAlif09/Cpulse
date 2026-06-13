@@ -818,10 +818,9 @@ function StartupTab() {
 }
 
 // ─── privacy ──────────────────────────────────────────────────────────────────
-function PrivacyTab() {
+function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, setPrivacySwept: (v: boolean) => void }) {
   const [items, setItems] = useState(PRIVACY_ITEMS);
   const [sweeping, setSweeping] = useState(false);
-  const [swept, setSwept] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>(
     Object.fromEntries(PRIVACY_ITEMS.map((i) => [i.id, true]))
   );
@@ -839,7 +838,7 @@ function PrivacyTab() {
       console.error("Sweep failed:", e);
     }
     
-    setTimeout(() => { setSweeping(false); setSwept(true); }, 2000);
+    setTimeout(() => { setSweeping(false); setPrivacySwept(true); }, 2000);
   };
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
@@ -855,7 +854,7 @@ function PrivacyTab() {
             </div>
             <p className="text-xs text-slate-500">Finds browsing history, search traces, saved passwords, and tracking data left on your PC</p>
           </div>
-          {!swept ? (
+          {!privacySwept ? (
             <button onClick={doSweep} disabled={sweeping || selectedCount === 0}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: sweeping ? "#fda4af" : "linear-gradient(135deg,#f43f5e,#ec4899)", boxShadow: sweeping ? "none" : "0 4px 14px rgba(244,63,94,0.35)" }}>
@@ -1261,6 +1260,7 @@ export default function App() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
+  const [privacySwept, setPrivacySwept] = useState(false);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
@@ -1452,6 +1452,18 @@ export default function App() {
           style={{ borderColor: "#e2e8f0" }}>
           {NAV.map((n) => {
             const active = tab === n.id;
+            
+            let badgeCount: number | undefined = n.badge;
+            if (n.id === "cleaner") {
+              badgeCount = junkItems.length > 0 ? junkItems.length : undefined;
+            } else if (n.id === "startup") {
+              const activeCount = startupItems.filter(i => i.enabled).length;
+              badgeCount = activeCount > 0 ? activeCount : undefined;
+            } else if (n.id === "privacy") {
+              const privacyCount = PRIVACY_ITEMS.filter(i => i.found).length;
+              badgeCount = privacySwept ? undefined : privacyCount;
+            }
+
             return (
               <button
                 key={n.id}
@@ -1464,12 +1476,12 @@ export default function App() {
               >
                 <span style={active ? { color: C.indigo } : { color: "#94a3b8" }}>{n.icon}</span>
                 <span className="flex-1">{n.label}</span>
-                {n.badge && (
+                {badgeCount !== undefined && (
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={active
                       ? { background: C.indigo, color: "white" }
                       : { background: "#f1f5f9", color: "#64748b" }}>
-                    {n.badge}
+                    {badgeCount}
                   </span>
                 )}
               </button>
@@ -1514,7 +1526,7 @@ export default function App() {
             {tab === "cleaner" && <CleanerTab />}
             {tab === "booster" && <BoosterTab />}
             {tab === "startup" && <StartupTab />}
-            {tab === "privacy" && <PrivacyTab />}
+            {tab === "privacy" && <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />}
             {tab === "history" && <HistoryTab />}
             {tab === "settings" && <SettingsTab />}
           </div>
