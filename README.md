@@ -5,12 +5,13 @@ WinCleaner Pro is a modern, responsive, and robust system optimization tool buil
 
 ## Features
 
-- **Dashboard:** Real-time system health metrics (CPU, RAM, Disk, Network) with interactive charts.
-- **Cleaner:** Deep scan and removal of temporary data, cache, and residual clutter to free up disk space.
-- **Booster:** Optimize system settings for balanced, performance, or gaming modes.
-- **Startup Manager:** Review and toggle applications that launch at boot to speed up startup times.
-- **Privacy Scanner:** Identify and sweep browsing history, saved passwords, and tracking data.
-- **History & Settings:** Track past cleaning sessions and customize app behavior (auto-start, system tray, etc.).
+- **Dashboard:** System overview and real-time health metrics.
+- **Cleaner:** Scan and remove junk files to free up disk space.
+- **Booster:** Tune Windows settings for maximum performance.
+- **Startup:** Manage programs that launch automatically at boot.
+- **Privacy:** Find and erase privacy traces and tracking data.
+- **History:** View past cleaning and optimization sessions.
+- **Settings:** Configure application preferences and automation.
 
 ## Tech Stack
 
