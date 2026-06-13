@@ -1,0 +1,28 @@
+# Cpulse Project Constitution & Rules (Revisi)
+
+## 1. Prinsip Keamanan Sistem (Arsitektur Utama)
+
+* **Dilarang Panic:** Kode Rust dilarang keras menggunakan `.unwrap()` atau `.expect()` pada fungsi manipulasi file, registry, dan network. Semua error harus ditangani dengan `Result<T, E>` dan di-passing secara aman ke frontend.
+* **Pemisahan Hak Akses:** Fitur yang membutuhkan hak Administrator wajib divalidasi di sisi Rust sebelum dieksekusi. Jangan hanya mengandalkan proteksi visual (disabled) di sisi frontend React.
+* **Gunakan Jalur Aman (Recycle Bin):** Untuk penghapusan file di Standard Mode (seperti sisa file unduhan), prioritaskan membuangnya ke Recycle Bin menggunakan crate `trash` alih-alih langsung menghapus permanen dengan `std::fs::remove_file`, kecuali untuk folder Temp.
+  * **Definisi Mode:** "Standard Mode" adalah mode default yang dijalankan user dari hasil scan biasa (file unduhan, cache aplikasi, dll) — wajib lewat Recycle Bin. Jika ke depan ada "Deep/Aggressive Mode" yang melakukan penghapusan permanen, hal itu wajib memiliki konfirmasi eksplisit dari user (dialog peringatan) sebelum eksekusi, dan tidak boleh jadi default.
+* **Audit Log Tindakan Pembersihan:** Setiap operasi hapus/pindah file (baik ke Recycle Bin maupun permanen) wajib dicatat ke log lokal (path file, ukuran, timestamp, hasil sukses/gagal). Log ini membantu debugging dan memberi user jejak transparansi atas apa yang telah dibersihkan.
+
+## 2. Aturan Komunikasi Backend-Frontend (Tauri)
+
+* **Metrik Latar Belakang (Streaming):** Data metrik real-time (CPU, RAM, GPU, Network) wajib dikirim dari Rust ke React menggunakan sistem *Tauri Events* (`emit`) berbasis interval/loop (per 1 detik), bukan dipanggil berulang kali menggunakan `invoke`.
+* **Aksi Sekali Eksekusi (On-Demand):** Fungsi seperti `scan_garbage()`, `clean_garbage()`, dan `trigger_admin_restart()` wajib menggunakan *Tauri Commands* (`#[tauri::command]`).
+* **Cleanup Event Listener:** Setiap komponen React yang melakukan `listen()` terhadap Tauri event wajib memanggil fungsi `unlisten` pada `useEffect` cleanup (return function), agar tidak terjadi listener ganda/memory leak saat komponen re-render atau unmount.
+
+## 3. Aturan Struktur Kode & UI (React & Tailwind)
+
+* **Konsistensi Tema:** Semua komponen UI baru wajib memanfaatkan variabel CSS dari `src/styles/theme.css` dan `globals.css`. Jangan melakukan *hardcode* warna atau font di komponen Tailwind baru.
+* **Gunakan Pustaka UI yang Ada:** Sebelum membuat komponen baru dari nol, periksa folder `src/app/components/ui/`. Gunakan komponen *shadcn/ui* yang sudah tersedia (seperti `button`, `dialog`, `card`, dll).
+* **Edukasi Pengguna:** Setiap kali membuat opsi pembersihan baru di Fase 2, wajib sertakan properti `description` dan `warning` untuk merender *tooltip* atau teks penjelasan di UI.
+* **Konsistensi State Management:** Gunakan satu pola state management yang konsisten (misalnya Zustand atau React Context) untuk data hasil scan, status real-time, dan progres cleaning. Jangan mencampur pendekatan ad-hoc (local state tersebar) untuk data yang sama dipakai di banyak komponen.
+
+## 4. Alur Kerja Git & Dokumentasi
+
+* **Perubahan Dependensi:** Jika memerlukan crate Rust atau package npm baru, jalankan `cargo check` atau `pnpm tauri dev` untuk memastikan tidak ada konflik dependensi sebelum melanjutkan penulisan kode.
+* **Update ATTRIBUTIONS.md:** Jika menggunakan library pihak ketiga yang besar, catat esensinya di file `ATTRIBUTIONS.md` untuk transparansi proyek.
+* **Test Fungsi Kritis:** Fungsi-fungsi krusial yang berkaitan dengan path matching, identifikasi file sampah, dan logika scan wajib memiliki unit test minimal di sisi Rust, untuk mencegah regresi yang berisiko menghapus file yang salah.

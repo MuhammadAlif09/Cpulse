@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
 import {
@@ -117,11 +118,50 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 }
 
 // ─── dashboard ────────────────────────────────────────────────────────────────
-function DashboardTab() {
-  const [cpuData] = useState(CPU_HISTORY);
-  const [ramData] = useState(RAM_HISTORY);
+import { listen } from "@tauri-apps/api/event";
 
-  const STATS = [
+interface SystemMetrics {
+  cpu_usage: number;
+  ram_usage: number;
+  total_ram: number;
+  used_ram: number;
+  disk_usage: number;
+  total_disk: number;
+  used_disk: number;
+  network_up: number;
+  network_down: number;
+}
+
+function DashboardTab() {
+  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(CPU_HISTORY);
+  const [ramData, setRamData] = useState<{t: number, v: number}[]>(RAM_HISTORY);
+  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+
+  useEffect(() => {
+    let unlisten: () => void;
+    let t = 20;
+
+    const setup = async () => {
+      unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
+        setMetrics(event.payload);
+        t++;
+        setCpuData(prev => [...prev.slice(1), { t, v: Math.round(event.payload.cpu_usage) }]);
+        setRamData(prev => [...prev.slice(1), { t, v: Math.round(event.payload.ram_usage) }]);
+      });
+    };
+    setup();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
+  const STATS = metrics ? [
+    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "RAM Usage", value: `${Math.round(metrics.ram_usage)}%`, sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`, icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
+    { label: "Disk Usage", value: `${Math.round(metrics.disk_usage)}%`, sub: `${metrics.used_disk.toFixed(1)} / ${metrics.total_disk.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
+    { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
+  ] : [
     { label: "CPU Usage", value: "34%", sub: "Intel i7-12700K · 8°C cool", icon: <Cpu size={18} />, color: C.indigo, trend: -3, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: "61%", sub: "9.8 / 16 GB in use", icon: <MemoryStick size={18} />, color: C.violet, trend: +4, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
     { label: "Disk Usage", value: "78%", sub: "234 / 512 GB · SSD", icon: <HardDrive size={18} />, color: C.amber, trend: +2, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
@@ -278,15 +318,15 @@ function DashboardTab() {
           </div>
           <div className="flex items-center gap-3">
             <PieChart width={80} height={80}>
-              <Pie data={[{ v: 78 }, { v: 22 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
+              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 78 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 22 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
                 <Cell key="used" fill={C.amber} />
                 <Cell key="free" fill="#f1f5f9" />
               </Pie>
             </PieChart>
             <div>
-              <div className="text-xl font-bold text-slate-800">78%</div>
-              <div className="text-xs text-slate-500">234 GB used</div>
-              <div className="text-xs text-slate-400">66 GB free</div>
+              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 78}%</div>
+              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : 234} GB used</div>
+              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : 66} GB free</div>
             </div>
           </div>
         </GradientCard>
@@ -344,8 +384,17 @@ function CleanerTab() {
     }, 180);
   };
 
-  const doClean = () => {
+  const doClean = async () => {
     setCleaning(true);
+    
+    // Attempt real clean via Rust
+    try {
+      const selectedCats = Object.keys(selected).filter(k => selected[k]);
+      await invoke("clean_junk", { categories: selectedCats });
+    } catch (e) {
+      console.error("Clean failed:", e);
+    }
+    
     setTimeout(() => { setCleaning(false); setCleaned(true); }, 2400);
   };
 
@@ -684,8 +733,17 @@ function PrivacyTab() {
 
   const toggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const doSweep = () => {
+  const doSweep = async () => {
     setSweeping(true);
+    
+    // Attempt real sweep via Rust
+    try {
+      const selectedItems = Object.keys(selected).filter(k => selected[k]);
+      await invoke("sweep_privacy", { items: selectedItems });
+    } catch (e) {
+      console.error("Sweep failed:", e);
+    }
+    
     setTimeout(() => { setSweeping(false); setSwept(true); }, 2000);
   };
 
@@ -989,6 +1047,20 @@ const TAB_DESC: Record<Tab, string> = {
 
 // ─── app ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const adminStatus = await invoke<boolean>("is_admin");
+        setIsAdmin(adminStatus);
+      } catch (error) {
+        console.error("Failed to check admin status", error);
+      }
+    };
+    checkAdmin();
+  }, []);
+
   const [tab, setTab] = useState<Tab>("dashboard");
   const [time, setTime] = useState(new Date());
   const [showNotif, setShowNotif] = useState(false);
@@ -1035,11 +1107,19 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 px-3 py-1.5 rounded-full"
-            style={{ background: "#d1fae5", border: "1px solid #a7f3d0" }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Protected
-          </div>
+          {isAdmin ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 px-3 py-1.5 rounded-full"
+              style={{ background: "#fef3c7", border: "1px solid #fde68a" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Administrator Mode
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 px-3 py-1.5 rounded-full"
+              style={{ background: "#d1fae5", border: "1px solid #a7f3d0" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Standard Mode
+            </div>
+          )}
           <span className="text-xs text-slate-400 font-mono">{time.toLocaleTimeString()}</span>
           
           <div className="relative" onClick={(e) => e.stopPropagation()}>
