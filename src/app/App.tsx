@@ -122,6 +122,8 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
 import { listen } from "@tauri-apps/api/event";
 import { Store } from "@tauri-apps/plugin-store";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 
 const store = new Store("settings.json");
 
@@ -871,6 +873,9 @@ function PrivacyTab() {
 
 // ─── settings ────────────────────────────────────────────────────────────────
 function SettingsTab() {
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState("");
+  
   const [settings, setSettings] = useState({
     startWithWindows: false,
     minimizeToTray: true,
@@ -917,6 +922,41 @@ function SettingsTab() {
 
     await store.set("user-settings", { ...settings, [key]: newVal });
     await store.save();
+  };
+
+  const checkUpdates = async () => {
+    setCheckingUpdate(true);
+    setUpdateMsg("");
+    try {
+      const update = await check();
+      if (update) {
+        setUpdateMsg(`Found ${update.version}! Downloading...`);
+        let downloaded = 0;
+        let contentLength = 0;
+        await update.downloadAndInstall((event) => {
+          switch (event.event) {
+            case 'Started':
+              contentLength = event.data.contentLength || 0;
+              break;
+            case 'Progress':
+              downloaded += event.data.chunkLength;
+              setUpdateMsg(`Downloading... ${Math.round((downloaded / contentLength) * 100)}%`);
+              break;
+            case 'Finished':
+              setUpdateMsg("Installing update...");
+              break;
+          }
+        });
+        setUpdateMsg("Update installed. Restarting...");
+        setTimeout(() => relaunch(), 1500);
+      } else {
+        setUpdateMsg("You're on the latest version.");
+      }
+    } catch (e) {
+      console.error(e);
+      setUpdateMsg("Failed to check for updates.");
+    }
+    setCheckingUpdate(false);
   };
 
   return (
@@ -1019,9 +1059,10 @@ function SettingsTab() {
               <Shield size={24} color="white" />
             </div>
             <div className="text-base font-bold text-slate-800">WinCleaner Pro</div>
-            <div className="text-xs text-slate-500 mb-4">Version 4.2.1 (Build 8492)</div>
-            <button className="px-5 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition active:scale-95">
-              Check for Updates
+            <div className="text-xs text-slate-500 mb-2">Version 0.1.0</div>
+            {updateMsg && <div className="text-xs text-indigo-600 mb-2 font-medium">{updateMsg}</div>}
+            <button onClick={checkUpdates} disabled={checkingUpdate} className="px-5 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition active:scale-95 disabled:opacity-50">
+              {checkingUpdate ? "Checking..." : "Check for Updates"}
             </button>
           </div>
         </GradientCard>
