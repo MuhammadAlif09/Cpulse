@@ -1,7 +1,7 @@
 {
   "name": "cpulse",
   "private": true,
-  "version": "4.2.2",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
