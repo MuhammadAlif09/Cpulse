@@ -2,10 +2,9 @@ use serde::Serialize;
 use std::fs;
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 use trash::delete as move_to_trash;
 use winreg::enums::*;
 use winreg::RegKey;
@@ -265,7 +264,7 @@ fn flush_dns() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
+fn sweep_privacy(_items: Vec<String>) -> Result<String, String> {
     // Basic implementation for now
     Ok("Swept successfully".into())
 }
@@ -323,13 +322,13 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
         return Err("Administrator privileges required to change HKLM startup items".into());
     }
 
-    let root = if is_hkcu {
+    let _root = if is_hkcu {
         RegKey::predef(HKEY_CURRENT_USER)
     } else {
         RegKey::predef(HKEY_LOCAL_MACHINE)
     };
-    let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    let run_approved =
+    let _run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    let _run_approved =
         "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
     // Windows 10/11 uses StartupApproved to toggle without deleting the key.
@@ -497,7 +496,7 @@ pub fn run() {
                     let mut cpu_temp = 0.0;
                     for comp in components.list() {
                         if comp.label().to_lowercase().contains("cpu") {
-                            cpu_temp = comp.temperature();
+                            cpu_temp = comp.temperature().unwrap_or(0.0);
                             break;
                         }
                     }
