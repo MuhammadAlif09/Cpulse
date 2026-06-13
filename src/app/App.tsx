@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion, getName } from "@tauri-apps/api/app";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
 import {
@@ -1118,8 +1119,8 @@ function SettingsTab() {
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-white border border-slate-100 shadow-sm overflow-hidden">
               <img src="/src/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
-            <div className="text-base font-bold text-slate-800">WinCleaner Pro</div>
-            <div className="text-xs text-slate-500 mb-2">Version 0.1.0</div>
+            <div className="text-base font-bold text-slate-800">{appName}</div>
+            <div className="text-xs text-slate-500 mb-2">Version {appVersion}</div>
             {updateMsg && <div className="text-xs text-indigo-600 mb-2 font-medium">{updateMsg}</div>}
             <button onClick={checkUpdates} disabled={checkingUpdate} className="px-5 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition active:scale-95 disabled:opacity-50">
               {checkingUpdate ? "Checking..." : "Check for Updates"}
@@ -1261,6 +1262,13 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
+  const [appVersion, setAppVersion] = useState("0.0.0");
+  const [appName, setAppName] = useState("App");
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+    getName().then(setAppName).catch(console.error);
+  }, []);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
@@ -1364,10 +1372,10 @@ export default function App() {
             <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
-            <span className="text-sm font-bold text-slate-800">WinCleaner</span>
+            <span className="text-sm font-bold text-slate-800">{appName.replace(" Pro", "")}</span>
             <span className="text-sm font-bold ml-0.5" style={{ color: C.indigo }}>Pro</span>
             <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
-              style={{ background: "#ede9fe", color: C.indigo }}>v4.2.1</span>
+              style={{ background: "#ede9fe", color: C.indigo }}>v{appVersion}</span>
           </div>
         </div>
 
