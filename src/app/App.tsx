@@ -138,53 +138,51 @@ interface SystemMetrics {
   network_down: number;
 }
 
-function DashboardTab({ setTab }: { setTab: (t: Tab) => void }) {
+function DashboardTab({ 
+  setTab, 
+  metrics, 
+  junkItems, 
+  setJunkItems,
+  startupItems, 
+  score, 
+  issues, 
+  healthText 
+}: { 
+  setTab: (t: Tab) => void;
+  metrics: SystemMetrics | null;
+  junkItems: JunkItem[];
+  setJunkItems: (items: JunkItem[]) => void;
+  startupItems: StartupItem[];
+  score: number;
+  issues: string[];
+  healthText: string;
+}) {
   const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [junkSize, setJunkSize] = useState<string>("Scanning...");
-  const [junkCats, setJunkCats] = useState<string[]>([]);
   const [isCleaningJunk, setIsCleaningJunk] = useState(false);
   const [isJunkCleaned, setIsJunkCleaned] = useState(false);
-  const [startupCount, setStartupCount] = useState<string>("Checking...");
 
   useEffect(() => {
-    invoke<JunkItem[]>("scan_junk").then((res) => {
-      const bytes = res.reduce((acc, c) => acc + c.bytes, 0);
-      setJunkCats(res.map(c => c.name));
-      if (bytes === 0) {
-        setJunkSize("0 MB ready");
-      } else if (bytes < 1024 * 1024 * 1024) {
-        setJunkSize(`${(bytes / 1048576).toFixed(1)} MB ready`);
-      } else {
-        setJunkSize(`${(bytes / 1073741824).toFixed(2)} GB ready`);
-      }
-    }).catch(() => setJunkSize("Scan failed"));
+    if (metrics) {
+      setCpuData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.cpu_usage) }]);
+      setRamData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.ram_usage) }]);
+    }
+  }, [metrics]);
 
-    invoke<StartupItem[]>("get_startup_items").then((res) => {
-      const enabledCount = res.filter(i => i.enabled).length;
-      setStartupCount(`${enabledCount} items active`);
-    }).catch(() => setStartupCount("Check failed"));
-  }, []);
+  const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
+  let junkSize = "0 MB ready";
+  if (junkItems.length === 0 && !isJunkCleaned) {
+    junkSize = "Scanning...";
+  } else if (junkBytes > 0) {
+    if (junkBytes < 1024 * 1024 * 1024) {
+      junkSize = `${(junkBytes / 1048576).toFixed(1)} MB ready`;
+    } else {
+      junkSize = `${(junkBytes / 1073741824).toFixed(2)} GB ready`;
+    }
+  }
 
-  useEffect(() => {
-    let unlisten: () => void;
-    let t = 20;
-
-    const setup = async () => {
-      unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
-        setMetrics(event.payload);
-        t++;
-        setCpuData(prev => [...prev.slice(1), { t, v: Math.round(event.payload.cpu_usage) }]);
-        setRamData(prev => [...prev.slice(1), { t, v: Math.round(event.payload.ram_usage) }]);
-      });
-    };
-    setup();
-
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, []);
+  const enabledStartupCount = startupItems.filter(i => i.enabled).length;
+  const startupCountStr = startupItems.length > 0 ? `${enabledStartupCount} items active` : "Checking...";
 
   const STATS = metrics ? [
     { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
@@ -213,10 +211,12 @@ function DashboardTab({ setTab }: { setTab: (t: Tab) => void }) {
           <div>
             <p className="text-indigo-100 text-sm mb-1">System Health Score</p>
             <div className="flex items-end gap-3">
-              <span className="text-6xl font-bold tracking-tight">72</span>
+              <span className="text-6xl font-bold tracking-tight">{score}</span>
               <span className="text-2xl text-indigo-200 mb-2">/100</span>
             </div>
-            <p className="text-indigo-100 text-sm mt-1">Your PC needs some attention — 3 issues found</p>
+            <p className="text-indigo-100 text-sm mt-1">
+              {issues.length === 0 ? "System is running optimally" : `Your PC needs some attention — ${issues.length} issue${issues.length > 1 ? 's' : ''} found`}
+            </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
             <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
@@ -225,16 +225,19 @@ function DashboardTab({ setTab }: { setTab: (t: Tab) => void }) {
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
-          {[
-            { icon: <CheckCircle2 size={13} />, text: "Real-time protection active" },
-            { icon: <CheckCircle2 size={13} />, text: "Auto-backup enabled" },
-            { icon: <AlertTriangle size={13} />, text: "3 startup items slowing boot" },
-            { icon: <AlertTriangle size={13} />, text: "Disk at 78% — consider cleaning" },
-          ].map((item) => (
-            <div key={item.text} className="flex items-center gap-1.5 text-xs text-indigo-100">
-              {item.icon}{item.text}
+          <div className="flex items-center gap-1.5 text-xs text-indigo-100">
+            <CheckCircle2 size={13} /> Real-time protection active
+          </div>
+          {issues.map((issue, idx) => (
+            <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
+              <AlertTriangle size={13} /> {issue}
             </div>
           ))}
+          {issues.length === 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-indigo-100">
+              <CheckCircle2 size={13} /> Disk and memory are healthy
+            </div>
+          )}
         </div>
       </GradientCard>
 
@@ -369,25 +372,23 @@ function DashboardTab({ setTab }: { setTab: (t: Tab) => void }) {
           {[
             { id: "cleaner", icon: <Trash2 size={18} />, label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk", sub: junkSize, color: C.indigo, tab: "cleaner" as Tab },
             { id: "booster", icon: <Zap size={18} />, label: "Boost Now", sub: "8 tweaks ready", color: C.violet, tab: "booster" as Tab },
-            { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCount, color: C.amber, tab: "startup" as Tab },
+            { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCountStr, color: C.amber, tab: "startup" as Tab },
             { id: "privacy", icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose, tab: "privacy" as Tab },
           ].map((a) => (
             <button
               key={a.id}
               onClick={async (e) => {
                 if (a.id === "cleaner") {
-                  if (junkSize === "Scanning..." || junkCats.length === 0 || isCleaningJunk || isJunkCleaned) {
-                    if (junkCats.length === 0 && junkSize === "0 MB ready") {
-                      // Already clean, maybe just go to tab or do nothing
+                  if (junkSize === "Scanning..." || junkItems.length === 0 || isCleaningJunk || isJunkCleaned) {
+                    if (junkItems.length === 0 && junkSize === "0 MB ready") {
                       setTab(a.tab);
                     }
                     return;
                   }
                   setIsCleaningJunk(true);
                   try {
-                    await invoke("clean_junk", { categories: junkCats });
-                    setJunkSize("0 MB ready");
-                    setJunkCats([]);
+                    await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
+                    setJunkItems([]);
                     setIsJunkCleaned(true);
                     setTimeout(() => setIsJunkCleaned(false), 3000);
                   } catch (err) {
@@ -1257,10 +1258,39 @@ export default function App() {
   const [time, setTime] = useState(new Date());
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+  const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
+  const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
   const [globalSettings, setGlobalSettings] = useState<any>({ notifications: true, realTimeMonitoring: true, soundEffects: false });
+
+  // Initial data fetch
+  useEffect(() => {
+    invoke<JunkItem[]>("scan_junk").then(setJunkItems).catch(console.error);
+    invoke<StartupItem[]>("get_startup_items").then(setStartupItems).catch(console.error);
+  }, []);
+
+  // Health Score Calculation
+  let score = 100;
+  let issues: string[] = [];
+
+  const diskUsage = metrics ? metrics.disk_usage : 0;
+  if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
+  else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
+
+  const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
+  if (junkBytes > 1073741824) { score -= 10; issues.push(`${(junkBytes / 1073741824).toFixed(1)} GB of junk found`); }
+  else if (junkBytes > 524288000) { issues.push(`${(junkBytes / 1048576).toFixed(1)} MB of junk found`); }
+
+  const activeStartup = startupItems.filter(i => i.enabled).length;
+  if (activeStartup > 5) { score -= 10; issues.push(`${activeStartup} startup items slowing boot`); }
+  else if (activeStartup > 2) { issues.push(`${activeStartup} startup items slowing boot`); }
+
+  if (metrics && metrics.ram_usage > 85) { score -= 10; issues.push(`High RAM usage (${Math.round(metrics.ram_usage)}%)`); }
+
+  const healthText = score >= 90 ? "Excellent" : score >= 70 ? "Good" : "Needs Attention";
 
   useEffect(() => {
     const loadGlobalSettings = async () => {
@@ -1276,9 +1306,11 @@ export default function App() {
 
     const setup = async () => {
       unlisten = await listen<any>("system-metrics", (event) => {
+        const metrics = event.payload;
+        setMetrics(metrics);
+
         if (!globalSettings.realTimeMonitoring) return;
         
-        const metrics = event.payload;
         if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
           if (globalSettings.notifications) {
@@ -1324,7 +1356,7 @@ export default function App() {
       style={{ background: "#f0f4ff", fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
     >
       {/* topbar */}
-      <div className="flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
+      <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
         style={{ borderColor: "#e2e8f0" }}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -1452,10 +1484,10 @@ export default function App() {
                 <Sparkles size={13} color="rgba(255,255,255,0.8)" />
                 <span className="text-xs text-indigo-100 font-medium">Health Score</span>
               </div>
-              <div className="text-2xl font-bold text-white">72 / 100</div>
-              <div className="text-xs text-indigo-200 mt-0.5">Good — 3 issues</div>
+              <div className="text-2xl font-bold text-white">{score} / 100</div>
+              <div className="text-xs text-indigo-200 mt-0.5">{healthText} — {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
               <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
-                <div className="h-1.5 rounded-full bg-white/80" style={{ width: "72%" }} />
+                <div className="h-1.5 rounded-full bg-white/80 transition-all" style={{ width: `${score}%` }} />
               </div>
             </div>
 
@@ -1478,7 +1510,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mt-0.5">{TAB_DESC[tab]}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab setTab={setTab} />}
+            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
             {tab === "cleaner" && <CleanerTab />}
             {tab === "booster" && <BoosterTab />}
             {tab === "startup" && <StartupTab />}
