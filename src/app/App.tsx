@@ -138,10 +138,34 @@ interface SystemMetrics {
   network_down: number;
 }
 
-function DashboardTab() {
+function DashboardTab({ setTab }: { setTab: (t: Tab) => void }) {
   const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+  const [junkSize, setJunkSize] = useState<string>("Scanning...");
+  const [junkCats, setJunkCats] = useState<string[]>([]);
+  const [isCleaningJunk, setIsCleaningJunk] = useState(false);
+  const [isJunkCleaned, setIsJunkCleaned] = useState(false);
+  const [startupCount, setStartupCount] = useState<string>("Checking...");
+
+  useEffect(() => {
+    invoke<JunkItem[]>("scan_junk").then((res) => {
+      const bytes = res.reduce((acc, c) => acc + c.bytes, 0);
+      setJunkCats(res.map(c => c.name));
+      if (bytes === 0) {
+        setJunkSize("0 MB ready");
+      } else if (bytes < 1024 * 1024 * 1024) {
+        setJunkSize(`${(bytes / 1048576).toFixed(1)} MB ready`);
+      } else {
+        setJunkSize(`${(bytes / 1073741824).toFixed(2)} GB ready`);
+      }
+    }).catch(() => setJunkSize("Scan failed"));
+
+    invoke<StartupItem[]>("get_startup_items").then((res) => {
+      const enabledCount = res.filter(i => i.enabled).length;
+      setStartupCount(`${enabledCount} items active`);
+    }).catch(() => setStartupCount("Check failed"));
+  }, []);
 
   useEffect(() => {
     let unlisten: () => void;
@@ -343,18 +367,43 @@ function DashboardTab() {
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { icon: <Trash2 size={18} />, label: "Clean Junk", sub: "6.8 GB ready", color: C.indigo },
-            { icon: <Zap size={18} />, label: "Boost Now", sub: "4 tweaks ready", color: C.violet },
-            { icon: <PackageX size={18} />, label: "Fix Startup", sub: "3 items slow", color: C.amber },
-            { icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose },
+            { id: "cleaner", icon: <Trash2 size={18} />, label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk", sub: junkSize, color: C.indigo, tab: "cleaner" as Tab },
+            { id: "booster", icon: <Zap size={18} />, label: "Boost Now", sub: "8 tweaks ready", color: C.violet, tab: "booster" as Tab },
+            { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCount, color: C.amber, tab: "startup" as Tab },
+            { id: "privacy", icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose, tab: "privacy" as Tab },
           ].map((a) => (
             <button
-              key={a.label}
+              key={a.id}
+              onClick={async (e) => {
+                if (a.id === "cleaner") {
+                  if (junkSize === "Scanning..." || junkCats.length === 0 || isCleaningJunk || isJunkCleaned) {
+                    if (junkCats.length === 0 && junkSize === "0 MB ready") {
+                      // Already clean, maybe just go to tab or do nothing
+                      setTab(a.tab);
+                    }
+                    return;
+                  }
+                  setIsCleaningJunk(true);
+                  try {
+                    await invoke("clean_junk", { categories: junkCats });
+                    setJunkSize("0 MB ready");
+                    setJunkCats([]);
+                    setIsJunkCleaned(true);
+                    setTimeout(() => setIsJunkCleaned(false), 3000);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsCleaningJunk(false);
+                  }
+                } else {
+                  setTab(a.tab);
+                }
+              }}
               className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               style={{ background: `${a.color}08`, borderColor: `${a.color}20` }}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${a.color}15`, color: a.color }}>
-                {a.icon}
+                {a.id === "cleaner" && isCleaningJunk ? <RefreshCw size={18} className="animate-spin" /> : a.icon}
               </div>
               <div className="text-center">
                 <div className="text-xs font-semibold text-slate-700">{a.label}</div>
@@ -917,6 +966,18 @@ function SettingsTab() {
     if (key === "startWithWindows") {
       if (newVal) await enable();
       else await disable();
+    } else if (key === "contextMenu") {
+      try {
+        await invoke("toggle_context_menu", { enable: newVal });
+      } catch (e) {
+        console.error("Context menu toggle failed:", e);
+      }
+    } else if (key === "autoClean") {
+      try {
+        await invoke("update_auto_clean", { enable: newVal });
+      } catch (e) {
+        console.error("Auto clean toggle failed:", e);
+      }
     }
 
     await store.set("user-settings", { ...settings, [key]: newVal });
@@ -1199,22 +1260,41 @@ export default function App() {
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
+  const [globalSettings, setGlobalSettings] = useState<any>({ notifications: true, realTimeMonitoring: true, soundEffects: false });
+
+  useEffect(() => {
+    const loadGlobalSettings = async () => {
+      const saved = await store.get("user-settings");
+      if (saved) setGlobalSettings(saved);
+    };
+    loadGlobalSettings();
+  }, [tab]); // Reload settings when tab changes just in case
+
   useEffect(() => {
     let unlisten: () => void;
     let hasNotifiedDisk = false;
 
     const setup = async () => {
       unlisten = await listen<any>("system-metrics", (event) => {
+        if (!globalSettings.realTimeMonitoring) return;
+        
         const metrics = event.payload;
         if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
-          setNotifications(prev => [{
-            id: Date.now(),
-            title: "Disk Space Low",
-            desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
-            time: "Just now",
-            unread: true
-          }, ...prev]);
+          if (globalSettings.notifications) {
+            setNotifications(prev => [{
+              id: Date.now(),
+              title: "Disk Space Low",
+              desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
+              time: "Just now",
+              unread: true
+            }, ...prev]);
+            
+            if (globalSettings.soundEffects) {
+              // Play a mock sound
+              // new Audio('/alert.mp3').play().catch(() => {});
+            }
+          }
         }
       });
     };
@@ -1223,7 +1303,7 @@ export default function App() {
     return () => {
       if (unlisten) unlisten();
     };
-  }, []);
+  }, [globalSettings.realTimeMonitoring, globalSettings.notifications, globalSettings.soundEffects]);
 
   useEffect(() => {
     const handleGlobalClick = () => setShowNotif(false);
@@ -1398,7 +1478,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mt-0.5">{TAB_DESC[tab]}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab />}
+            {tab === "dashboard" && <DashboardTab setTab={setTab} />}
             {tab === "cleaner" && <CleanerTab />}
             {tab === "booster" && <BoosterTab />}
             {tab === "startup" && <StartupTab />}

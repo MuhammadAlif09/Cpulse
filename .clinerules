@@ -10,6 +10,7 @@
 
 ## 2. Aturan Komunikasi Backend-Frontend (Tauri)
 
+saat frontend update langsung integrasikan ke backend
 * **Metrik Latar Belakang (Streaming):** Data metrik real-time (CPU, RAM, GPU, Network) wajib dikirim dari Rust ke React menggunakan sistem *Tauri Events* (`emit`) berbasis interval/loop (per 1 detik), bukan dipanggil berulang kali menggunakan `invoke`.
 * **Aksi Sekali Eksekusi (On-Demand):** Fungsi seperti `scan_garbage()`, `clean_garbage()`, dan `trigger_admin_restart()` wajib menggunakan *Tauri Commands* (`#[tauri::command]`).
 * **Cleanup Event Listener:** Setiap komponen React yang melakukan `listen()` terhadap Tauri event wajib memanggil fungsi `unlisten` pada `useEffect` cleanup (return function), agar tidak terjadi listener ganda/memory leak saat komponen re-render atau unmount.

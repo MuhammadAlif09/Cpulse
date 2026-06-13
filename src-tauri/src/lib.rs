@@ -370,6 +370,71 @@ fn set_power_plan(plan: String) -> Result<String, String> {
     }
 }
 
+fn apply_context_menu_reg(hkcu: &RegKey, base_path: &str, enable: bool) -> Result<(), String> {
+    let path = format!("Software\\Classes\\{}\\WinCleaner", base_path);
+    let cmd_path = format!("{}\\command", path);
+
+    if enable {
+        let (key, _) = hkcu.create_subkey(&path).map_err(|e| e.to_string())?;
+        key.set_value("", &"Clean with WinCleaner").map_err(|e| e.to_string())?;
+        
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_str) = exe_path.to_str() {
+                let _ = key.set_value("Icon", &format!("\"{}\",0", exe_str));
+                
+                let (cmd_key, _) = hkcu.create_subkey(&cmd_path).map_err(|e| e.to_string())?;
+                let cmd_val = format!("\"{}\" --silent-clean", exe_str);
+                let _ = cmd_key.set_value("", &cmd_val);
+            }
+        }
+    } else {
+        let _ = hkcu.delete_subkey(&cmd_path);
+        let _ = hkcu.delete_subkey(&path);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn toggle_context_menu(enable: bool) -> Result<String, String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    apply_context_menu_reg(&hkcu, "Directory\\Background\\shell", enable)?;
+    apply_context_menu_reg(&hkcu, "Directory\\shell", enable)?;
+    Ok(format!("Context menu set to {}", enable))
+}
+
+#[tauri::command]
+fn update_auto_clean(enable: bool) -> Result<String, String> {
+    if enable {
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_str = exe_path.to_str().unwrap_or_default();
+        let cmd = format!("\"{}\" --silent-clean", exe_str);
+        
+        let mut args = vec!["/create", "/tn", "WinCleanerAuto", "/tr", &cmd, "/sc", "WEEKLY", "/f"];
+        if is_elevated::is_elevated() {
+            args.push("/rl");
+            args.push("HIGHEST");
+        }
+        
+        let output = std::process::Command::new("schtasks")
+            .args(&args)
+            .creation_flags(0x08000000)
+            .output()
+            .map_err(|e| e.to_string())?;
+        
+        if output.status.success() {
+            Ok("Auto-clean scheduled".into())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
+    } else {
+        let _ = std::process::Command::new("schtasks")
+            .args(["/delete", "/tn", "WinCleanerAuto", "/f"])
+            .creation_flags(0x08000000)
+            .output();
+        Ok("Auto-clean removed".into())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -468,7 +533,9 @@ pub fn run() {
             get_startup_items,
             toggle_startup_item,
             apply_boost,
-            set_power_plan
+            set_power_plan,
+            toggle_context_menu,
+            update_auto_clean
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
