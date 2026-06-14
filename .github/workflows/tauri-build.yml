@@ -1,4 +1,4 @@
-name: Release Tauri App
+﻿name: Release Tauri App
 
 on:
   push:
@@ -46,12 +46,13 @@ jobs:
               next
             }
             found{print}
-          ' CHANGELOG.md)
-          {
-            echo "notes<<EOF"
-            echo "$NOTES"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          ' CHANGELOG.md | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+          if [ -z "$NOTES" ]; then
+            NOTES="Release version $VERSION"
+          fi
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$NOTES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - uses: tauri-apps/tauri-action@v0
         env:
