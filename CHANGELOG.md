@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade README and add .clinerules to .gitignore
 - Match README features with UI labels
 - Add placeholders for UI screenshots in README
+- Add placeholders for UI screenshots in README
 - Add Live UI Demo badge to README
 
 ### Fixed

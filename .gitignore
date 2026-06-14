@@ -12,8 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Custom rules
-.clinerules
 
 # Editor directories and files
 .vscode/*

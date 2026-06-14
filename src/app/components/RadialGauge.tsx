@@ -30,9 +30,23 @@ export function RadialGauge({
 
   return (
     <div className="flex flex-col items-center gap-1.5 w-full h-full justify-center">
-      <div className="relative flex items-center justify-center" style={{ width: size, height: size, maxWidth: '100%', maxHeight: '100%' }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90 w-full h-full" style={{ display: "block" }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackColor} strokeWidth={strokeW} />
+      <div
+        className="relative flex items-center justify-center"
+        style={{ width: size, height: size, maxWidth: "100%", maxHeight: "100%" }}
+      >
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          className="-rotate-90 w-full h-full"
+          style={{ display: "block" }}
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke={trackColor}
+            strokeWidth={strokeW}
+          />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -42,12 +56,17 @@ export function RadialGauge({
             strokeWidth={strokeW}
             strokeDasharray={`${dash} ${gap}`}
             strokeLinecap="round"
-            style={{ transition: "stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1)", filter: `drop-shadow(0 0 6px ${color}60)` }}
+            style={{
+              transition: "stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1)",
+              filter: `drop-shadow(0 0 6px ${color}60)`,
+            }}
           />
         </svg>
         {showValue && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-base font-bold" style={{ color }}>{value}%</span>
+            <span className="text-base font-bold" style={{ color }}>
+              {value}%
+            </span>
           </div>
         )}
       </div>

@@ -4,14 +4,306 @@ import { getVersion, getName } from "@tauri-apps/api/app";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
 import {
-  Shield, Trash2, Zap, Settings, ChevronRight, AlertTriangle,
-  CheckCircle2, HardDrive, Cpu, MemoryStick, Wifi, Monitor, Play,
-  RotateCcw, BarChart3, PackageX, Star, TrendingUp, Clock, Lock,
-  Globe, Bell, Eye, EyeOff, RefreshCw, Activity, Thermometer,
-  Database, ArrowUpRight, ArrowDownRight, ChevronDown, X,
-  Sparkles, Battery, Search,
+  Shield,
+  Trash2,
+  Zap,
+  Settings,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle2,
+  HardDrive,
+  Cpu,
+  MemoryStick,
+  Wifi,
+  Monitor,
+  Play,
+  RotateCcw,
+  BarChart3,
+  PackageX,
+  Star,
+  TrendingUp,
+  Clock,
+  Lock,
+  Globe,
+  Bell,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Activity,
+  Thermometer,
+  Database,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronDown,
+  X,
+  Sparkles,
+  Battery,
+  Search,
 } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+// @ts-ignore
+import AppLogo from "../assets/app-icon.png";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { DashboardTab } from "./features/DashboardTab";
+import { CleanerTab } from "./features/CleanerTab";
+import { BoosterTab } from "./features/BoosterTab";
+import { StartupTab } from "./features/StartupTab";
+import { PrivacyTab } from "./features/PrivacyTab";
+import { HistoryTab } from "./features/HistoryTab";
+import { SettingsTab } from "./features/SettingsTab";
+
+// ─── translations ────────────────────────────────────────────────────────────
+const TRANSLATIONS: Record<string, Record<string, string>> = {
+  id: {
+    Dashboard: "Dasbor",
+    Cleaner: "Pembersih",
+    Booster: "Peningkat",
+    Startup: "Awalan",
+    Privacy: "Privasi",
+    History: "Riwayat",
+    Settings: "Pengaturan",
+    "System overview and real-time health metrics":
+      "Ikhtisar sistem dan metrik kesehatan real-time",
+    "Scan and remove junk files to free up disk space":
+      "Pindai dan hapus file sampah untuk mengosongkan ruang disk",
+    "Tune Windows settings for maximum performance":
+      "Sesuaikan pengaturan Windows untuk performa maksimal",
+    "Manage programs that launch automatically at boot":
+      "Kelola program yang berjalan otomatis saat booting",
+    "Find and erase privacy traces and tracking data":
+      "Temukan dan hapus jejak privasi dan data pelacakan",
+    "View past cleaning and optimization sessions":
+      "Lihat sesi pembersihan dan optimalisasi sebelumnya",
+    "Configure application preferences and automation":
+      "Konfigurasi preferensi aplikasi dan otomatisasi",
+    "System Health Score": "Skor Kesehatan Sistem",
+    "System is running optimally": "Sistem berjalan optimal",
+    "Your PC needs some attention": "PC Anda butuh perhatian",
+    "Real-time protection active": "Perlindungan real-time aktif",
+    "Disk and memory are healthy": "Disk dan memori sehat",
+    "CPU Usage": "Penggunaan CPU",
+    "RAM Usage": "Penggunaan RAM",
+    "Disk Usage": "Penggunaan Disk",
+    "Network I/O": "Jaringan I/O",
+    "Run as Admin for Temp": "Buka sbg Admin u/ Suhu",
+    "in use": "digunakan",
+    "Waiting for data": "Menunggu data",
+    "CPU History": "Riwayat CPU",
+    "Last 20s": "20d terakhir",
+    "RAM History": "Riwayat RAM",
+    "Disk Space": "Ruang Disk",
+    "Loading disks...": "Memuat disk...",
+    "Quick Actions": "Aksi Cepat",
+    "Clean Junk": "Bersih Sampah",
+    "Found Junk": "Sampah Ditemukan",
+    "Cleaned!": "Bersih!",
+    "Scan PC": "Pindai PC",
+    ready: "siap",
+    Freed: "Dikosongkan",
+    Scan: "Pindai",
+    Clean: "Bersih",
+    "Wait...": "Tunggu...",
+    Done: "Selesai",
+    "RAM Cleaner": "Pembersih RAM",
+    "Free up memory": "Kosongkan memori",
+    "Optimizing...": "Mengoptimalkan...",
+    "Fix Startup": "Awalan",
+    "Checking...": "Memeriksa...",
+    "items active": "item aktif",
+    "Privacy Sweep": "Sapu Privasi",
+    "Traces found": "Jejak ditemukan",
+    "Junk File Scanner": "Pemindai File Sampah",
+    "Deep scan for all unnecessary files — temporary data, cache, and residual clutter":
+      "Pindai mendalam file tak perlu — data sementara, cache, dan sisa",
+    "Start Scan": "Mulai Pindai",
+    "Scanning...": "Memindai...",
+    Rescan: "Pindai Ulang",
+    "Cleaned Successfully!": "Berhasil Dibersihkan!",
+    Ready: "Siap",
+    "Scan complete": "Pindai selesai",
+    "Found — Select to Clean": "Ditemukan — Pilih untuk Dibersihkan",
+    "Select All": "Semua",
+    None: "Tidak ada",
+    files: "file",
+    "Optimization Profile": "Profil Optimalisasi",
+    "Choose how aggressively to optimize your system":
+      "Pilih seberapa agresif mengoptimalkan sistem Anda",
+    Balanced: "Seimbang",
+    Performance: "Performa",
+    Gaming: "Gaming",
+    applied: "diterapkan",
+    "Apply All": "Terapkan Semua",
+    Apply: "Terapkan",
+    "Est. Boot Time": "Est. Waktu Boot",
+    "With enabled items": "Dengan item aktif",
+    "Time Saved": "Waktu Dihemat",
+    "items disabled": "item dimatikan",
+    "High Impact": "Dampak Tinggi",
+    "Items still enabled": "Item masih aktif",
+    "Search programs...": "Cari program...",
+    "Disable All High Impact": "Matikan Semua Dampak Tinggi",
+    "Privacy Scanner": "Pemindai Privasi",
+    "Finds browsing history, search traces, saved passwords, and tracking data left on your PC":
+      "Cari riwayat, jejak pencarian, kata sandi, dan data pelacakan",
+    "Sweep Items": "Sapu Item",
+    "Sweeping...": "Menyapu...",
+    "Privacy Cleared!": "Privasi Bersih!",
+    "Privacy Traces Found": "Jejak Privasi Ditemukan",
+    "selected for removal": "dipilih untuk dihapus",
+    "Privacy Protection Tips": "Tips Perlindungan Privasi",
+    "General Preferences": "Preferensi Umum",
+    Language: "Bahasa",
+    "Select application language": "Pilih bahasa aplikasi",
+    "Start with Windows": "Mulai bersama Windows",
+    "Launch automatically when PC boots": "Jalankan otomatis saat PC menyala",
+    "Minimize to Tray": "Minimalkan ke Tray",
+    "Keep running in background when closed": "Tetap di latar saat ditutup",
+    "Context Menu Integration": "Integrasi Menu Konteks",
+    'Add "Clean with CPulse" to right-click menu': 'Tambah "Bersihkan dengan CPulse" ke klik kanan',
+    Automation: "Otomatisasi",
+    "Auto-Clean Schedule": "Jadwal Bersih Otomatis",
+    "Clean junk files automatically every week": "Bersihkan file sampah otomatis setiap minggu",
+    "Real-time Monitoring": "Pemantauan Real-time",
+    "Alert when disk space is critically low": "Peringatan saat ruang disk menipis",
+    "Automatic Updates": "Pembaruan Otomatis",
+    "Install new versions silently in background": "Instal versi baru di latar",
+    "Alerts & Sounds": "Peringatan & Suara",
+    "Push Notifications": "Notifikasi Push",
+    "Show system tray alerts for important events": "Tampilkan peringatan tray untuk acara penting",
+    "Sound Effects": "Efek Suara",
+    "Play sounds when scans or cleans finish": "Mainkan suara saat selesai",
+    "About CPulse": "Tentang CPulse",
+    Version: "Versi",
+    "Check for Updates": "Cek Pembaruan",
+    "Loading history...": "Memuat riwayat...",
+    "No cleaning history yet.": "Belum ada riwayat pembersihan.",
+    "Run your first scan!": "Jalankan pemindaian pertama Anda!",
+    "Total Freed": "Total Dikosongkan",
+    "All time": "Sepanjang waktu",
+    "Scans Run": "Pemindaian",
+    "Last 30 days": "30 hari terakhir",
+    "Issues Fixed": "Masalah Diperbaiki",
+    "Space Freed Per Month": "Ruang Dikosongkan/Bulan",
+    "Chart data will appear after a few cleanings.":
+      "Data grafik muncul setelah beberapa pembersihan.",
+    "Session Log": "Log Sesi",
+    "Administrator Mode": "Mode Administrator",
+    "Standard Mode": "Mode Standar",
+    Notifications: "Notifikasi",
+    "Clear all": "Hapus semua",
+    "No new notifications.": "Belum ada notifikasi baru.",
+    "Last cleaned": "Terakhir dibersihkan",
+    "None yet": "Belum ada",
+    freed: "dikosongkan",
+    English: "Inggris",
+    Indonesia: "Indonesia",
+    "issue found": "masalah ditemukan",
+    "issues found": "masalah ditemukan",
+    "issues fixed": "masalah diperbaiki",
+    "Disk Space Low": "Ruang Disk Menipis",
+    "Overall disk usage is at": "Penggunaan disk keseluruhan ada di",
+    "capacity.": "kapasitas.",
+    "Just now": "Baru saja",
+    "Disk at": "Disk di",
+    "consider cleaning": "pertimbangkan membersihkan",
+    "of junk found": "sampah ditemukan",
+    "startup items slowing boot": "item awalan memperlambat booting",
+    "High RAM usage": "Penggunaan RAM tinggi",
+    Excellent: "Sangat Baik",
+    Good: "Baik",
+    "Needs Attention": "Butuh Perhatian",
+    issue: "masalah",
+    issues: "masalah",
+    "RAM Optimizer": "Pengoptimal RAM",
+    "Flush standby list and free unused memory pages": "Kosongkan memori yang tidak digunakan",
+    "+1.4 GB freed": "+1.4 GB dikosongkan",
+    Memory: "Memori",
+    "CPU Priority Manager": "Manajer Prioritas CPU",
+    "Elevate priority for active foreground processes":
+      "Tingkatkan prioritas untuk proses yang sedang aktif",
+    "~12% snappier": "~12% lebih responsif",
+    Processor: "Prosesor",
+    "Network Tweaker": "Penyetel Jaringan",
+    "Optimize TCP/IP stack, DNS cache & buffer sizes":
+      "Optimalkan TCP/IP, cache DNS & ukuran buffer",
+    "−18ms latency": "−18ms latensi",
+    Network: "Jaringan",
+    "Visual Effects Trim": "Pemangkas Efek Visual",
+    "Turn off non-essential animations and transparency": "Matikan animasi yang tidak penting",
+    "+6% GPU free": "+6% GPU bebas",
+    Graphics: "Grafis",
+    "High Performance Mode": "Mode Performa Tinggi",
+    "Switch Windows power plan to maximum performance":
+      "Ubah mode daya Windows ke performa maksimal",
+    "Max clock speed": "Kecepatan clock maksimal",
+    Power: "Daya",
+    "Disk I/O Optimizer": "Pengoptimal I/O Disk",
+    "TRIM SSD, optimize prefetch and SuperFetch settings":
+      "TRIM SSD, optimalkan prefetch dan SuperFetch",
+    "−22% I/O wait": "−22% tunggu I/O",
+    Storage: "Penyimpanan",
+    "Game Mode Enhancer": "Peningkat Mode Game",
+    "Redirect resources to foreground game processes":
+      "Arahkan sumber daya ke game yang sedang berjalan",
+    "Smoother FPS": "FPS lebih mulus",
+    "Thermal Manager": "Manajer Suhu",
+    "Optimize fan curves and thermal throttle limits": "Optimalkan kurva kipas dan batas suhu",
+    "−4°C average": "−4°C rata-rata",
+    Cooling: "Pendingin",
+    "Chrome Browsing History": "Riwayat Penelusuran Chrome",
+    "1,842 URLs found": "1.842 URL ditemukan",
+    "Edge Browsing History": "Riwayat Penelusuran Edge",
+    "673 URLs found": "673 URL ditemukan",
+    "Recent Files List": "Daftar File Baru-baru Ini",
+    "128 entries": "128 entri",
+    "Clipboard History": "Riwayat Papan Klip",
+    "47 copied items": "47 item disalin",
+    "Windows Search History": "Riwayat Pencarian Windows",
+    "312 queries": "312 pencarian",
+    "Saved Wi-Fi Passwords": "Kata Sandi Wi-Fi Tersimpan",
+    "9 networks stored": "9 jaringan tersimpan",
+    "Tracking Cookies": "Kuki Pelacak",
+    "4,291 cookies": "4.291 kuki",
+    "Run Dialog History": "Riwayat Dialog Run",
+    "23 entries": "23 entri",
+    Found: "Ditemukan",
+    "Enable BitLocker encryption on your drive for full data protection.":
+      "Aktifkan enkripsi BitLocker pada disk untuk perlindungan data penuh.",
+    "Use a private DNS (like Cloudflare 1.1.1.1) to prevent ISP tracking.":
+      "Gunakan DNS pribadi untuk mencegah pelacakan ISP.",
+    "Clear cookies weekly to remove cross-site tracking data.":
+      "Bersihkan kuki setiap minggu untuk menghapus pelacakan.",
+    "Review app permissions — revoke access to camera and mic you don't need.":
+      "Tinjau izin aplikasi — cabut akses kamera dan mikrofon.",
+    Up: "Unggah",
+    Down: "Unduh",
+    "Boot delay:": "Tunda boot:",
+    pts: "poin",
+    "Deep Clean": "Pembersihan Mendalam",
+    "Quick Clean": "Pembersihan Cepat",
+    "System Cache": "Cache Sistem",
+    "Temporary Files": "File Sementara",
+    "Log Files": "File Log",
+    "Recycle Bin": "Tempat Sampah",
+    "Browser Cache": "Cache Peramban",
+    "Windows Update Cache": "Cache Pembaruan Windows",
+  },
+};
+
+const t = (lang: string, text: string) => {
+  const l = lang?.toLowerCase() === "id" ? "id" : "en";
+  if (l === "en") return text;
+  return TRANSLATIONS[l]?.[text] || text;
+};
 
 // ─── palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -58,12 +350,48 @@ interface SessionLog {
 }
 
 const PRIVACY_ITEMS = [
-  { id: "chrome_hist", label: "Chrome Browsing History", desc: "1,842 URLs found", found: true, color: C.indigo },
-  { id: "edge_hist", label: "Edge Browsing History", desc: "673 URLs found", found: true, color: C.violet },
-  { id: "recent_files", label: "Recent Files List", desc: "128 entries", found: true, color: C.amber },
-  { id: "clipboard", label: "Clipboard History", desc: "47 copied items", found: true, color: C.rose },
-  { id: "search_hist", label: "Windows Search History", desc: "312 queries", found: true, color: C.pink },
-  { id: "wifi_pass", label: "Saved Wi-Fi Passwords", desc: "9 networks stored", found: true, color: C.emerald },
+  {
+    id: "chrome_hist",
+    label: "Chrome Browsing History",
+    desc: "1,842 URLs found",
+    found: true,
+    color: C.indigo,
+  },
+  {
+    id: "edge_hist",
+    label: "Edge Browsing History",
+    desc: "673 URLs found",
+    found: true,
+    color: C.violet,
+  },
+  {
+    id: "recent_files",
+    label: "Recent Files List",
+    desc: "128 entries",
+    found: true,
+    color: C.amber,
+  },
+  {
+    id: "clipboard",
+    label: "Clipboard History",
+    desc: "47 copied items",
+    found: true,
+    color: C.rose,
+  },
+  {
+    id: "search_hist",
+    label: "Windows Search History",
+    desc: "312 queries",
+    found: true,
+    color: C.pink,
+  },
+  {
+    id: "wifi_pass",
+    label: "Saved Wi-Fi Passwords",
+    desc: "9 networks stored",
+    found: true,
+    color: C.emerald,
+  },
   { id: "cookies", label: "Tracking Cookies", desc: "4,291 cookies", found: true, color: C.cyan },
   { id: "run_hist", label: "Run Dialog History", desc: "23 entries", found: false, color: C.slate },
 ];
@@ -76,27 +404,49 @@ function cn(...classes: (string | undefined | false)[]) {
 }
 
 function GradientCard({
-  children, className = "", style = {}, gradient,
+  children,
+  className = "",
+  style = {},
+  gradient,
 }: {
-  children: React.ReactNode; className?: string; style?: React.CSSProperties; gradient?: string;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  gradient?: string;
 }) {
   return (
     <div
-      className={cn("rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden", className)}
-      style={{ background: gradient ?? "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)", ...style }}
+      className={cn(
+        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden",
+        className
+      )}
+      style={{
+        background: gradient ?? "#ffffff",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
+        ...style,
+      }}
     >
       {children}
     </div>
   );
 }
 
-function PillBadge({ label, color }: { label: string; color: string }) {
+function PillBadge({ label, color, lang }: { label: string; color: string; lang: string }) {
   const map: Record<string, string> = {
     High: "bg-rose-50 text-rose-600 border border-rose-200",
     Medium: "bg-amber-50 text-amber-600 border border-amber-200",
     Low: "bg-emerald-50 text-emerald-600 border border-emerald-200",
   };
-  return <span className={cn("text-xs px-2.5 py-0.5 rounded-full font-medium", map[label] ?? "bg-slate-100 text-slate-600")}>{label}</span>;
+  return (
+    <span
+      className={cn(
+        "text-xs px-2.5 py-0.5 rounded-full font-medium",
+        map[label] ?? "bg-slate-100 text-slate-600"
+      )}
+    >
+      {t(lang, label)}
+    </span>
+  );
 }
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
@@ -148,19 +498,16 @@ interface SystemMetrics {
 function DashboardTab({ 
   setTab, 
   metrics, 
-  cpuData,
-  ramData,
   junkItems, 
   setJunkItems,
-  startupItems, 
-  score, 
-  issues, 
-  healthText 
-}: { 
+  startupItems,
+  score,
+  issues,
+  healthText,
+}: {
+  lang: string;
   setTab: (t: Tab) => void;
   metrics: SystemMetrics | null;
-  cpuData: {t: number, v: number}[];
-  ramData: {t: number, v: number}[];
   junkItems: JunkItem[];
   setJunkItems: (items: JunkItem[]) => void;
   startupItems: StartupItem[];
@@ -185,33 +532,26 @@ function DashboardTab({
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
   let junkSize = "0 MB ready";
-  if (junkBytes > 0) {
+  if (junkItems.length === 0 && !isJunkCleaned) {
+    junkSize = "Scanning...";
+  } else if (junkBytes > 0) {
     if (junkBytes < 1024 * 1024 * 1024) {
-      junkSize = `${(junkBytes / 1048576).toFixed(1)} MB ready`;
+      junkSize = `${(junkBytes / 1048576).toFixed(1)} MB ${t(lang, "ready")}`;
     } else {
-      junkSize = `${(junkBytes / 1073741824).toFixed(2)} GB ready`;
+      junkSize = `${(junkBytes / 1073741824).toFixed(2)} GB ${t(lang, "ready")}`;
     }
   }
 
   const enabledStartupCount = startupItems.filter(i => i.enabled).length;
   const startupCountStr = startupItems.length > 0 ? `${enabledStartupCount} items active` : "Checking...";
 
-  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
-  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
-  const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
-
-  let cpuTempStr = "N/A";
-  if (metrics && metrics.cpu_temp > 0.0) {
-    cpuTempStr = `${Math.round(metrics.cpu_temp)}°C`;
-  }
-
   const STATS = metrics ? [
-    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: metrics.cpu_name, icon: <Cpu size={18} />, color: C.indigo, temp: cpuTempStr, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: `${Math.round(metrics.ram_usage)}%`, sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`, icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: `${diskUsagePct}%`, sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
+    { label: "Disk Usage", value: `${Math.round(metrics.disk_usage)}%`, sub: `${metrics.used_disk.toFixed(1)} / ${metrics.total_disk.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
   ] : [
-    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, temp: "", trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: "...", sub: "Waiting for data", icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
     { label: "Disk Usage", value: "...", sub: "Waiting for data", icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network", value: "...", sub: "Waiting for data", icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
@@ -221,44 +561,44 @@ function DashboardTab({
     <div className="space-y-5">
       {/* hero health (Glassmorphism) */}
       <GradientCard
-        className="text-white border border-white/40 shadow-xl relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, rgba(79,70,229,0.9) 0%, rgba(124,58,237,0.85) 50%, rgba(14,165,233,0.9) 100%)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}
+        gradient="linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%)"
+        className="text-white border-0"
       >
-        <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{
+        <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }} />
-        {/* iOS Glass Edge Reflection */}
-        <div className="absolute inset-0 border-t border-white/30 rounded-2xl pointer-events-none" />
         <div className="relative flex items-center justify-between flex-wrap gap-6">
           <div>
-            <p className="text-indigo-100 text-sm mb-1">System Health Score</p>
+            <p className="text-indigo-100 text-sm mb-1">{t(lang, "System Health Score")}</p>
             <div className="flex items-end gap-3">
               <span className="text-6xl font-bold tracking-tight">{score}</span>
               <span className="text-2xl text-indigo-200 mb-2">/100</span>
             </div>
             <p className="text-indigo-100 text-sm mt-1">
-              {issues.length === 0 ? "System is running optimally" : `Your PC needs some attention — ${issues.length} issue${issues.length > 1 ? 's' : ''} found`}
+              {issues.length === 0
+                ? t(lang, "System is running optimally")
+                : `${t(lang, "Your PC needs some attention")} — ${issues.length} ${t(lang, issues.length > 1 ? "issues" : "issue")}`}
             </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
             <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
             <RadialGauge value={metrics ? Math.round(metrics.ram_usage) : 0} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={diskUsagePct} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge value={metrics ? Math.round(metrics.disk_usage) : 0} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
           <div className="flex items-center gap-1.5 text-xs text-indigo-100">
-            <CheckCircle2 size={13} /> Real-time protection active
+            <CheckCircle2 size={13} /> {t(lang, "Real-time protection active")}
           </div>
           {issues.map((issue, idx) => (
             <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
-              <AlertTriangle size={13} /> {issue}
+              <AlertTriangle size={13} /> {t(lang, issue)}
             </div>
           ))}
           {issues.length === 0 && (
             <div className="flex items-center gap-1.5 text-xs text-indigo-100">
-              <CheckCircle2 size={13} /> Disk and memory are healthy
+              <CheckCircle2 size={13} /> {t(lang, "Disk and memory are healthy")}
             </div>
           )}
         </div>
@@ -269,19 +609,29 @@ function DashboardTab({
         {STATS.map((s) => (
           <GradientCard key={s.label} gradient={s.gradient}>
             <div className="flex items-start justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${s.color}20`, color: s.color }}>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: `${s.color}20`, color: s.color }}
+              >
                 {s.icon}
               </div>
-              <div className={cn("flex items-center gap-0.5 text-xs font-medium",
-                s.trend < 0 ? "text-emerald-600" : s.trend > 0 ? "text-rose-500" : "text-slate-400")}>
-                {s.trend !== 0 && (s.trend < 0 ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />)}
+              <div
+                className={cn(
+                  "flex items-center gap-0.5 text-xs font-medium",
+                  s.trend < 0
+                    ? "text-emerald-600"
+                    : s.trend > 0
+                      ? "text-rose-500"
+                      : "text-slate-400"
+                )}
+              >
+                {s.trend !== 0 &&
+                  (s.trend < 0 ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />)}
                 {s.trend !== 0 ? `${Math.abs(s.trend)}%` : "—"}
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-800">
-              {s.label === "CPU Usage" && s.temp ? s.temp : s.value}
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5 truncate">{s.sub}</div>
+            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{s.sub}</div>
             <div className="text-xs font-medium mt-2" style={{ color: s.color }}>{s.label}</div>
           </GradientCard>
         ))}
@@ -292,8 +642,8 @@ function DashboardTab({
         {/* CPU chart */}
         <GradientCard className="md:col-span-1" style={{ background: "white", overflow: "hidden" }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">CPU History</span>
-            <span className="text-xs text-slate-400">Last 20s</span>
+            <span className="text-sm font-semibold text-slate-700">{t(lang, "CPU History")}</span>
+            <span className="text-xs text-slate-400">{t(lang, "Last 20s")}</span>
           </div>
           <div className="relative">
             {/* big bg number */}
@@ -323,7 +673,7 @@ function DashboardTab({
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "CPU"]} />
-                <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -332,8 +682,8 @@ function DashboardTab({
         {/* RAM chart */}
         <GradientCard className="md:col-span-1" style={{ background: "white", overflow: "hidden" }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">RAM History</span>
-            <span className="text-xs text-slate-400">Last 20s</span>
+            <span className="text-sm font-semibold text-slate-700">{t(lang, "RAM History")}</span>
+            <span className="text-xs text-slate-400">{t(lang, "Last 20s")}</span>
           </div>
           <div className="relative">
             {/* big bg number */}
@@ -363,144 +713,77 @@ function DashboardTab({
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
                 <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "RAM"]} />
-                <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </GradientCard>
 
         {/* Disk pie */}
-        <GradientCard className="md:col-span-1" style={{ background: "white", overflow: "auto" }}>
-          <div className="flex items-center justify-between mb-3">
+        <GradientCard className="md:col-span-1">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-700">Disk Space</span>
           </div>
-          <div className="space-y-3">
-            {metrics?.disks.map((d, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-700">
-                  <span>{d.name}</span>
-                  <span>{Math.round((d.used / d.total) * 100)}%</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-slate-100">
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${(d.used / d.total) * 100}%`, background: C.amber }} />
-                </div>
-                <div className="text-[10px] text-slate-400 text-right">
-                  {d.used.toFixed(1)} GB / {d.total.toFixed(1)} GB
-                </div>
-              </div>
-            )) || <div className="text-xs text-slate-400">Loading disks...</div>}
+          <div className="flex items-center gap-3">
+            <PieChart width={80} height={80}>
+              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 0 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 100 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
+                <Cell key="used" fill={C.amber} />
+                <Cell key="free" fill="#f1f5f9" />
+              </Pie>
+            </PieChart>
+            <div>
+              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 0}%</div>
+              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : "..."} GB used</div>
+              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : "..."} GB free</div>
+            </div>
           </div>
         </GradientCard>
       </div>
 
       {/* quick actions */}
       <GradientCard>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">{t(lang, "Quick Actions")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          
-          {/* Junk Cleaner Action */}
-          <div className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all"
-            style={{ background: `${C.indigo}08`, borderColor: `${C.indigo}20` }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.indigo}15`, color: C.indigo }}>
-              {cleanJunkState === "done" ? <CheckCircle2 size={18} /> : <Trash2 size={18} />}
-            </div>
-            <div className="text-center mb-2">
-              <div className="text-xs font-semibold text-slate-700">
-                {cleanJunkState === "scan" ? "Clean Junk" : cleanJunkState === "clean" ? "Found Junk" : "Cleaned!"}
-              </div>
-              <div className="text-[10px] text-slate-400">
-                {cleanJunkState === "scan" ? "Scan PC" : cleanJunkState === "clean" ? junkSize : `Freed ${freedJunk}`}
-              </div>
-            </div>
-            {cleanJunkState === "scan" && (
-              <button onClick={() => setTab("cleaner")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
-                style={{ color: "#3730a3", background: `${C.indigo}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.indigo}20` }}>
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
-                Scan
-              </button>
-            )}
-            {cleanJunkState === "clean" && (
-              <button onClick={async () => {
-                const jSize = junkSize.replace(" ready", "");
-                try {
-                  await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
-                  setJunkItems([]);
-                  setFreedJunk(jSize);
-                  setCleanJunkState("done");
-                } catch(e) {}
-              }} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
-                style={{ color: "#3730a3", background: `${C.indigo}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.indigo}20` }}>
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
-                Clean
-              </button>
-            )}
-            {cleanJunkState === "done" && (
-              <button onClick={() => setCleanJunkState("scan")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
-                style={{ color: "#475569", background: "rgba(241,245,249,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.6)" }}>
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent pointer-events-none" />
-                Done
-              </button>
-            )}
-          </div>
-
-          {/* RAM Cleaner Action */}
-          <div className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all"
-            style={{ background: `${C.violet}08`, borderColor: `${C.violet}20` }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${C.violet}15`, color: C.violet }}>
-              {ramCleanState === "cleaning" ? <RefreshCw size={18} className="animate-spin" /> : ramCleanState === "done" ? <CheckCircle2 size={18} /> : <MemoryStick size={18} />}
-            </div>
-            <div className="text-center mb-2">
-              <div className="text-xs font-semibold text-slate-700">RAM Cleaner</div>
-              <div className="text-[10px] text-slate-400">
-                {ramCleanState === "ready" ? "Free up memory" : ramCleanState === "cleaning" ? "Optimizing..." : `Freed ${freedRam}`}
-              </div>
-            </div>
-            {ramCleanState === "ready" && (
-              <button onClick={async () => {
-                setRamCleanState("cleaning");
-                try {
-                  const bytes: number = await invoke("clean_ram");
-                  const mb = (bytes / 1048576).toFixed(1);
-                  setFreedRam(`${mb} MB`);
-                } catch(e) {}
-                setTimeout(() => setRamCleanState("done"), 1200);
-              }} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
-                style={{ color: "#5b21b6", background: `${C.violet}08`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${C.violet}20` }}>
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
-                Clean
-              </button>
-            )}
-            {ramCleanState === "cleaning" && (
-              <button disabled className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm cursor-not-allowed"
-                style={{ color: "#7c3aed", background: "rgba(124,58,237,0.05)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(124,58,237,0.1)" }}>
-                Wait...
-              </button>
-            )}
-            {ramCleanState === "done" && (
-              <button onClick={() => setRamCleanState("ready")} className="w-full text-xs py-1.5 rounded-xl font-medium transition-all relative overflow-hidden shadow-sm hover:scale-[1.02] active:scale-95"
-                style={{ color: "#475569", background: "rgba(241,245,249,0.4)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.6)" }}>
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/70 to-transparent pointer-events-none" />
-                Done
-              </button>
-            )}
-          </div>
-
           {[
+            { id: "cleaner", icon: <Trash2 size={18} />, label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk", sub: junkSize, color: C.indigo, tab: "cleaner" as Tab },
+            { id: "booster", icon: <Zap size={18} />, label: "Boost Now", sub: "8 tweaks ready", color: C.violet, tab: "booster" as Tab },
             { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCountStr, color: C.amber, tab: "startup" as Tab },
             { id: "privacy", icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose, tab: "privacy" as Tab },
           ].map((a) => (
             <button
               key={a.id}
-              onClick={() => setTab(a.tab)}
+              onClick={async (e) => {
+                if (a.id === "cleaner") {
+                  if (junkSize === "Scanning..." || junkItems.length === 0 || isCleaningJunk || isJunkCleaned) {
+                    if (junkItems.length === 0 && junkSize === "0 MB ready") {
+                      setTab(a.tab);
+                    }
+                    return;
+                  }
+                  setIsCleaningJunk(true);
+                  try {
+                    await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
+                    setJunkItems([]);
+                    setIsJunkCleaned(true);
+                    setTimeout(() => setIsJunkCleaned(false), 3000);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsCleaningJunk(false);
+                  }
+                } else {
+                  setTab(a.tab);
+                }
+              }}
               className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               style={{ background: `${a.color}08`, borderColor: `${a.color}20` }}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${a.color}15`, color: a.color }}>
-                {a.icon}
+                {a.id === "cleaner" && isCleaningJunk ? <RefreshCw size={18} className="animate-spin" /> : a.icon}
               </div>
               <div className="text-center">
                 <div className="text-xs font-semibold text-slate-700">{a.label}</div>
-                <div className="text-[10px] text-slate-400">{a.sub}</div>
+                <div className="text-xs text-slate-400">{a.sub}</div>
               </div>
             </button>
           ))}
@@ -511,7 +794,7 @@ function DashboardTab({
 }
 
 // ─── cleaner ──────────────────────────────────────────────────────────────────
-function CleanerTab() {
+function CleanerTab({ lang }: { lang: string }) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
@@ -522,8 +805,11 @@ function CleanerTab() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startScan = async () => {
-    setDone(false); setCleaned(false); setProgress(0); setScanning(true);
-    
+    setDone(false);
+    setCleaned(false);
+    setProgress(0);
+    setScanning(true);
+
     try {
       const results: JunkItem[] = await invoke("scan_junk");
       setJunkCats(results);
@@ -535,23 +821,30 @@ function CleanerTab() {
     let p = 0;
     intervalRef.current = setInterval(() => {
       p += Math.random() * 3.5 + 0.8;
-      if (p >= 100) { p = 100; clearInterval(intervalRef.current!); setScanning(false); setDone(true); }
+      if (p >= 100) {
+        p = 100;
+        clearInterval(intervalRef.current!);
+        setScanning(false);
+        setDone(true);
+      }
       setProgress(Math.min(p, 100));
     }, 50); // faster fake progress
   };
 
   const doClean = async () => {
     setCleaning(true);
-    
-    // Attempt real clean via Rust
+
     try {
-      const selectedCats = Object.keys(selected).filter(k => selected[k]);
+      const selectedCats = Object.keys(selected).filter((k) => selected[k]);
       await invoke("clean_junk", { categories: selectedCats });
     } catch (e) {
       console.error("Clean failed:", e);
     }
-    
-    setTimeout(() => { setCleaning(false); setCleaned(true); }, 2400);
+
+    setTimeout(() => {
+      setCleaning(false);
+      setCleaned(true);
+    }, 2400);
   };
 
   const totalSelected = junkCats.filter((c) => selected[c.name]).reduce((s, c) => s + c.bytes, 0);
@@ -564,39 +857,66 @@ function CleanerTab() {
       <GradientCard gradient="linear-gradient(135deg,#f8faff,#f0f4ff)">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h3 className="text-base font-semibold text-slate-800">Junk File Scanner</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Deep scan for all unnecessary files — temporary data, cache, and residual clutter</p>
+            <h3 className="text-base font-semibold text-slate-800">
+              {t(lang, "Junk File Scanner")}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t(
+                lang,
+                "Deep scan for all unnecessary files — temporary data, cache, and residual clutter"
+              )}
+            </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {!scanning && !done && (
-              <button onClick={startScan}
+              <button
+                onClick={startScan}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.4)" }}>
-                <Sparkles size={15} /> Start Scan
+                style={{
+                  background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                  boxShadow: "0 4px 14px rgba(79,70,229,0.4)",
+                }}
+              >
+                <Sparkles size={15} /> {t(lang, "Start Scan")}
               </button>
             )}
             {scanning && (
-              <button disabled className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold opacity-70 cursor-not-allowed"
-                style={{ background: "#ede9fe", color: C.indigo }}>
-                <RefreshCw size={15} className="animate-spin" /> Scanning...
+              <button
+                disabled
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold opacity-70 cursor-not-allowed"
+                style={{ background: "#ede9fe", color: C.indigo }}
+              >
+                <RefreshCw size={15} className="animate-spin" /> {t(lang, "Scanning...")}
               </button>
             )}
             {done && !cleaned && (
               <>
-                <button onClick={startScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition">
-                  <RotateCcw size={12} /> Rescan
+                <button
+                  onClick={startScan}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition"
+                >
+                  <RotateCcw size={12} /> {t(lang, "Rescan")}
                 </button>
-                <button onClick={doClean} disabled={cleaning}
+                <button
+                  onClick={doClean}
+                  disabled={cleaning}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-                  style={{ background: cleaning ? "#a5b4fc" : "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: cleaning ? "none" : "0 4px 14px rgba(79,70,229,0.4)" }}>
-                  <Trash2 size={15} /> {cleaning ? "Cleaning..." : `Clean ${totalGB} GB`}
+                  style={{
+                    background: cleaning ? "#a5b4fc" : "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                    boxShadow: cleaning ? "none" : "0 4px 14px rgba(79,70,229,0.4)",
+                  }}
+                >
+                  <Trash2 size={15} />{" "}
+                  {cleaning ? t(lang, "Wait...") : `${t(lang, "Clean")} ${totalGB} GB`}
                 </button>
               </>
             )}
             {cleaned && (
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700" style={{ background: "#d1fae5" }}>
-                <CheckCircle2 size={16} /> Cleaned Successfully!
+              <div
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700"
+                style={{ background: "#d1fae5" }}
+              >
+                <CheckCircle2 size={16} /> {t(lang, "Cleaned Successfully!")}
               </div>
             )}
           </div>
@@ -604,12 +924,19 @@ function CleanerTab() {
 
         {/* progress */}
         <div className="mb-1 flex justify-between text-xs text-slate-500">
-          <span>{scanning ? "Scanning..." : done ? "Scan complete" : "Ready"}</span>
+          <span>
+            {scanning ? t(lang, "Scanning...") : done ? t(lang, "Scan complete") : t(lang, "Ready")}
+          </span>
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="w-full h-2 rounded-full bg-slate-100 mb-4">
-          <div className="h-2 rounded-full transition-all duration-200"
-            style={{ width: `${progress}%`, background: "linear-gradient(90deg,#4f46e5,#7c3aed,#0ea5e9)" }} />
+          <div
+            className="h-2 rounded-full transition-all duration-200"
+            style={{
+              width: `${progress}%`,
+              background: "linear-gradient(90deg,#4f46e5,#7c3aed,#0ea5e9)",
+            }}
+          />
         </div>
 
         <ScanAnimation scanning={scanning} progress={progress} />
@@ -621,22 +948,34 @@ function CleanerTab() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-semibold text-slate-800">
-                {cleaned ? "✅ Cleaned! Space Freed" : "Found — Select to Clean"}
+                {cleaned
+                  ? `✅ ${t(lang, "Cleaned Successfully!")}`
+                  : t(lang, "Found — Select to Clean")}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {totalFiles.toLocaleString()} files · {totalGB} GB selected
+                {totalFiles.toLocaleString()} {t(lang, "files")} · {totalGB} GB {t(lang, "ready")}
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setSelected(Object.fromEntries(junkCats.map((c) => [c.name, true])))}
-                className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition">Select All</button>
-              <button onClick={() => setSelected(Object.fromEntries(junkCats.map((c) => [c.name, false])))}
-                className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition">None</button>
+              <button
+                onClick={() => setSelected(Object.fromEntries(junkCats.map((c) => [c.name, true])))}
+                className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition"
+              >
+                {t(lang, "Select All")}
+              </button>
+              <button
+                onClick={() =>
+                  setSelected(Object.fromEntries(junkCats.map((c) => [c.name, false])))
+                }
+                className="text-xs px-3 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50 transition"
+              >
+                {t(lang, "None")}
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {junkCats.map((cat) => {
-              const maxBytes = Math.max(...junkCats.map(c => c.bytes), 1);
+              const maxBytes = Math.max(...junkCats.map((c) => c.bytes), 1);
               const pct = (cat.bytes / maxBytes) * 100;
               const isOn = selected[cat.name];
               return (
@@ -651,19 +990,30 @@ function CleanerTab() {
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-base">{cat.icon}</span>
-                    <span className="text-sm font-medium text-slate-700 flex-1">{cat.name}</span>
-                    <div className={cn("w-4 h-4 rounded flex items-center justify-center border transition-all",
-                      isOn ? "border-0" : "border-slate-300")}
-                      style={isOn ? { background: cat.color } : {}}>
+                    <span className="text-sm font-medium text-slate-700 flex-1">
+                      {t(lang, cat.name)}
+                    </span>
+                    <div
+                      className={cn(
+                        "w-4 h-4 rounded flex items-center justify-center border transition-all",
+                        isOn ? "border-0" : "border-slate-300"
+                      )}
+                      style={isOn ? { background: cat.color } : {}}
+                    >
                       {isOn && <CheckCircle2 size={12} color="white" />}
                     </div>
                   </div>
                   <div className="flex justify-between text-xs text-slate-400 mb-1.5">
-                    <span>{cat.count.toLocaleString()} files</span>
+                    <span>
+                      {cat.count.toLocaleString()} {t(lang, "files")}
+                    </span>
                     <span style={{ color: cat.color }}>{cat.size}</span>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-slate-100">
-                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: cat.color }} />
+                    <div
+                      className="h-1.5 rounded-full transition-all"
+                      style={{ width: `${pct}%`, background: cat.color }}
+                    />
                   </div>
                 </button>
               );
@@ -676,7 +1026,7 @@ function CleanerTab() {
 }
 
 // ─── booster ──────────────────────────────────────────────────────────────────
-function BoosterTab() {
+function BoosterTab({ lang }: { lang: string }) {
   const [boosted, setBoosted] = useState<Record<string, boolean>>({});
   const [boosting, setBoosting] = useState<string | null>(null);
   const [mode, setMode] = useState<"balanced" | "performance" | "gaming">("balanced");
@@ -686,14 +1036,78 @@ function BoosterTab() {
   }, [mode]);
 
   const BOOSTS = [
-    { id: "ram", icon: <MemoryStick size={18} />, title: "RAM Optimizer", desc: "Flush standby list and free unused memory pages", gain: "+1.4 GB freed", color: C.violet, category: "Memory" },
-    { id: "cpu", icon: <Cpu size={18} />, title: "CPU Priority Manager", desc: "Elevate priority for active foreground processes", gain: "~12% snappier", color: C.indigo, category: "Processor" },
-    { id: "net", icon: <Globe size={18} />, title: "Network Tweaker", desc: "Optimize TCP/IP stack, DNS cache & buffer sizes", gain: "−18ms latency", color: C.cyan, category: "Network" },
-    { id: "visual", icon: <Monitor size={18} />, title: "Visual Effects Trim", desc: "Turn off non-essential animations and transparency", gain: "+6% GPU free", color: C.amber, category: "Graphics" },
-    { id: "power", icon: <Zap size={18} />, title: "High Performance Mode", desc: "Switch Windows power plan to maximum performance", gain: "Max clock speed", color: C.rose, category: "Power" },
-    { id: "disk", icon: <HardDrive size={18} />, title: "Disk I/O Optimizer", desc: "TRIM SSD, optimize prefetch and SuperFetch settings", gain: "−22% I/O wait", color: C.emerald, category: "Storage" },
-    { id: "game", icon: <Activity size={18} />, title: "Game Mode Enhancer", desc: "Redirect resources to foreground game processes", gain: "Smoother FPS", color: C.pink, category: "Gaming" },
-    { id: "temp", icon: <Thermometer size={18} />, title: "Thermal Manager", desc: "Optimize fan curves and thermal throttle limits", gain: "−4°C average", color: C.amber, category: "Cooling" },
+    {
+      id: "ram",
+      icon: <MemoryStick size={18} />,
+      title: "RAM Optimizer",
+      desc: "Flush standby list and free unused memory pages",
+      gain: "+1.4 GB freed",
+      color: C.violet,
+      category: "Memory",
+    },
+    {
+      id: "cpu",
+      icon: <Cpu size={18} />,
+      title: "CPU Priority Manager",
+      desc: "Elevate priority for active foreground processes",
+      gain: "~12% snappier",
+      color: C.indigo,
+      category: "Processor",
+    },
+    {
+      id: "net",
+      icon: <Globe size={18} />,
+      title: "Network Tweaker",
+      desc: "Optimize TCP/IP stack, DNS cache & buffer sizes",
+      gain: "−18ms latency",
+      color: C.cyan,
+      category: "Network",
+    },
+    {
+      id: "visual",
+      icon: <Monitor size={18} />,
+      title: "Visual Effects Trim",
+      desc: "Turn off non-essential animations and transparency",
+      gain: "+6% GPU free",
+      color: C.amber,
+      category: "Graphics",
+    },
+    {
+      id: "power",
+      icon: <Zap size={18} />,
+      title: "High Performance Mode",
+      desc: "Switch Windows power plan to maximum performance",
+      gain: "Max clock speed",
+      color: C.rose,
+      category: "Power",
+    },
+    {
+      id: "disk",
+      icon: <HardDrive size={18} />,
+      title: "Disk I/O Optimizer",
+      desc: "TRIM SSD, optimize prefetch and SuperFetch settings",
+      gain: "−22% I/O wait",
+      color: C.emerald,
+      category: "Storage",
+    },
+    {
+      id: "game",
+      icon: <Activity size={18} />,
+      title: "Game Mode Enhancer",
+      desc: "Redirect resources to foreground game processes",
+      gain: "Smoother FPS",
+      color: C.pink,
+      category: "Gaming",
+    },
+    {
+      id: "temp",
+      icon: <Thermometer size={18} />,
+      title: "Thermal Manager",
+      desc: "Optimize fan curves and thermal throttle limits",
+      gain: "−4°C average",
+      color: C.amber,
+      category: "Cooling",
+    },
   ];
 
   const applyBoost = async (id: string) => {
@@ -701,7 +1115,7 @@ function BoosterTab() {
     try {
       await invoke("apply_boost", { profile: mode });
       setBoosted((prev) => ({ ...prev, [id]: true }));
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
     setBoosting(null);
@@ -722,8 +1136,12 @@ function BoosterTab() {
       <GradientCard gradient="linear-gradient(135deg,#f8faff,#f0f4ff)">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="text-base font-semibold text-slate-800">Optimization Profile</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Choose how aggressively to optimize your system</p>
+            <h3 className="text-base font-semibold text-slate-800">
+              {t(lang, "Optimization Profile")}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t(lang, "Choose how aggressively to optimize your system")}
+            </p>
           </div>
           <div className="flex gap-2 p-1 rounded-xl bg-slate-100">
             {(["balanced", "performance", "gaming"] as const).map((m) => (
@@ -731,12 +1149,21 @@ function BoosterTab() {
                 key={m}
                 onClick={() => setMode(m)}
                 className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
-                style={mode === m
-                  ? { background: "white", color: C.indigo, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }
-                  : { color: "#64748b" }
+                style={
+                  mode === m
+                    ? {
+                        background: "white",
+                        color: C.indigo,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                      }
+                    : { color: "#64748b" }
                 }
               >
-                {m === "balanced" ? "⚖️ Balanced" : m === "performance" ? "🚀 Performance" : "🎮 Gaming"}
+                {m === "balanced"
+                  ? `⚖️ ${t(lang, "Balanced")}`
+                  : m === "performance"
+                    ? `🚀 ${t(lang, "Performance")}`
+                    : `🎮 ${t(lang, "Gaming")}`}
               </button>
             ))}
           </div>
@@ -744,22 +1171,34 @@ function BoosterTab() {
 
         <div className="mt-4 flex items-center gap-4">
           <div className="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden">
-            <div className="h-3 rounded-full transition-all duration-700"
-              style={{ width: `${(doneCount / BOOSTS.length) * 100}%`, background: "linear-gradient(90deg,#4f46e5,#7c3aed)" }} />
+            <div
+              className="h-3 rounded-full transition-all duration-700"
+              style={{
+                width: `${(doneCount / BOOSTS.length) * 100}%`,
+                background: "linear-gradient(90deg,#4f46e5,#7c3aed)",
+              }}
+            />
           </div>
           <div className="text-right flex-shrink-0">
-            <span className="text-sm font-bold text-slate-700">{doneCount}/{BOOSTS.length}</span>
-            <span className="text-xs text-slate-400 ml-1">applied</span>
+            <span className="text-sm font-bold text-slate-700">
+              {doneCount}/{BOOSTS.length}
+            </span>
+            <span className="text-xs text-slate-400 ml-1">{t(lang, "applied")}</span>
           </div>
           {doneCount < BOOSTS.length ? (
-            <button onClick={applyAll}
+            <button
+              onClick={applyAll}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-              style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.35)" }}>
-              <Zap size={14} /> Apply All
+              style={{
+                background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                boxShadow: "0 4px 14px rgba(79,70,229,0.35)",
+              }}
+            >
+              <Zap size={14} /> {t(lang, "Apply All")}
             </button>
           ) : (
             <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold px-3">
-              <CheckCircle2 size={16} /> +{scoreBoost} pts
+              <CheckCircle2 size={16} /> +{scoreBoost} {t(lang, "pts")}
             </div>
           )}
         </div>
@@ -770,12 +1209,18 @@ function BoosterTab() {
           const done = boosted[b.id];
           const loading = boosting === b.id;
           return (
-            <GradientCard key={b.id}
-              style={{ background: done ? `${b.color}05` : "white", borderColor: done ? `${b.color}25` : "#e2e8f0" }}
+            <GradientCard
+              key={b.id}
+              style={{
+                background: done ? `${b.color}05` : "white",
+                borderColor: done ? `${b.color}25` : "#e2e8f0",
+              }}
             >
               <div className="flex gap-4 items-start">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: `${b.color}15`, color: b.color }}>
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${b.color}15`, color: b.color }}
+                >
                   {b.icon}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1208,7 +1653,7 @@ function SettingsTab({ appName, appVersion }: { appName: string, appVersion: str
           </div>
           <div className="flex flex-col items-center justify-center py-2">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-white border border-slate-100 shadow-sm overflow-hidden">
-              <img src="/app-icon.png" alt="Logo" className="w-10 h-10 object-contain" />
+              <img src="/src/assets/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
             </div>
             <div className="text-base font-bold text-slate-800">{appName}</div>
             <div className="text-xs text-slate-500 mb-2">Version {appVersion}</div>
@@ -1332,7 +1777,7 @@ const TAB_DESC: Record<Tab, string> = {
 // ─── app ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   useEffect(() => {
     const checkAdmin = async () => {
       try {
@@ -1353,8 +1798,6 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [cpuData, setCpuData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
-  const [ramData, setRamData] = useState<{t: number, v: number}[]>(INITIAL_HISTORY);
   const [appVersion, setAppVersion] = useState("0.8.0");
   const [appName, setAppName] = useState("Cpulse");
 
@@ -1363,9 +1806,15 @@ export default function App() {
     getName().then(setAppName).catch(console.error);
   }, []);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
-  const [globalSettings, setGlobalSettings] = useState<any>({ notifications: true, realTimeMonitoring: true, soundEffects: false });
+  const [globalSettings, setGlobalSettings] = useState<any>({
+    notifications: false,
+    realTimeMonitoring: true,
+    soundEffects: false,
+    language: "en",
+  });
+  const [lang, setLang] = useState<string>("en");
 
   // Initial data fetch
   useEffect(() => {
@@ -1377,30 +1826,57 @@ export default function App() {
   let score = 100;
   let issues: string[] = [];
 
-  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
-  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
-  const diskUsagePctGlobal = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
-
-  const diskUsage = diskUsagePctGlobal;
+  const diskUsage = metrics ? metrics.disk_usage : 0;
   if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
   else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% — consider cleaning`); }
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
-  if (junkBytes > 1073741824) { score -= 10; issues.push(`${(junkBytes / 1073741824).toFixed(1)} GB of junk found`); }
-  else if (junkBytes > 524288000) { issues.push(`${(junkBytes / 1048576).toFixed(1)} MB of junk found`); }
+  if (junkBytes > 1073741824) {
+    score -= 10;
+    issues.push(`${(junkBytes / 1073741824).toFixed(1)} GB ${t(lang, "of junk found")}`);
+  } else if (junkBytes > 524288000) {
+    issues.push(`${(junkBytes / 1048576).toFixed(1)} MB ${t(lang, "of junk found")}`);
+  }
 
-  const activeStartup = startupItems.filter(i => i.enabled).length;
-  if (activeStartup > 5) { score -= 10; issues.push(`${activeStartup} startup items slowing boot`); }
-  else if (activeStartup > 2) { issues.push(`${activeStartup} startup items slowing boot`); }
+  const activeStartup = startupItems.filter((i) => i.enabled).length;
+  if (activeStartup > 5) {
+    score -= 10;
+    issues.push(`${activeStartup} ${t(lang, "startup items slowing boot")}`);
+  } else if (activeStartup > 2) {
+    issues.push(`${activeStartup} ${t(lang, "startup items slowing boot")}`);
+  }
 
-  if (metrics && metrics.ram_usage > 85) { score -= 10; issues.push(`High RAM usage (${Math.round(metrics.ram_usage)}%)`); }
+  if (metrics && metrics.ram_usage > 85) {
+    score -= 10;
+    issues.push(`${t(lang, "High RAM usage")} (${Math.round(metrics.ram_usage)}%)`);
+  }
 
-  const healthText = score >= 90 ? "Excellent" : score >= 70 ? "Good" : "Needs Attention";
+  const healthText =
+    score >= 90 ? t(lang, "Excellent") : score >= 70 ? t(lang, "Good") : t(lang, "Needs Attention");
 
   useEffect(() => {
     const loadGlobalSettings = async () => {
-      const saved = await store.get("user-settings");
-      if (saved) setGlobalSettings(saved);
+      const saved = (await store.get("user-settings")) as any;
+      if (saved) {
+        setGlobalSettings((prev: any) => ({ ...prev, ...saved }));
+        if (saved.language) setLang(saved.language);
+      } else {
+        const defaults = {
+          startWithWindows: false,
+          minimizeToTray: true,
+          autoUpdate: false,
+          autoClean: false,
+          realTimeMonitoring: true,
+          contextMenu: false,
+          notifications: false,
+          soundEffects: false,
+          language: "en",
+        };
+        await store.set("user-settings", defaults);
+        await store.save();
+        setGlobalSettings(defaults);
+        setLang("en");
+      }
     };
     loadGlobalSettings();
   }, [tab]); // Reload settings when tab changes just in case
@@ -1413,22 +1889,16 @@ export default function App() {
       unlisten = await listen<any>("system-metrics", (event) => {
         const metrics = event.payload;
         setMetrics(metrics);
-        setCpuData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.cpu_usage) }]);
-        setRamData(prev => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.ram_usage) }]);
 
         if (!globalSettings.realTimeMonitoring) return;
         
-        const tDiskUsed = metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0);
-        const tDiskSize = metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0) || 1;
-        const dPct = Math.round((tDiskUsed / tDiskSize) * 100);
-
-        if (dPct > 80 && !hasNotifiedDisk) {
+        if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
           if (globalSettings.notifications) {
             setNotifications(prev => [{
               id: Date.now(),
               title: "Disk Space Low",
-              desc: `Overall disk usage is at ${dPct}% capacity.`,
+              desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
               time: "Just now",
               unread: true
             }, ...prev]);
@@ -1446,7 +1916,12 @@ export default function App() {
     return () => {
       if (unlisten) unlisten();
     };
-  }, [globalSettings.realTimeMonitoring, globalSettings.notifications, globalSettings.soundEffects]);
+  }, [
+    globalSettings.realTimeMonitoring,
+    globalSettings.notifications,
+    globalSettings.soundEffects,
+    lang,
+  ]);
 
   useEffect(() => {
     const handleGlobalClick = () => setShowNotif(false);
@@ -1457,62 +1932,85 @@ export default function App() {
   }, [showNotif]);
 
   useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
+    const tInterval = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(tInterval);
   }, []);
 
   return (
     <div
       className="h-screen w-full flex flex-col overflow-hidden"
-      style={{ background: "#f0f4ff", fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" }}
+      style={{
+        background: "#f0f4ff",
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+      }}
     >
       {/* topbar */}
-      <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
-        style={{ borderColor: "#e2e8f0" }}>
+      <div
+        className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
+        style={{ borderColor: "#e2e8f0" }}
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
             style={{ background: "white" }}>
-            <img src="/app-icon.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
             <span className="text-sm font-bold text-slate-800">{appName}</span>
-            <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
-              style={{ background: "#ede9fe", color: C.indigo }}>v{appVersion}</span>
+            <span
+              className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
+              style={{ background: "#ede9fe", color: C.indigo }}
+            >
+              v{appVersion}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {isAdmin ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 px-3 py-1.5 rounded-full"
-              style={{ background: "#fef3c7", border: "1px solid #fde68a" }}>
+            <div
+              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 px-3 py-1.5 rounded-full"
+              style={{ background: "#fef3c7", border: "1px solid #fde68a" }}
+            >
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Administrator Mode
+              {t(lang, "Administrator Mode")}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 px-3 py-1.5 rounded-full"
-              style={{ background: "#d1fae5", border: "1px solid #a7f3d0" }}>
+            <div
+              className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 px-3 py-1.5 rounded-full"
+              style={{ background: "#d1fae5", border: "1px solid #a7f3d0" }}
+            >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Standard Mode
+              {t(lang, "Standard Mode")}
             </div>
           )}
           <span className="text-xs text-slate-400 font-mono">{time.toLocaleTimeString()}</span>
-          
+
           <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className={cn("relative w-8 h-8 rounded-lg flex items-center justify-center transition", showNotif ? "bg-slate-100 text-slate-700" : "text-slate-500 hover:bg-slate-100")}
+            <button
+              className={cn(
+                "relative w-8 h-8 rounded-lg flex items-center justify-center transition",
+                showNotif ? "bg-slate-100 text-slate-700" : "text-slate-500 hover:bg-slate-100"
+              )}
               onClick={() => setShowNotif(!showNotif)}
             >
               <Bell size={16} />
-              {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white" />}
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white" />
+              )}
             </button>
-            
+
             {showNotif && (
               <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200 overflow-hidden z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <span className="text-sm font-semibold text-slate-800">Notifications</span>
+                  <span className="text-sm font-semibold text-slate-800">
+                    {t(lang, "Notifications")}
+                  </span>
                   {notifications.length > 0 && (
-                    <button onClick={() => setNotifications([])} className="text-xs font-medium text-slate-500 hover:text-slate-700 transition">
-                      Clear all
+                    <button
+                      onClick={() => setNotifications([])}
+                      className="text-xs font-medium text-slate-500 hover:text-slate-700 transition"
+                    >
+                      {t(lang, "Clear all")}
                     </button>
                   )}
                 </div>
@@ -1520,26 +2018,40 @@ export default function App() {
                   {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                       <Bell size={24} className="mb-2 opacity-50" />
-                      <span className="text-xs text-center">Belum ada notifikasi baru.</span>
+                      <span className="text-xs text-center">
+                        {t(lang, "No new notifications.")}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex flex-col">
                       {notifications.map(n => (
                         <div 
                           key={n.id} 
-                          className={cn("px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-pointer", n.unread ? "bg-indigo-50/30" : "")} 
-                          onClick={() => {
-                            setNotifications(prev => prev.map(x => x.id === n.id ? {...x, unread: false} : x));
-                            setShowNotif(false);
-                            if (n.title.includes("Disk")) setTab("cleaner");
-                          }}
+                          className={cn("px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-default", n.unread ? "bg-indigo-50/30" : "")} 
+                          onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? {...x, unread: false} : x))}
                         >
                           <div className="flex gap-3">
-                            <div className={cn("w-2 h-2 rounded-full mt-1.5 flex-shrink-0 transition-all", n.unread ? "bg-indigo-500" : "bg-transparent")} />
+                            <div
+                              className={cn(
+                                "w-2 h-2 rounded-full mt-1.5 flex-shrink-0 transition-all",
+                                n.unread ? "bg-indigo-500" : "bg-transparent"
+                              )}
+                            />
                             <div>
-                              <div className={cn("text-sm mb-0.5 transition-colors", n.unread ? "font-semibold text-indigo-900" : "font-medium text-slate-800")}>{n.title}</div>
+                              <div
+                                className={cn(
+                                  "text-sm mb-0.5 transition-colors",
+                                  n.unread
+                                    ? "font-semibold text-indigo-900"
+                                    : "font-medium text-slate-800"
+                                )}
+                              >
+                                {n.title}
+                              </div>
                               <div className="text-xs text-slate-500 leading-snug">{n.desc}</div>
-                              <div className="text-[10px] text-slate-400 mt-1 font-medium">{n.time}</div>
+                              <div className="text-[10px] text-slate-400 mt-1 font-medium">
+                                {n.time}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1551,8 +2063,13 @@ export default function App() {
             )}
           </div>
 
-          <button 
-            className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition", tab === "settings" ? "bg-slate-100 text-slate-700" : "text-slate-500 hover:bg-slate-100")}
+          <button
+            className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center transition",
+              tab === "settings"
+                ? "bg-slate-100 text-slate-700"
+                : "text-slate-500 hover:bg-slate-100"
+            )}
             onClick={() => setTab("settings")}
           >
             <Settings size={16} />
@@ -1562,19 +2079,21 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* sidebar */}
-        <aside className="w-52 flex-shrink-0 border-r bg-white/70 backdrop-blur-sm flex flex-col py-4 px-3 gap-0.5"
-          style={{ borderColor: "#e2e8f0" }}>
+        <aside
+          className="w-52 flex-shrink-0 border-r bg-white/70 backdrop-blur-sm flex flex-col py-4 px-3 gap-0.5"
+          style={{ borderColor: "#e2e8f0" }}
+        >
           {NAV.map((n) => {
             const active = tab === n.id;
-            
+
             let badgeCount: number | undefined = n.badge;
             if (n.id === "cleaner") {
               badgeCount = junkItems.length > 0 ? junkItems.length : undefined;
             } else if (n.id === "startup") {
-              const activeCount = startupItems.filter(i => i.enabled).length;
+              const activeCount = startupItems.filter((i) => i.enabled).length;
               badgeCount = activeCount > 0 ? activeCount : undefined;
             } else if (n.id === "privacy") {
-              const privacyCount = PRIVACY_ITEMS.filter(i => i.found).length;
+              const privacyCount = PRIVACY_ITEMS.filter((i) => i.found).length;
               badgeCount = privacySwept ? undefined : privacyCount;
             }
 
@@ -1583,18 +2102,27 @@ export default function App() {
                 key={n.id}
                 onClick={() => setTab(n.id)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all relative text-left"
-                style={active
-                  ? { background: "linear-gradient(135deg,#ede9fe,#ddd6fe)", color: C.indigo, fontWeight: 600 }
-                  : { color: "#64748b" }
+                style={
+                  active
+                    ? {
+                        background: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
+                        color: C.indigo,
+                        fontWeight: 600,
+                      }
+                    : { color: "#64748b" }
                 }
               >
                 <span style={active ? { color: C.indigo } : { color: "#94a3b8" }}>{n.icon}</span>
-                <span className="flex-1">{n.label}</span>
+                <span className="flex-1">{t(lang, n.label)}</span>
                 {badgeCount !== undefined && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
-                    style={active
-                      ? { background: C.indigo, color: "white" }
-                      : { background: "#f1f5f9", color: "#64748b" }}>
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                    style={
+                      active
+                        ? { background: C.indigo, color: "white" }
+                        : { background: "#f1f5f9", color: "#64748b" }
+                    }
+                  >
                     {badgeCount}
                   </span>
                 )}
@@ -1604,29 +2132,21 @@ export default function App() {
 
           <div className="mt-auto px-1 transition-all duration-500 ease-in-out">
             {/* score card */}
-            <div className="rounded-xl p-3.5 mb-2 relative overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.15)]"
-              style={{ 
-                background: "rgba(79,70,229,0.15)", 
-                backdropFilter: "blur(24px) saturate(180%)", 
-                WebkitBackdropFilter: "blur(24px) saturate(180%)",
-                border: "1px solid rgba(79,70,229,0.2)"
-              }}>
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/60 to-transparent pointer-events-none mix-blend-overlay" />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={13} style={{ color: C.indigo }} />
-                  <span className="text-xs font-semibold tracking-wide" style={{ color: C.indigo }}>Health Score</span>
-                </div>
-                <div className="text-3xl font-black tracking-tight" style={{ color: C.indigo }}>{score} <span className="text-lg opacity-60 font-bold">/ 100</span></div>
-                <div className="text-xs mt-0.5 font-medium opacity-80" style={{ color: C.indigo }}>{healthText} — {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
-                <div className="w-full h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: "rgba(79,70,229,0.15)" }}>
-                  <div className="h-full rounded-full transition-all shadow-[0_0_8px_rgba(79,70,229,0.4)]" style={{ width: `${score}%`, background: "linear-gradient(90deg, #4f46e5, #7c3aed)" }} />
-                </div>
+            <div className="rounded-xl p-3.5 mb-2"
+              style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.3)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={13} color="rgba(255,255,255,0.8)" />
+                <span className="text-xs text-indigo-100 font-medium">Health Score</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{score} / 100</div>
+              <div className="text-xs text-indigo-200 mt-0.5">{healthText} — {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
+              <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
+                <div className="h-1.5 rounded-full bg-white/80 transition-all" style={{ width: `${score}%` }} />
               </div>
             </div>
 
             {/* last scan */}
-            <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs mt-2">
+            <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs">
               <div className="text-slate-400 mb-1">Last cleaned</div>
               <div className="font-semibold text-slate-700">Belum ada</div>
               <div className="text-slate-400">0 GB freed</div>
@@ -1639,18 +2159,29 @@ export default function App() {
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <h1 className="text-xl font-bold text-slate-800">
-                {NAV.find((n) => n.id === tab)?.label}
+                {t(lang, NAV.find((n) => n.id === tab)?.label || "")}
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">{TAB_DESC[tab]}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{t(lang, TAB_DESC[tab])}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} cpuData={cpuData} ramData={ramData} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
+            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
             {tab === "cleaner" && <CleanerTab />}
             {tab === "booster" && <BoosterTab />}
             {tab === "startup" && <StartupTab />}
-            {tab === "privacy" && <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />}
+            {tab === "privacy" && (
+              <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
+            )}
             {tab === "history" && <HistoryTab />}
-            {tab === "settings" && <SettingsTab appName={appName} appVersion={appVersion} />}
+            {tab === "settings" && (
+              <SettingsTab
+                appName={appName}
+                appVersion={appVersion}
+                onLanguageChange={(l) => {
+                  setLang(l);
+                  setGlobalSettings((prev: any) => ({ ...prev, language: l }));
+                }}
+              />
+            )}
           </div>
         </main>
       </div>
