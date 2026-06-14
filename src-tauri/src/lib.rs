@@ -8,6 +8,15 @@ use tauri::Emitter;
 use trash::delete as move_to_trash;
 use winreg::enums::*;
 use winreg::RegKey;
+#[cfg(target_os = "windows")]
+use windows::Win32::System::ProcessStatus::EnumProcesses;
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Memory::EmptyWorkingSet;
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{CloseHandle, HANDLE};
+
 
 #[derive(Clone, Serialize)]
 struct DiskInfo {
@@ -108,7 +117,7 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: temp_bytes,
             count: temp_count,
             color: "#4f46e5".to_string(),
-            icon: "🗃️".to_string(),
+            icon: "ÃƒÂ°Ã…Â¸Ã¢â‚¬â€Ã†â€™ÃƒÂ¯Ã‚Â¸Ã‚Â".to_string(),
         });
     }
     current_step += 1.0;
@@ -138,7 +147,7 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: browser_bytes,
             count: browser_count,
             color: "#7c3aed".to_string(),
-            icon: "🌐".to_string(),
+            icon: "ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â".to_string(),
         });
     }
     current_step += 1.0;
@@ -155,7 +164,7 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
                 bytes: s,
                 count: c,
                 color: "#10b981".to_string(),
-                icon: "🔄".to_string(),
+                icon: "ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾".to_string(),
             });
         }
     }
@@ -184,7 +193,7 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: dump_bytes,
             count: dump_count,
             color: "#f43f5e".to_string(),
-            icon: "💥".to_string(),
+            icon: "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¥".to_string(),
         });
     }
 
@@ -198,8 +207,6 @@ fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
-    current_step += 1.0;
-    let _ = app.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
             let entry_path = entry.path();
@@ -655,7 +662,7 @@ mod tests {
             bytes: 1572864,
             count: 10,
             color: "#4f46e5".to_string(),
-            icon: "🗃️".to_string(),
+            icon: "ÃƒÂ°Ã…Â¸Ã¢â‚¬â€Ã†â€™ÃƒÂ¯Ã‚Â¸Ã‚Â".to_string(),
         };
         
         assert_eq!(item.name, "Test Cache");
