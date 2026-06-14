@@ -1,4 +1,4 @@
-{
+﻿{
   "identifier": "desktop-capability",
   "platforms": [
     "macOS",
@@ -9,7 +9,12 @@
     "main"
   ],
   "permissions": [
+    "core:default",
     "autostart:default",
-    "updater:default"
+    "updater:default",
+    "store:default",
+    "process:default",
+    "fs:default",
+    "shell:default"
   ]
 }
