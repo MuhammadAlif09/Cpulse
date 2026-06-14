@@ -61,7 +61,7 @@ import { PrivacyTab } from "./features/PrivacyTab";
 import { HistoryTab } from "./features/HistoryTab";
 import { SettingsTab } from "./features/SettingsTab";
 
-// â”€â”€â”€ translations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ translations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const TRANSLATIONS: Record<string, Record<string, string>> = {
   id: {
     Dashboard: "Dasbor",
@@ -122,15 +122,15 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Privacy Sweep": "Sapu Privasi",
     "Traces found": "Jejak ditemukan",
     "Junk File Scanner": "Pemindai File Sampah",
-    "Deep scan for all unnecessary files â€” temporary data, cache, and residual clutter":
-      "Pindai mendalam file tak perlu â€” data sementara, cache, dan sisa",
+    "Deep scan for all unnecessary files Ã¢â‚¬â€ temporary data, cache, and residual clutter":
+      "Pindai mendalam file tak perlu Ã¢â‚¬â€ data sementara, cache, dan sisa",
     "Start Scan": "Mulai Pindai",
     "Scanning...": "Memindai...",
     Rescan: "Pindai Ulang",
     "Cleaned Successfully!": "Berhasil Dibersihkan!",
     Ready: "Siap",
     "Scan complete": "Pindai selesai",
-    "Found â€” Select to Clean": "Ditemukan â€” Pilih untuk Dibersihkan",
+    "Found Ã¢â‚¬â€ Select to Clean": "Ditemukan Ã¢â‚¬â€ Pilih untuk Dibersihkan",
     "Select All": "Semua",
     None: "Tidak ada",
     files: "file",
@@ -235,7 +235,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Network Tweaker": "Penyetel Jaringan",
     "Optimize TCP/IP stack, DNS cache & buffer sizes":
       "Optimalkan TCP/IP, cache DNS & ukuran buffer",
-    "âˆ’18ms latency": "âˆ’18ms latensi",
+    "Ã¢Ë†â€™18ms latency": "Ã¢Ë†â€™18ms latensi",
     Network: "Jaringan",
     "Visual Effects Trim": "Pemangkas Efek Visual",
     "Turn off non-essential animations and transparency": "Matikan animasi yang tidak penting",
@@ -249,7 +249,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Disk I/O Optimizer": "Pengoptimal I/O Disk",
     "TRIM SSD, optimize prefetch and SuperFetch settings":
       "TRIM SSD, optimalkan prefetch dan SuperFetch",
-    "âˆ’22% I/O wait": "âˆ’22% tunggu I/O",
+    "Ã¢Ë†â€™22% I/O wait": "Ã¢Ë†â€™22% tunggu I/O",
     Storage: "Penyimpanan",
     "Game Mode Enhancer": "Peningkat Mode Game",
     "Redirect resources to foreground game processes":
@@ -257,7 +257,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Smoother FPS": "FPS lebih mulus",
     "Thermal Manager": "Manajer Suhu",
     "Optimize fan curves and thermal throttle limits": "Optimalkan kurva kipas dan batas suhu",
-    "âˆ’4Â°C average": "âˆ’4Â°C rata-rata",
+    "Ã¢Ë†â€™4Ã‚Â°C average": "Ã¢Ë†â€™4Ã‚Â°C rata-rata",
     Cooling: "Pendingin",
     "Chrome Browsing History": "Riwayat Penelusuran Chrome",
     "1,842 URLs found": "1.842 URL ditemukan",
@@ -282,8 +282,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
       "Gunakan DNS pribadi untuk mencegah pelacakan ISP.",
     "Clear cookies weekly to remove cross-site tracking data.":
       "Bersihkan kuki setiap minggu untuk menghapus pelacakan.",
-    "Review app permissions â€” revoke access to camera and mic you don't need.":
-      "Tinjau izin aplikasi â€” cabut akses kamera dan mikrofon.",
+    "Review app permissions Ã¢â‚¬â€ revoke access to camera and mic you don't need.":
+      "Tinjau izin aplikasi Ã¢â‚¬â€ cabut akses kamera dan mikrofon.",
     Up: "Unggah",
     Down: "Unduh",
     "Boot delay:": "Tunda boot:",
@@ -305,7 +305,7 @@ const t = (lang: string, text: string) => {
   return TRANSLATIONS[l]?.[text] || text;
 };
 
-// â”€â”€â”€ palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ palette Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const C = {
   indigo: "#4f46e5",
   violet: "#7c3aed",
@@ -317,7 +317,7 @@ const C = {
   slate: "#64748b",
 };
 
-// â”€â”€â”€ mock data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ mock data Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
 
 interface JunkItem {
@@ -398,7 +398,7 @@ const PRIVACY_ITEMS = [
 
 type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings";
 
-// â”€â”€â”€ shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ shared helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -464,7 +464,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   );
 }
 
-// â”€â”€â”€ dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ dashboard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 import { listen } from "@tauri-apps/api/event";
 import { load } from "@tauri-apps/plugin-store";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";
@@ -574,7 +574,7 @@ function DashboardTab({
             <p className="text-indigo-100 text-sm mt-1">
               {issues.length === 0
                 ? t(lang, "System is running optimally")
-                : `${t(lang, "Your PC needs some attention")} â€” ${issues.length} ${t(lang, issues.length > 1 ? "issues" : "issue")}`}
+                : `${t(lang, "Your PC needs some attention")} Ã¢â‚¬â€ ${issues.length} ${t(lang, issues.length > 1 ? "issues" : "issue")}`}
             </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
@@ -623,7 +623,7 @@ function DashboardTab({
               >
                 {s.trend !== 0 &&
                   (s.trend < 0 ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />)}
-                {s.trend !== 0 ? `${Math.abs(s.trend)}%` : "â€”"}
+                {s.trend !== 0 ? `${Math.abs(s.trend)}%` : "Ã¢â‚¬â€"}
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-800">{s.value}</div>
@@ -789,7 +789,7 @@ function DashboardTab({
   );
 }
 
-// â”€â”€â”€ cleaner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ cleaner Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function CleanerTab({ lang }: { lang: string }) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -859,7 +859,7 @@ function CleanerTab({ lang }: { lang: string }) {
             <p className="text-xs text-slate-500 mt-0.5">
               {t(
                 lang,
-                "Deep scan for all unnecessary files â€” temporary data, cache, and residual clutter"
+                "Deep scan for all unnecessary files Ã¢â‚¬â€ temporary data, cache, and residual clutter"
               )}
             </p>
           </div>
@@ -945,11 +945,11 @@ function CleanerTab({ lang }: { lang: string }) {
             <div>
               <h3 className="text-base font-semibold text-slate-800">
                 {cleaned
-                  ? `âœ… ${t(lang, "Cleaned Successfully!")}`
-                  : t(lang, "Found â€” Select to Clean")}
+                  ? `Ã¢Å“â€¦ ${t(lang, "Cleaned Successfully!")}`
+                  : t(lang, "Found Ã¢â‚¬â€ Select to Clean")}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {totalFiles.toLocaleString()} {t(lang, "files")} Â· {totalGB} GB {t(lang, "ready")}
+                {totalFiles.toLocaleString()} {t(lang, "files")} Ã‚Â· {totalGB} GB {t(lang, "ready")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -1021,7 +1021,7 @@ function CleanerTab({ lang }: { lang: string }) {
   );
 }
 
-// â”€â”€â”€ booster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ booster Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function BoosterTab({ lang }: { lang: string }) {
   const [boosted, setBoosted] = useState<Record<string, boolean>>({});
   const [boosting, setBoosting] = useState<string | null>(null);
@@ -1055,7 +1055,7 @@ function BoosterTab({ lang }: { lang: string }) {
       icon: <Globe size={18} />,
       title: "Network Tweaker",
       desc: "Optimize TCP/IP stack, DNS cache & buffer sizes",
-      gain: "âˆ’18ms latency",
+      gain: "Ã¢Ë†â€™18ms latency",
       color: C.cyan,
       category: "Network",
     },
@@ -1082,7 +1082,7 @@ function BoosterTab({ lang }: { lang: string }) {
       icon: <HardDrive size={18} />,
       title: "Disk I/O Optimizer",
       desc: "TRIM SSD, optimize prefetch and SuperFetch settings",
-      gain: "âˆ’22% I/O wait",
+      gain: "Ã¢Ë†â€™22% I/O wait",
       color: C.emerald,
       category: "Storage",
     },
@@ -1100,7 +1100,7 @@ function BoosterTab({ lang }: { lang: string }) {
       icon: <Thermometer size={18} />,
       title: "Thermal Manager",
       desc: "Optimize fan curves and thermal throttle limits",
-      gain: "âˆ’4Â°C average",
+      gain: "Ã¢Ë†â€™4Ã‚Â°C average",
       color: C.amber,
       category: "Cooling",
     },
@@ -1156,10 +1156,10 @@ function BoosterTab({ lang }: { lang: string }) {
                 }
               >
                 {m === "balanced"
-                  ? `âš–ï¸ ${t(lang, "Balanced")}`
+                  ? `Ã¢Å¡â€“Ã¯Â¸Â ${t(lang, "Balanced")}`
                   : m === "performance"
-                    ? `ðŸš€ ${t(lang, "Performance")}`
-                    : `ðŸŽ® ${t(lang, "Gaming")}`}
+                    ? `Ã°Å¸Å¡â‚¬ ${t(lang, "Performance")}`
+                    : `Ã°Å¸Å½Â® ${t(lang, "Gaming")}`}
               </button>
             ))}
           </div>
@@ -1250,7 +1250,7 @@ function BoosterTab({ lang }: { lang: string }) {
   );
 }
 
-// â”€â”€â”€ startup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ startup Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function StartupTab() {
   const [items, setItems] = useState<StartupItem[]>([]);
   const [search, setSearch] = useState("");
@@ -1263,7 +1263,7 @@ function StartupTab() {
         impact: Math.random() > 0.6 ? "High" : "Medium",
         delay: Math.random() * 4,
         publisher: item.command.includes("Microsoft") ? "Microsoft Corp" : "Unknown",
-        icon: "âš¡"
+        icon: "Ã¢Å¡Â¡"
       }));
       setItems(enriched);
     }).catch(console.error);
@@ -1338,7 +1338,7 @@ function StartupTab() {
               <span className="text-2xl">{item.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate" title={item.command}>{item.publisher} Â· Boot delay: +{item.delay?.toFixed(1)}s</div>
+                <div className="text-xs text-slate-400 truncate" title={item.command}>{item.publisher} Ã‚Â· Boot delay: +{item.delay?.toFixed(1)}s</div>
               </div>
               <PillBadge label={item.impact || "Low"} color="" />
               <Toggle on={item.enabled} onChange={() => toggle(item.name, item.is_hkcu, item.enabled)} />
@@ -1350,7 +1350,7 @@ function StartupTab() {
   );
 }
 
-// â”€â”€â”€ privacy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ privacy Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, setPrivacySwept: (v: boolean) => void }) {
   const [items, setItems] = useState(PRIVACY_ITEMS);
   const [sweeping, setSweeping] = useState(false);
@@ -1436,10 +1436,10 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Privacy Protection Tips</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
-            { icon: "ðŸ”’", tip: "Enable BitLocker encryption on your drive for full data protection." },
-            { icon: "ðŸŒ", tip: "Use a private DNS (like Cloudflare 1.1.1.1) to prevent ISP tracking." },
-            { icon: "ðŸª", tip: "Clear cookies weekly to remove cross-site tracking data." },
-            { icon: "ðŸ“µ", tip: "Review app permissions â€” revoke access to camera and mic you don't need." },
+            { icon: "Ã°Å¸â€â€™", tip: "Enable BitLocker encryption on your drive for full data protection." },
+            { icon: "Ã°Å¸Å’Â", tip: "Use a private DNS (like Cloudflare 1.1.1.1) to prevent ISP tracking." },
+            { icon: "Ã°Å¸ÂÂª", tip: "Clear cookies weekly to remove cross-site tracking data." },
+            { icon: "Ã°Å¸â€œÂµ", tip: "Review app permissions Ã¢â‚¬â€ revoke access to camera and mic you don't need." },
           ].map((t) => (
             <div key={t.tip} className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
               <span className="text-lg">{t.icon}</span>
@@ -1452,7 +1452,7 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
   );
 }
 
-// â”€â”€â”€ settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ settings Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function SettingsTab({ appName, appVersion }: { appName: string, appVersion: string }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
@@ -1469,7 +1469,11 @@ function SettingsTab({ appName, appVersion }: { appName: string, appVersion: str
   });
 
   useEffect(() => {
-    const loadSettings = async () => {`n      if (!store) {`n        store = await load("settings.json");`n      }`n      const saved = await store.get("user-settings") as {
+    const loadSettings = async () => {
+      if (!store) {
+        store = await load("settings.json");
+      }
+      const saved = await store.get("user-settings") as {
         startWithWindows: boolean,
         minimizeToTray: boolean,
         autoUpdate: boolean,
@@ -1663,7 +1667,7 @@ function SettingsTab({ appName, appVersion }: { appName: string, appVersion: str
   );
 }
 
-// â”€â”€â”€ history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ history Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function HistoryTab() {
   const [history, setHistory] = useState<SessionLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1732,7 +1736,7 @@ function HistoryTab() {
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-medium text-slate-700">{h.date}</div>
-                    <div className="text-xs text-slate-400">{h.type} Â· {h.duration} Â· {h.fixed} issues fixed</div>
+                    <div className="text-xs text-slate-400">{h.type} Ã‚Â· {h.duration} Ã‚Â· {h.fixed} issues fixed</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-semibold" style={{ color: C.indigo }}>{h.freed}</div>
@@ -1748,7 +1752,7 @@ function HistoryTab() {
   );
 }
 
-// â”€â”€â”€ nav config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ nav config Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const NAV: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
   { id: "dashboard", label: "Dashboard", icon: <Monitor size={16} /> },
   { id: "cleaner", label: "Cleaner", icon: <Trash2 size={16} />, badge: 3 },
@@ -1769,7 +1773,7 @@ const TAB_DESC: Record<Tab, string> = {
   settings: "Configure application preferences and automation",
 };
 
-// â”€â”€â”€ app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ app Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -1822,8 +1826,8 @@ export default function App() {
   let issues: string[] = [];
 
   const diskUsage = metrics ? metrics.disk_usage : 0;
-  if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% â€” consider cleaning`); }
-  else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% â€” consider cleaning`); }
+  if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% Ã¢â‚¬â€ consider cleaning`); }
+  else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% Ã¢â‚¬â€ consider cleaning`); }
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
   if (junkBytes > 1073741824) {
@@ -1850,7 +1854,11 @@ export default function App() {
     score >= 90 ? t(lang, "Excellent") : score >= 70 ? t(lang, "Good") : t(lang, "Needs Attention");
 
   useEffect(() => {
-    const loadGlobalSettings = async () => {`n      if (!store) {`n        store = await load("settings.json");`n      }`n      const saved = (await store.get("user-settings")) as any;
+    const loadGlobalSettings = async () => {
+      if (!store) {
+        store = await load("settings.json");
+      }
+      const saved = (await store.get("user-settings")) as any;
       if (saved) {
         setGlobalSettings((prev: any) => ({ ...prev, ...saved }));
         if (saved.language) setLang(saved.language);
@@ -2133,7 +2141,7 @@ export default function App() {
                 <span className="text-xs text-indigo-100 font-medium">Health Score</span>
               </div>
               <div className="text-2xl font-bold text-white">{score} / 100</div>
-              <div className="text-xs text-indigo-200 mt-0.5">{healthText} â€” {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
+              <div className="text-xs text-indigo-200 mt-0.5">{healthText} Ã¢â‚¬â€ {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
               <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
                 <div className="h-1.5 rounded-full bg-white/80 transition-all" style={{ width: `${score}%` }} />
               </div>
