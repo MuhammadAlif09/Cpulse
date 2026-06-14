@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Adjusted opacity, added heavy backdrop blur, and glossy border reflections.
   - Standardized the Quick Actions buttons ("Scan Junk", "Clean Junk", "RAM Cleaner") to use consistent semi-transparent backgrounds matching the wrapper card.
   - Improved color contrast for texts on transparent backgrounds.
+
+### Fixed
+
+- Downgrade ESLint to 9.16.0 for compatibility with eslint-plugin-react 7.37.5
 
 ## [0.8.0] - 2026-06-13
 
@@ -35,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade README and add .clinerules to .gitignore
 - Match README features with UI labels
 - Add placeholders for UI screenshots in README
-- Add placeholders for UI screenshots in README
+  ... (1 duplicate lines)
 - Add Live UI Demo badge to README
 
 ### Fixed
@@ -45,7 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pass appName and appVersion to SettingsTab and remove 'Pro' suffix from navbar
 - Sync version to 4.2.2 based on github releases to match project rules
 - Sync version to 0.8.0 based on github releases to match project rules
-
 
 ## [0.1.1] - 2026-06-13
 
@@ -59,5 +62,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial commit
 - Add GitHub Actions workflow for Tauri build
-
-
