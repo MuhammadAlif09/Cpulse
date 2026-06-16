@@ -793,67 +793,160 @@ fn toggle_context_menu(enable: bool) -> Result<String, String> {
 
 #[tauri::command]
 fn apply_boost(id: String, profile: String) -> Result<String, String> {
+    if ["cpu", "net", "disk"].contains(&id.as_str()) && !is_elevated::is_elevated() {
+        return Err(format!("Administrator privileges are required to apply the {} boost.", id.to_uppercase()));
+    }
+
     match id.as_str() {
         "ram" => {
             let _ = clean_ram();
         }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            if let Ok((key, _)) =
-                hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
-            {
-                let _ = key.set_value("Win32PrioritySeparation", &26u32);
-            }
+            let (key, _) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("Win32PrioritySeparation", &26u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "net" => {
-            let _ = std::process::Command::new("netsh")
+            let output = std::process::Command::new("netsh")
                 .args(["int", "tcp", "set", "global", "autotuninglevel=normal"])
                 .creation_flags(0x08000000)
-                .output();
+                .output()
+                .map_err(|e| format!("Failed to execute netsh: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
         }
         "visual" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            if let Ok((key, _)) = hkcu.create_subkey(
-                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
-            ) {
-                let _ = key.set_value("VisualFXSetting", &2u32);
-            }
+            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("VisualFXSetting", &2u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "power" => {
             set_power_plan(profile)?;
         }
         "disk" => {
-            let _ = std::process::Command::new("fsutil")
+            let output = std::process::Command::new("fsutil")
                 .args(["behavior", "set", "DisableDeleteNotify", "0"])
                 .creation_flags(0x08000000)
-                .output();
+                .output()
+                .map_err(|e| format!("Failed to execute fsutil: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
         }
         "game" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            if let Ok((key, _)) = hkcu.create_subkey("Software\\Microsoft\\GameBar") {
-                let _ = key.set_value("AllowAutoGameMode", &1u32);
-                let _ = key.set_value("AutoGameModeEnabled", &1u32);
-            }
+            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\GameBar")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("AllowAutoGameMode", &1u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+            key.set_value("AutoGameModeEnabled", &1u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "temp" => {
-            let _ = std::process::Command::new("powercfg")
-                .args([
-                    "-setacvalueindex",
-                    "SCHEME_CURRENT",
-                    "SUB_PROCESSOR",
-                    "SYSCOOLPOL",
-                    "1",
-                ])
+            let output = std::process::Command::new("powercfg")
+                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "1"])
                 .creation_flags(0x08000000)
-                .output();
-            let _ = std::process::Command::new("powercfg")
+                .output()
+                .map_err(|e| format!("Failed to set powercfg cooling policy: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+            let output2 = std::process::Command::new("powercfg")
                 .args(["-setactive", "SCHEME_CURRENT"])
                 .creation_flags(0x08000000)
-                .output();
+                .output()
+                .map_err(|e| format!("Failed to apply power plan settings: {}", e))?;
+            if !output2.status.success() {
+                return Err(String::from_utf8_lossy(&output2.stderr).to_string());
+            }
         }
         _ => {}
     }
     Ok(format!("Boost {} applied successfully", id))
+}
+
+#[tauri::command]
+fn restore_boost(id: String) -> Result<String, String> {
+    if ["cpu", "net", "disk"].contains(&id.as_str()) && !is_elevated::is_elevated() {
+        return Err(format!("Administrator privileges are required to restore the {} boost.", id.to_uppercase()));
+    }
+
+    match id.as_str() {
+        "ram" => {
+            // RAM is cleared dynamically, no-op for restore
+        }
+        "cpu" => {
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            let (key, _) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("Win32PrioritySeparation", &2u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+        }
+        "net" => {
+            let output = std::process::Command::new("netsh")
+                .args(["int", "tcp", "set", "global", "autotuninglevel=disabled"])
+                .creation_flags(0x08000000)
+                .output()
+                .map_err(|e| format!("Failed to execute netsh: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+        "visual" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("VisualFXSetting", &0u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+        }
+        "power" => {
+            set_power_plan("balanced".to_string())?;
+        }
+        "disk" => {
+            let output = std::process::Command::new("fsutil")
+                .args(["behavior", "set", "DisableDeleteNotify", "1"])
+                .creation_flags(0x08000000)
+                .output()
+                .map_err(|e| format!("Failed to execute fsutil: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+        "game" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\GameBar")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("AllowAutoGameMode", &0u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+            key.set_value("AutoGameModeEnabled", &0u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+        }
+        "temp" => {
+            let output = std::process::Command::new("powercfg")
+                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "0"])
+                .creation_flags(0x08000000)
+                .output()
+                .map_err(|e| format!("Failed to reset powercfg cooling policy: {}", e))?;
+            if !output.status.success() {
+                return Err(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+            let output2 = std::process::Command::new("powercfg")
+                .args(["-setactive", "SCHEME_CURRENT"])
+                .creation_flags(0x08000000)
+                .output()
+                .map_err(|e| format!("Failed to apply power plan settings: {}", e))?;
+            if !output2.status.success() {
+                return Err(String::from_utf8_lossy(&output2.stderr).to_string());
+            }
+        }
+        _ => {}
+    }
+    Ok(format!("Boost {} restored successfully", id))
 }
 
 #[tauri::command]
@@ -1009,6 +1102,7 @@ pub fn run() {
             toggle_startup_item,
             clean_ram,
             apply_boost,
+            restore_boost,
             set_power_plan,
             toggle_context_menu,
             update_auto_clean
