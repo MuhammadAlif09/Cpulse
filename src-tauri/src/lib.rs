@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use trash::delete as move_to_trash;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::CloseHandle;
@@ -197,8 +197,7 @@ fn format_size(bytes: u64) -> String {
     format!("{:.1} GB", gb)
 }
 
-#[tauri::command]
-fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
+fn scan_junk_internal(app: Option<&tauri::AppHandle>) -> Result<Vec<JunkItem>, String> {
     let mut results = Vec::new();
 
     let total_steps = 4.0;
@@ -225,11 +224,13 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: temp_bytes,
             count: temp_count,
             color: "#4f46e5".to_string(),
-            icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â".to_string(),
+            icon: "🗑️".to_string(),
         });
     }
     current_step += 1.0;
-    let _ = app.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     // 2. Browser Cache
     let mut browser_bytes = 0;
@@ -255,11 +256,13 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: browser_bytes,
             count: browser_count,
             color: "#7c3aed".to_string(),
-            icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â".to_string(),
+            icon: "🌐".to_string(),
         });
     }
     current_step += 1.0;
-    let _ = app.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     // 3. Windows Update Cache (Requires Admin)
     if is_elevated::is_elevated() {
@@ -272,12 +275,14 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
                 bytes: s,
                 count: c,
                 color: "#10b981".to_string(),
-                icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¾".to_string(),
+                icon: "🔄".to_string(),
             });
         }
     }
     current_step += 1.0;
-    let _ = app.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     // 4. Crash Dumps & Logs
     let mut dump_bytes = 0;
@@ -301,14 +306,21 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
             bytes: dump_bytes,
             count: dump_count,
             color: "#f43f5e".to_string(),
-            icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¥".to_string(),
+            icon: "🪵".to_string(),
         });
     }
 
     current_step += 1.0;
-    let _ = app.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     Ok(results)
+}
+
+#[tauri::command]
+fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
+    scan_junk_internal(Some(&app))
 }
 
 fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
@@ -332,8 +344,7 @@ fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
-fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, String> {
+fn clean_junk_internal(app: Option<&tauri::AppHandle>, categories: Vec<String>) -> Result<String, String> {
     let is_admin = is_elevated::is_elevated();
 
     let total_steps = categories.len() as f32;
@@ -345,7 +356,9 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
         }
     }
     current_step += 1.0;
-    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     if categories.contains(&"Browser Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
@@ -361,7 +374,9 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
         }
     }
     current_step += 1.0;
-    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
         let _ = clear_dir(
@@ -370,7 +385,9 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
         );
     }
     current_step += 1.0;
-    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     if categories.contains(&"Crash Dumps & Logs".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
@@ -382,9 +399,90 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
     }
 
     current_step += 1.0;
-    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if let Some(h) = app {
+        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    }
 
     Ok("Cleaned successfully".into())
+}
+
+#[tauri::command]
+fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, String> {
+    clean_junk_internal(Some(&app), categories)
+}
+
+fn run_silent_clean(app_handle: &tauri::AppHandle) {
+    let start_time = std::time::Instant::now();
+    
+    // 1. Scan first to find how much space can be freed
+    let scan_results = scan_junk_internal(None).unwrap_or_default();
+    
+    let total_bytes: u64 = scan_results.iter().map(|item| item.bytes).sum();
+    let total_files: usize = scan_results.iter().map(|item| item.count).sum();
+    
+    let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
+    
+    // 2. Perform the clean
+    let _ = clean_junk_internal(None, categories);
+    
+    let duration = start_time.elapsed().as_secs_f64();
+    let duration_str = format!("{:.1}s", duration);
+    
+    let freed_str = if total_bytes > 1073741824 {
+        format!("{:.2} GB", total_bytes as f64 / 1073741824.0)
+    } else {
+        format!("{:.1} MB", total_bytes as f64 / 1048576.0)
+    };
+    
+    // 3. Write log to history.json
+    if let Ok(app_data) = app_handle.path().app_data_dir() {
+        let history_path = app_data.join("history.json");
+        
+        let _ = fs::create_dir_all(&app_data);
+        
+        let mut logs: Vec<serde_json::Value> = Vec::new();
+        if let Ok(file_content) = fs::read_to_string(&history_path) {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&file_content) {
+                if let Some(existing_logs) = parsed.get("logs").and_then(|l| l.as_array()) {
+                    logs = existing_logs.clone();
+                }
+            }
+        }
+        
+        let time_str = std::process::Command::new("powershell")
+            .args(&["-NoProfile", "-Command", "Get-Date -Format 'MMM dd, yyyy, hh:mm tt'"])
+            .creation_flags(0x08000000)
+            .output()
+            .ok()
+            .and_then(|out| {
+                if out.status.success() {
+                    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| "Just Now".to_string());
+            
+        let new_log = serde_json::json!({
+            "date": time_str,
+            "freed": freed_str,
+            "fixed": total_files,
+            "duration": duration_str,
+            "type": "Auto Clean"
+        });
+        
+        logs.insert(0, new_log);
+        
+        let output_json = serde_json::json!({
+            "logs": logs
+        });
+        
+        if let Ok(serialized) = serde_json::to_string_pretty(&output_json) {
+            let _ = fs::write(&history_path, serialized);
+        }
+    }
+    
+    println!("Silent Clean Completed. Freed {} across {} files in {:.1}s.", freed_str, total_files, duration);
 }
 
 #[tauri::command]
@@ -1326,7 +1424,17 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            let args: Vec<String> = std::env::args().collect();
+            if args.iter().any(|arg| arg == "--silent-clean") {
+                let app_handle = app.handle().clone();
+                run_silent_clean(&app_handle);
+                std::process::exit(0);
+            }
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -1334,12 +1442,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            Ok(())
-        })
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_process::init())
-        .setup(|app| {
+
             let app_handle = app.handle().clone();
 
             std::thread::spawn(move || {
@@ -1506,12 +1609,18 @@ mod tests {
             enabled: true,
             registry_path: "Software\\Microsoft\\Windows\\CurrentVersion\\Run".to_string(),
             is_hkcu: true,
+            publisher: "TestPublisher".to_string(),
+            impact: "Low".to_string(),
+            delay: 0.1,
         };
 
         assert_eq!(item.name, "TestApp");
         assert_eq!(item.command, "test.exe");
         assert!(item.enabled);
         assert!(item.is_hkcu);
+        assert_eq!(item.publisher, "TestPublisher");
+        assert_eq!(item.impact, "Low");
+        assert_eq!(item.delay, 0.1);
     }
 
     #[test]
@@ -1520,11 +1629,15 @@ mod tests {
             name: "C:".to_string(),
             used: 100.5,
             total: 500.0,
+            disk_type: "SSD".to_string(),
+            model: "Samsung SSD".to_string(),
         };
 
         assert_eq!(disk.name, "C:");
         assert!(disk.used > 0.0);
         assert!(disk.total > disk.used);
+        assert_eq!(disk.disk_type, "SSD");
+        assert_eq!(disk.model, "Samsung SSD");
     }
 
     #[test]
