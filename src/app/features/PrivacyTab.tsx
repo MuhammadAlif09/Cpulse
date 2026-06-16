@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Lock, Eye, EyeOff, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { addHistoryLog } from "../utils/history";
 
 const C = {
   indigo: "#4f46e5",
@@ -103,10 +104,29 @@ export function PrivacyTab({
 
   const doSweep = async () => {
     setSweeping(true);
+    const startTime = Date.now();
     try {
       const selectedItems = Object.keys(selected).filter((k) => selected[k]);
       await invoke("sweep_privacy", { items: selectedItems });
       setPrivacySwept(true);
+
+      // Calculate total trace items swept
+      let tracesCount = 0;
+      selectedItems.forEach((key) => {
+        if (scanResult && scanResult[key]) {
+          tracesCount += scanResult[key].count || 0;
+        }
+      });
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+
+      addHistoryLog({
+        type: "Privacy Sweep",
+        freed: "0.0 GB",
+        fixed: tracesCount,
+        duration,
+      });
+
       await runScan();
     } catch (e) {
       console.error("Sweep failed:", e);

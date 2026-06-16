@@ -491,7 +491,6 @@ interface SystemMetrics {
   network_down: number;
 }
 
-
 const NAV: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
   { id: "dashboard", label: "Dashboard", icon: <Monitor size={16} /> },
   { id: "cleaner", label: "Cleaner", icon: <Trash2 size={16} />, badge: 3 },

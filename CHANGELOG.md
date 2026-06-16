@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.6] - 2026-06-16
+
+### Added
+
+- Added history logger utility module under `src/app/utils/history.ts` using Tauri's Plugin Store (`@tauri-apps/plugin-store`).
+- Integrated history logging for Quick Clean and RAM Boost actions in the Dashboard tab.
+- Integrated history logging for Deep Clean in the Cleaner tab.
+- Integrated history logging for Privacy Sweep in the Privacy tab.
+- Added comprehensive unit tests for the history utility under `src/app/utils/__tests__/history.test.ts`.
+
 ## [0.11.5] - 2026-06-16
+
 
 ### Documentation
 

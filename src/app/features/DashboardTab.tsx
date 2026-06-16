@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { useJunkScanner } from "../hooks/useJunkScanner";
+import { addHistoryLog } from "../utils/history";
 
 const C = {
   indigo: "#4f46e5",
@@ -75,7 +76,9 @@ function GradientCard({
 
 interface DashboardTabProps {
   lang?: string;
-  setTab: (tab: "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings") => void;
+  setTab: (
+    tab: "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings"
+  ) => void;
   metrics?: any;
   junkItems?: any[];
   setJunkItems?: any;
@@ -98,7 +101,9 @@ export function DashboardTab({
   const { metrics, cpuData, ramData } = useSystemMetrics();
 
   // In-place Clean Action States
-  const [cleanActionState, setCleanActionState] = useState<"idle" | "scanning" | "cleaning" | "cleaned">("idle");
+  const [cleanActionState, setCleanActionState] = useState<
+    "idle" | "scanning" | "cleaning" | "cleaned"
+  >("idle");
   const [cleanedSize, setCleanedSize] = useState("");
 
   // In-place RAM Boost States
@@ -108,12 +113,17 @@ export function DashboardTab({
   const activeStartup = startupItems ? startupItems.filter((i) => i.enabled).length : 0;
   const startupCountStr = `${activeStartup} ${t("items active")}`;
 
-  const totalDiskUsed = metrics ? metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0) : 0;
-  const totalDiskSize = metrics ? metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0) : 1;
+  const totalDiskUsed = metrics
+    ? metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0)
+    : 0;
+  const totalDiskSize = metrics
+    ? metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0)
+    : 1;
   const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
   const totalJunkBytes = junkItems ? junkItems.reduce((acc, c) => acc + c.bytes, 0) : 0;
-  const junkSizeStr = totalJunkBytes > 0 ? `${(totalJunkBytes / 1048576).toFixed(1)} MB ready` : t("0 MB ready");
+  const junkSizeStr =
+    totalJunkBytes > 0 ? `${(totalJunkBytes / 1048576).toFixed(1)} MB ready` : t("0 MB ready");
 
   let cpuTempStr = "N/A";
   if (metrics && metrics.cpu_temp > 0.0) {
@@ -123,20 +133,39 @@ export function DashboardTab({
   const handleCleanJunk = async () => {
     if (cleanActionState !== "idle") return;
     setCleanActionState("scanning");
+    const startTime = Date.now();
     try {
       const results: any[] = await invoke("scan_junk");
       const bytes = results.reduce((acc, c) => acc + c.bytes, 0);
       const sizeStr = (bytes / 1048576).toFixed(1) + " MB";
       setCleanedSize(sizeStr);
 
+      const filesCount = results.reduce((acc, c) => acc + c.count, 0);
+
       if (bytes > 0) {
         setCleanActionState("cleaning");
         const categories = results.map((r) => r.name);
         await invoke("clean_junk", { categories });
         setCleanActionState("cleaned");
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+        addHistoryLog({
+          type: "Quick Clean",
+          freed: sizeStr,
+          fixed: filesCount,
+          duration,
+        });
       } else {
         setCleanActionState("cleaned");
         setCleanedSize("0 MB");
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+        addHistoryLog({
+          type: "Quick Clean",
+          freed: "0 MB",
+          fixed: 0,
+          duration,
+        });
       }
 
       setTimeout(() => {
@@ -151,14 +180,29 @@ export function DashboardTab({
   const handleRamBoost = async () => {
     if (boostActionState !== "idle") return;
     setBoostActionState("running");
+    const startTime = Date.now();
     try {
       const bytesFreed = await invoke<number>("clean_ram");
-      const sizeStr = bytesFreed > 1073741824 
-        ? `+${(bytesFreed / 1073741824).toFixed(1)} GB freed`
-        : `+${(bytesFreed / 1048576).toFixed(0)} MB freed`;
-      
+      const sizeStr =
+        bytesFreed > 1073741824
+          ? `+${(bytesFreed / 1073741824).toFixed(1)} GB freed`
+          : `+${(bytesFreed / 1048576).toFixed(0)} MB freed`;
+
+      const freedLogStr =
+        bytesFreed > 1073741824
+          ? `${(bytesFreed / 1073741824).toFixed(1)} GB`
+          : `${(bytesFreed / 1048576).toFixed(0)} MB`;
+
       setBoostedSize(sizeStr);
       setBoostActionState("boosted");
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+      addHistoryLog({
+        type: "RAM Boost",
+        freed: freedLogStr,
+        fixed: 1,
+        duration,
+      });
 
       setTimeout(() => {
         setBoostActionState("idle");
@@ -301,11 +345,12 @@ export function DashboardTab({
           <div className="flex items-center gap-1.5 text-xs text-indigo-100">
             <CheckCircle2 size={13} /> {t("Real-time protection active")}
           </div>
-          {issues && issues.map((issue, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
-              <AlertTriangle size={13} /> {t(issue)}
-            </div>
-          ))}
+          {issues &&
+            issues.map((issue, idx) => (
+              <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
+                <AlertTriangle size={13} /> {t(issue)}
+              </div>
+            ))}
           {(!issues || issues.length === 0) && (
             <div className="flex items-center gap-1.5 text-xs text-indigo-100">
               <CheckCircle2 size={13} /> {t("Disk and memory are healthy")}
@@ -325,9 +370,7 @@ export function DashboardTab({
                 {s.icon}
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-800">
-              {s.value}
-            </div>
+            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
             <div className="text-xs text-slate-500 mt-0.5 truncate">{s.sub}</div>
             <div className="text-xs font-medium mt-2" style={{ color: s.color }}>
               {t(s.label)}
@@ -498,9 +541,7 @@ export function DashboardTab({
                 );
               })
             ) : (
-              <div className="text-xs text-slate-400 py-6 text-center">
-                {t("Loading disks...")}
-              </div>
+              <div className="text-xs text-slate-400 py-6 text-center">{t("Loading disks...")}</div>
             )}
           </div>
         </GradientCard>
@@ -514,36 +555,40 @@ export function DashboardTab({
             {
               id: "cleaner",
               icon: <Trash2 size={18} />,
-              label: cleanActionState === "scanning" 
-                ? t("Scanning...") 
-                : cleanActionState === "cleaning" 
-                  ? t("Cleaning...") 
-                  : cleanActionState === "cleaned" 
-                    ? t("Cleaned!") 
-                    : t("Clean Junk"),
-              sub: cleanActionState === "cleaned" 
-                ? `${t("Cleaned")} ${cleanedSize}` 
-                : cleanActionState === "scanning" 
-                  ? t("Scanning...") 
-                  : cleanActionState === "cleaning" 
-                    ? t("Cleaning...") 
-                    : junkSizeStr,
+              label:
+                cleanActionState === "scanning"
+                  ? t("Scanning...")
+                  : cleanActionState === "cleaning"
+                    ? t("Cleaning...")
+                    : cleanActionState === "cleaned"
+                      ? t("Cleaned!")
+                      : t("Clean Junk"),
+              sub:
+                cleanActionState === "cleaned"
+                  ? `${t("Cleaned")} ${cleanedSize}`
+                  : cleanActionState === "scanning"
+                    ? t("Scanning...")
+                    : cleanActionState === "cleaning"
+                      ? t("Cleaning...")
+                      : junkSizeStr,
               color: C.indigo,
               onClick: handleCleanJunk,
             },
             {
               id: "booster",
               icon: <Zap size={18} />,
-              label: boostActionState === "running"
-                ? t("Running...")
-                : boostActionState === "boosted"
-                  ? t("Boosted!")
-                  : t("Boost Now"),
-              sub: boostActionState === "boosted"
-                ? boostedSize
-                : boostActionState === "running"
-                  ? t("Optimizing...")
-                  : t("Optimize memory"),
+              label:
+                boostActionState === "running"
+                  ? t("Running...")
+                  : boostActionState === "boosted"
+                    ? t("Boosted!")
+                    : t("Boost Now"),
+              sub:
+                boostActionState === "boosted"
+                  ? boostedSize
+                  : boostActionState === "running"
+                    ? t("Optimizing...")
+                    : t("Optimize memory"),
               color: C.violet,
               onClick: handleRamBoost,
             },
@@ -574,7 +619,8 @@ export function DashboardTab({
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
                 style={{ background: `${a.color}15`, color: a.color }}
               >
-                {a.id === "cleaner" && (cleanActionState === "scanning" || cleanActionState === "cleaning") ? (
+                {a.id === "cleaner" &&
+                (cleanActionState === "scanning" || cleanActionState === "cleaning") ? (
                   <RefreshCw size={20} className="animate-spin" />
                 ) : a.id === "booster" && boostActionState === "running" ? (
                   <RefreshCw size={20} className="animate-spin" />
@@ -593,4 +639,3 @@ export function DashboardTab({
     </div>
   );
 }
-

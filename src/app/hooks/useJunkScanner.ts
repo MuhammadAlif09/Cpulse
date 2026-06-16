@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { addHistoryLog } from "../utils/history";
 
 export interface JunkItem {
   name: string;
@@ -56,12 +57,30 @@ export function useJunkScanner() {
   const doClean = async () => {
     setCleaning(true);
     setProgress(0);
+    const startTime = Date.now();
 
     try {
       const selectedCats = Object.keys(selected).filter((k) => selected[k]);
       await invoke("clean_junk", { categories: selectedCats });
       setCleaned(true);
       setProgress(100);
+
+      const totalSelected = junkCats
+        .filter((c) => selected[c.name])
+        .reduce((s, c) => s + c.bytes, 0);
+      const freedStr =
+        totalSelected > 1073741824
+          ? (totalSelected / 1073741824).toFixed(2) + " GB"
+          : (totalSelected / 1048576).toFixed(1) + " MB";
+      const totalFiles = junkCats.filter((c) => selected[c.name]).reduce((s, c) => s + c.count, 0);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+
+      addHistoryLog({
+        type: "Deep Clean",
+        freed: freedStr,
+        fixed: totalFiles,
+        duration,
+      });
     } catch (e) {
       console.error("Clean failed:", e);
     } finally {
