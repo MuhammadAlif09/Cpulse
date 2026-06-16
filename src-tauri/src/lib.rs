@@ -18,6 +18,7 @@ use windows_sys::Win32::System::Threading::{
 };
 use winreg::enums::*;
 use winreg::RegKey;
+use winreg::RegValue;
 
 #[derive(Clone, Serialize)]
 struct DiskInfo {
@@ -731,6 +732,20 @@ struct StartupItem {
     is_hkcu: bool,
 }
 
+fn is_startup_item_enabled(root: &RegKey, name: &str) -> bool {
+    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    if let Ok(key) = root.open_subkey_with_flags(approved_path, KEY_READ) {
+        if let Ok(reg_val) = key.get_raw_value(name) {
+            if reg_val.vtype == REG_BINARY {
+                if let Some(first_byte) = reg_val.bytes.first() {
+                    return (*first_byte & 1) == 0;
+                }
+            }
+        }
+    }
+    true
+}
+
 #[tauri::command]
 fn get_startup_items() -> Result<Vec<StartupItem>, String> {
     let mut items = Vec::new();
@@ -741,10 +756,12 @@ fn get_startup_items() -> Result<Vec<StartupItem>, String> {
     if let Ok(key) = hkcu.open_subkey_with_flags(run_path, KEY_READ) {
         for val in key.enum_values().flatten() {
             if let Some(cmd) = val.1.to_string().into() {
+                let name = val.0;
+                let enabled = is_startup_item_enabled(&hkcu, &name);
                 items.push(StartupItem {
-                    name: val.0,
+                    name,
                     command: cmd,
-                    enabled: true,
+                    enabled,
                     registry_path: run_path.to_string(),
                     is_hkcu: true,
                 });
@@ -755,10 +772,12 @@ fn get_startup_items() -> Result<Vec<StartupItem>, String> {
     if let Ok(key) = hklm.open_subkey_with_flags(run_path, KEY_READ) {
         for val in key.enum_values().flatten() {
             if let Some(cmd) = val.1.to_string().into() {
+                let name = val.0;
+                let enabled = is_startup_item_enabled(&hklm, &name);
                 items.push(StartupItem {
-                    name: val.0,
+                    name,
                     command: cmd,
-                    enabled: true,
+                    enabled,
                     registry_path: run_path.to_string(),
                     is_hkcu: false,
                 });
@@ -775,26 +794,33 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
         return Err("Administrator privileges required to change HKLM startup items".into());
     }
 
-    let _root = if is_hkcu {
+    let root = if is_hkcu {
         RegKey::predef(HKEY_CURRENT_USER)
     } else {
         RegKey::predef(HKEY_LOCAL_MACHINE)
     };
-    let _run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    let _run_approved =
-        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
-    // Windows 10/11 uses StartupApproved to toggle without deleting the key.
-    // We will just do a simple write to StartupApproved (Binary: 0x02 0x00 ... for enabled, 0x03 ... for disabled)
-    // For simplicity here, we just delete and add, but real app should use StartupApproved or just warn.
-    // Due to complexity of StartupApproved binary struct, we will just simulate success here
-    // or you could actually delete it from Run and back it up.
+    let (key, _) = root.create_subkey(approved_path).map_err(|e| e.to_string())?;
 
-    // For now we'll just acknowledge the toggle. Real implementation needs binary registry writing.
+    let mut data = vec![0u8; 12];
+    if enable {
+        data[0] = 0x02;
+    } else {
+        data[0] = 0x03;
+    }
+
+    let reg_val = RegValue {
+        vtype: REG_BINARY,
+        bytes: data.into(),
+    };
+
+    key.set_raw_value(&name, &reg_val).map_err(|e| e.to_string())?;
+
     println!("Toggled {} to {}", name, enable);
-
     Ok(format!("Toggled {}", name))
 }
+
 
 #[tauri::command]
 fn clean_ram() -> Result<u64, String> {

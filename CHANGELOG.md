@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.7] - 2026-06-16
+
+### Added
+
+- Implemented real Windows registry-based startup applications management:
+  - Added backend utility to query the `StartupApproved\Run` registry binary values to determine actual startup enable/disable status.
+  - Implemented binary registry writing (`REG_BINARY`) to toggle startup items between enabled (`0x02`) and disabled (`0x03`) states.
+  - Added automatic administrator privilege validation for modifying HKLM entries.
+
 ## [0.11.6] - 2026-06-16
 
 ### Added
