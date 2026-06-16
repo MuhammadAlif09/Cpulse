@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-06-16
+
+### Added
+
+- Restored real-time CPU History area chart with a clean watermarked background percentage display.
+- Restored real-time RAM History area chart with a clean watermarked background percentage display.
+- Added a Disk Space card containing a donut chart and detailed used/free space metrics.
+- Added the Quick Actions panel at the bottom of the dashboard containing Clean Junk (with size), Boost Now (tweaks count), Fix Startup (active items), and Privacy Sweep (traces found) links to transition between features.
+- Integrated UAC status and system warnings banner at the bottom of the Health Score card.
+
 ## [0.11.2] - 2026-06-16
 
 ### Fixed

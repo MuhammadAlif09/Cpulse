@@ -12,13 +12,23 @@ import {
   Lock,
   Sparkles,
   RefreshCw,
+  Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RadialGauge } from "../components/RadialGauge";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { useJunkScanner } from "../hooks/useJunkScanner";
-import { useAppStore } from "../store/useAppStore";
 
 const C = {
   indigo: "#4f46e5",
@@ -63,23 +73,40 @@ function GradientCard({
   );
 }
 
-export function DashboardTab() {
-  const { t } = useTranslation();
-  const setTab = useAppStore((state) => state.setTab);
-  const { metrics, cpuData, ramData } = useSystemMetrics();
-  const { junkCats, scanning, cleaning, startScan, doClean } = useJunkScanner();
-  const [ramCleanState, setRamCleanState] = useState<"ready" | "cleaning" | "done">("ready");
-  const [freedRam, setFreedRam] = useState("0 MB");
-  const [freedJunk, setFreedJunk] = useState("0 MB");
+interface DashboardTabProps {
+  lang?: string;
+  setTab: (tab: "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings") => void;
+  metrics?: any;
+  junkItems?: any[];
+  setJunkItems?: any;
+  startupItems?: any[];
+  score: number;
+  issues: string[];
+  healthText: string;
+}
 
-  // Mocks for now, can extract later
-  const score = 85;
-  const issues: string[] = [];
-  const startupCountStr = "0 items active";
+export function DashboardTab({
+  lang,
+  setTab,
+  junkItems = [],
+  startupItems = [],
+  score,
+  issues,
+  healthText,
+}: DashboardTabProps) {
+  const { t } = useTranslation();
+  const { metrics, cpuData, ramData } = useSystemMetrics();
+  const { scanning, cleaning, startScan, doClean } = useJunkScanner();
+
+  const activeStartup = startupItems ? startupItems.filter((i) => i.enabled).length : 0;
+  const startupCountStr = `${activeStartup} ${t("items active")}`;
 
   const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
   const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
   const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+
+  const totalJunkBytes = junkItems ? junkItems.reduce((acc, c) => acc + c.bytes, 0) : 0;
+  const junkSizeStr = totalJunkBytes > 0 ? `${(totalJunkBytes / 1048576).toFixed(1)} MB ready` : t("0 MB ready");
 
   let cpuTempStr = "N/A";
   if (metrics && metrics.cpu_temp > 0.0) {
@@ -91,7 +118,7 @@ export function DashboardTab() {
         {
           label: "CPU Usage",
           value: `${Math.round(metrics.cpu_usage)}%`,
-          sub: cpuTempStr === "N/A" ? t("Run as Admin for Temp") : metrics.cpu_name,
+          sub: t("Global CPU Load"),
           icon: <Cpu size={18} />,
           color: C.indigo,
           temp: cpuTempStr,
@@ -184,6 +211,11 @@ export function DashboardTab() {
               <span className="text-6xl font-bold tracking-tight">{score}</span>
               <span className="text-2xl text-indigo-200 mb-2">/100</span>
             </div>
+            <p className="text-indigo-200 text-xs mt-1">
+              {issues && issues.length > 0
+                ? `${t(healthText)} — ${issues.length} ${t(issues.length === 1 ? "issue found" : "issues found")}`
+                : t("System is running optimally")}
+            </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
             <RadialGauge
@@ -209,6 +241,21 @@ export function DashboardTab() {
             />
           </div>
         </div>
+        <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
+          <div className="flex items-center gap-1.5 text-xs text-indigo-100">
+            <CheckCircle2 size={13} /> {t("Real-time protection active")}
+          </div>
+          {issues && issues.map((issue, idx) => (
+            <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
+              <AlertTriangle size={13} /> {t(issue)}
+            </div>
+          ))}
+          {(!issues || issues.length === 0) && (
+            <div className="flex items-center gap-1.5 text-xs text-indigo-100">
+              <CheckCircle2 size={13} /> {t("Disk and memory are healthy")}
+            </div>
+          )}
+        </div>
       </GradientCard>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -223,7 +270,7 @@ export function DashboardTab() {
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-800">
-              {s.label === "CPU Usage" && s.temp ? s.temp : s.value}
+              {s.value}
             </div>
             <div className="text-xs text-slate-500 mt-0.5 truncate">{s.sub}</div>
             <div className="text-xs font-medium mt-2" style={{ color: s.color }}>
@@ -232,6 +279,224 @@ export function DashboardTab() {
           </GradientCard>
         ))}
       </div>
+
+      {/* charts + disk space */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* CPU History */}
+        <GradientCard style={{ background: "white", overflow: "hidden" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-slate-700">{t("CPU History")}</span>
+            <span className="text-xs text-slate-400">{t("Last 20s")}</span>
+          </div>
+          <div className="relative h-20">
+            {/* big bg number */}
+            <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
+              <span
+                className="font-black leading-none"
+                style={{
+                  fontSize: "4.5rem",
+                  background: `linear-gradient(180deg, ${C.indigo}18 0%, ${C.indigo}02 100%)`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                {metrics ? Math.round(metrics.cpu_usage) : 0}%
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={cpuData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop key="cpu-stop-top" offset="5%" stopColor={C.indigo} stopOpacity={0.2} />
+                    <stop key="cpu-stop-bot" offset="95%" stopColor={C.indigo} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="t" hide />
+                <YAxis domain={[0, 100]} hide />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 8,
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  }}
+                  labelStyle={{ display: "none" }}
+                  formatter={(v: number) => [`${v}%`, "CPU"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={C.indigo}
+                  strokeWidth={2}
+                  fill="url(#cpuGrad)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GradientCard>
+
+        {/* RAM History */}
+        <GradientCard style={{ background: "white", overflow: "hidden" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-slate-700">{t("RAM History")}</span>
+            <span className="text-xs text-slate-400">{t("Last 20s")}</span>
+          </div>
+          <div className="relative h-20">
+            {/* big bg number */}
+            <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
+              <span
+                className="font-black leading-none"
+                style={{
+                  fontSize: "4.5rem",
+                  background: `linear-gradient(180deg, ${C.violet}18 0%, ${C.violet}02 100%)`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                {metrics ? Math.round(metrics.ram_usage) : 0}%
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={ramData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="ramGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop key="ram-stop-top" offset="5%" stopColor={C.violet} stopOpacity={0.2} />
+                    <stop key="ram-stop-bot" offset="95%" stopColor={C.violet} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="t" hide />
+                <YAxis domain={[0, 100]} hide />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 8,
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  }}
+                  labelStyle={{ display: "none" }}
+                  formatter={(v: number) => [`${v}%`, "RAM"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={C.violet}
+                  strokeWidth={2}
+                  fill="url(#ramGrad)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GradientCard>
+
+        {/* Disk Space */}
+        <GradientCard style={{ background: "white" }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-slate-700">{t("Disk Space")}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <PieChart width={80} height={80}>
+                <Pie
+                  data={[
+                    { name: "used", value: diskUsagePct },
+                    { name: "free", value: 100 - diskUsagePct },
+                  ]}
+                  dataKey="value"
+                  cx={35}
+                  cy={35}
+                  innerRadius={22}
+                  outerRadius={35}
+                  startAngle={90}
+                  endAngle={-270}
+                  strokeWidth={0}
+                >
+                  <Cell key="used" fill={C.amber} />
+                  <Cell key="free" fill="#f1f5f9" />
+                </Pie>
+              </PieChart>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800">{diskUsagePct}%</div>
+              <div className="text-xs text-slate-500 font-medium">
+                {metrics ? totalDiskUsed.toFixed(1) : "..."} GB {t("used")}
+              </div>
+              <div className="text-xs text-slate-400 font-medium">
+                {metrics ? (totalDiskSize - totalDiskUsed).toFixed(1) : "..."} GB {t("free")}
+              </div>
+            </div>
+          </div>
+        </GradientCard>
+      </div>
+
+      {/* quick actions */}
+      <GradientCard style={{ background: "white" }}>
+        <h3 className="text-sm font-semibold text-slate-700 mb-4">{t("Quick Actions")}</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              id: "cleaner",
+              icon: <Trash2 size={18} />,
+              label: t("Clean Junk"),
+              sub: scanning ? t("Scanning...") : cleaning ? t("Cleaning...") : junkSizeStr,
+              color: C.indigo,
+              tab: "cleaner" as const,
+            },
+            {
+              id: "booster",
+              icon: <Zap size={18} />,
+              label: t("Boost Now"),
+              sub: t("8 tweaks ready"),
+              color: C.violet,
+              tab: "booster" as const,
+            },
+            {
+              id: "startup",
+              icon: <PackageX size={18} />,
+              label: t("Fix Startup"),
+              sub: startupCountStr,
+              color: C.amber,
+              tab: "startup" as const,
+            },
+            {
+              id: "privacy",
+              icon: <Lock size={18} />,
+              label: t("Privacy Sweep"),
+              sub: t("Traces found"),
+              color: C.rose,
+              tab: "privacy" as const,
+            },
+          ].map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setTab(a.tab)}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left"
+              style={{ background: `linear-gradient(135deg, ${a.color}05, ${a.color}0f)` }}
+            >
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{ background: `${a.color}15`, color: a.color }}
+              >
+                {a.id === "cleaner" && (scanning || cleaning) ? (
+                  <RefreshCw size={20} className="animate-spin" />
+                ) : (
+                  a.icon
+                )}
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-slate-800">{a.label}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{a.sub}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </GradientCard>
     </div>
   );
 }
+
