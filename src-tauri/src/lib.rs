@@ -475,9 +475,58 @@ fn toggle_context_menu(enable: bool) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn apply_boost(profile: String) -> Result<String, String> {
-    set_power_plan(profile)?;
-    Ok("Boost applied successfully".into())
+fn apply_boost(id: String, profile: String) -> Result<String, String> {
+    match id.as_str() {
+        "ram" => {
+            let _ = clean_ram();
+        }
+        "cpu" => {
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            if let Ok((key, _)) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl") {
+                let _ = key.set_value("Win32PrioritySeparation", &26u32);
+            }
+        }
+        "net" => {
+            let _ = std::process::Command::new("netsh")
+                .args(["int", "tcp", "set", "global", "autotuninglevel=normal"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+        "visual" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            if let Ok((key, _)) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects") {
+                let _ = key.set_value("VisualFXSetting", &2u32); 
+            }
+        }
+        "power" => {
+            set_power_plan(profile)?;
+        }
+        "disk" => {
+            let _ = std::process::Command::new("fsutil")
+                .args(["behavior", "set", "DisableDeleteNotify", "0"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+        "game" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            if let Ok((key, _)) = hkcu.create_subkey("Software\\Microsoft\\GameBar") {
+                let _ = key.set_value("AllowAutoGameMode", &1u32);
+                let _ = key.set_value("AutoGameModeEnabled", &1u32);
+            }
+        }
+        "temp" => {
+            let _ = std::process::Command::new("powercfg")
+                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "1"])
+                .creation_flags(0x08000000)
+                .output();
+            let _ = std::process::Command::new("powercfg")
+                .args(["-setactive", "SCHEME_CURRENT"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+        _ => {}
+    }
+    Ok(format!("Boost {} applied successfully", id))
 }
 
 #[tauri::command]

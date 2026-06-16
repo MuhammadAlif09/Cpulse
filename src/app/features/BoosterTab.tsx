@@ -145,7 +145,7 @@ export function BoosterTab() {
   const applyBoost = async (id: string) => {
     setBoosting(id);
     try {
-      await invoke("apply_boost", { profile: mode });
+      await invoke("apply_boost", { id, profile: mode });
       setBoosted((prev) => ({ ...prev, [id]: true }));
     } catch (e) {
       console.error(e);

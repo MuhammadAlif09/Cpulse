@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-16
+
+### Added
+
+- Implement real booster functionality in Rust backend (RAM, CPU, Network, Visual, Power, Disk, Game, Temp)
+- Pass specific booster `id` from React frontend to Tauri backend
+
 ## [0.8.2] - 2026-06-16
 
 ### Fixed
