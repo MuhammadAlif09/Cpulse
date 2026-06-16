@@ -33,7 +33,7 @@ describe("App Component", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Cpulse")).toBeInTheDocument();
-      expect(screen.getByText(/v0\.8\.0/i)).toBeInTheDocument();
+      expect(screen.getByText(/v0\.10\.0/i)).toBeInTheDocument();
     });
   });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Lock, Eye, EyeOff, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -13,53 +13,6 @@ const C = {
   pink: "#ec4899",
   slate: "#64748b",
 };
-
-const PRIVACY_ITEMS = [
-  {
-    id: "chrome_hist",
-    label: "Chrome Browsing History",
-    desc: "1,842 URLs found",
-    found: true,
-    color: C.indigo,
-  },
-  {
-    id: "edge_hist",
-    label: "Edge Browsing History",
-    desc: "673 URLs found",
-    found: true,
-    color: C.violet,
-  },
-  {
-    id: "recent_files",
-    label: "Recent Files List",
-    desc: "128 entries",
-    found: true,
-    color: C.amber,
-  },
-  {
-    id: "clipboard",
-    label: "Clipboard History",
-    desc: "47 copied items",
-    found: true,
-    color: C.rose,
-  },
-  {
-    id: "search_hist",
-    label: "Windows Search History",
-    desc: "312 queries",
-    found: true,
-    color: C.pink,
-  },
-  {
-    id: "wifi_pass",
-    label: "Saved Wi-Fi Passwords",
-    desc: "9 networks stored",
-    found: true,
-    color: C.emerald,
-  },
-  { id: "cookies", label: "Tracking Cookies", desc: "4,291 cookies", found: true, color: C.cyan },
-  { id: "run_hist", label: "Run Dialog History", desc: "23 entries", found: false, color: C.slate },
-];
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
@@ -116,31 +69,112 @@ export function PrivacyTab({
   setPrivacySwept: (v: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [items, setItems] = useState(PRIVACY_ITEMS);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanning, setScanning] = useState(true);
   const [sweeping, setSweeping] = useState(false);
-  const [selected, setSelected] = useState<Record<string, boolean>>(
-    Object.fromEntries(PRIVACY_ITEMS.map((i) => [i.id, true]))
-  );
+  const [selected, setSelected] = useState<Record<string, boolean>>({
+    chrome_hist: true,
+    edge_hist: true,
+    recent_files: true,
+    clipboard: true,
+    search_hist: true,
+    wifi_pass: true,
+    cookies: true,
+    run_hist: true,
+  });
+
+  const runScan = async () => {
+    setScanning(true);
+    try {
+      const result = await invoke("scan_privacy");
+      setScanResult(result);
+    } catch (e) {
+      console.error("Scan failed:", e);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  useEffect(() => {
+    runScan();
+  }, []);
 
   const toggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const doSweep = async () => {
     setSweeping(true);
-
     try {
       const selectedItems = Object.keys(selected).filter((k) => selected[k]);
       await invoke("sweep_privacy", { items: selectedItems });
+      setPrivacySwept(true);
+      await runScan();
     } catch (e) {
       console.error("Sweep failed:", e);
-    }
-
-    setTimeout(() => {
+    } finally {
       setSweeping(false);
-      setPrivacySwept(true);
-    }, 2000);
+    }
   };
 
-  const selectedCount = Object.values(selected).filter(Boolean).length;
+  const selectedCount = Object.keys(selected).filter((k) => selected[k]).length;
+
+  const items = [
+    {
+      id: "chrome_hist",
+      label: "Chrome Browsing History",
+      desc: scanResult?.chrome_hist?.desc || "No Chrome history found",
+      found: scanResult?.chrome_hist?.found || false,
+      color: C.indigo,
+    },
+    {
+      id: "edge_hist",
+      label: "Edge Browsing History",
+      desc: scanResult?.edge_hist?.desc || "No Edge history found",
+      found: scanResult?.edge_hist?.found || false,
+      color: C.violet,
+    },
+    {
+      id: "recent_files",
+      label: "Recent Files List",
+      desc: scanResult?.recent_files?.desc || "No recent entries",
+      found: scanResult?.recent_files?.found || false,
+      color: C.amber,
+    },
+    {
+      id: "clipboard",
+      label: "Clipboard History",
+      desc: scanResult?.clipboard?.desc || "Clipboard history",
+      found: scanResult?.clipboard?.found || false,
+      color: C.rose,
+    },
+    {
+      id: "search_hist",
+      label: "Windows Search History",
+      desc: scanResult?.search_hist?.desc || "No search terms found",
+      found: scanResult?.search_hist?.found || false,
+      color: C.pink,
+    },
+    {
+      id: "wifi_pass",
+      label: "Saved Wi-Fi Passwords",
+      desc: scanResult?.wifi_pass?.desc || "No saved networks",
+      found: scanResult?.wifi_pass?.found || false,
+      color: C.emerald,
+    },
+    {
+      id: "cookies",
+      label: "Tracking Cookies",
+      desc: scanResult?.cookies?.desc || "No tracking cookies found",
+      found: scanResult?.cookies?.found || false,
+      color: C.cyan,
+    },
+    {
+      id: "run_hist",
+      label: "Run Dialog History",
+      desc: scanResult?.run_hist?.desc || "No run command entries",
+      found: scanResult?.run_hist?.found || false,
+      color: C.slate,
+    },
+  ];
 
   return (
     <div className="space-y-5">
@@ -157,34 +191,44 @@ export function PrivacyTab({
               )}
             </p>
           </div>
-          {!privacySwept ? (
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={doSweep}
-              disabled={sweeping || selectedCount === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background: sweeping ? "#fda4af" : "linear-gradient(135deg,#f43f5e,#ec4899)",
-                boxShadow: sweeping ? "none" : "0 4px 14px rgba(244,63,94,0.35)",
-              }}
+              onClick={runScan}
+              disabled={scanning || sweeping}
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition active:scale-95 disabled:opacity-50"
+              title={t("Scan Again")}
             >
-              {sweeping ? (
-                <>
-                  <RefreshCw size={15} className="animate-spin" /> {t("Sweeping...")}
-                </>
-              ) : (
-                <>
-                  <Eye size={15} /> {t("Sweep Items")}
-                </>
-              )}
+              <RefreshCw size={15} className={cn(scanning && "animate-spin")} />
             </button>
-          ) : (
-            <div
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 flex-shrink-0"
-              style={{ background: "#d1fae5" }}
-            >
-              <EyeOff size={16} /> {t("Privacy Cleared!")}
-            </div>
-          )}
+            {!privacySwept ? (
+              <button
+                onClick={doSweep}
+                disabled={sweeping || scanning || selectedCount === 0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: sweeping ? "#fda4af" : "linear-gradient(135deg,#f43f5e,#ec4899)",
+                  boxShadow: sweeping ? "none" : "0 4px 14px rgba(244,63,94,0.35)",
+                }}
+              >
+                {sweeping ? (
+                  <>
+                    <RefreshCw size={15} className="animate-spin" /> {t("Sweeping...")}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={15} /> {t("Sweep Items")}
+                  </>
+                )}
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700"
+                style={{ background: "#d1fae5" }}
+              >
+                <EyeOff size={16} /> {t("Privacy Cleared!")}
+              </div>
+            )}
+          </div>
         </div>
       </GradientCard>
 
@@ -196,34 +240,41 @@ export function PrivacyTab({
           </span>
         </div>
         <div className="space-y-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-4 p-3.5 rounded-xl border transition-all"
-              style={{
-                background: selected[item.id] ? `${item.color}05` : "#fafafa",
-                borderColor: selected[item.id] ? `${item.color}20` : "#e2e8f0",
-              }}
-            >
-              <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: item.found ? item.color : "#cbd5e1" }}
-              />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-700">{t(item.label)}</div>
-                <div className="text-xs text-slate-400">{t(item.desc)}</div>
-              </div>
-              {item.found && (
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: `${item.color}12`, color: item.color }}
-                >
-                  {t("Found")}
-                </span>
-              )}
-              <Toggle on={selected[item.id]} onChange={() => toggle(item.id)} />
+          {scanning ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <RefreshCw size={24} className="animate-spin mb-2 opacity-50" />
+              <span className="text-xs">{t("Scanning for privacy traces...")}</span>
             </div>
-          ))}
+          ) : (
+            items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-4 p-3.5 rounded-xl border transition-all"
+                style={{
+                  background: selected[item.id] ? `${item.color}05` : "#fafafa",
+                  borderColor: selected[item.id] ? `${item.color}20` : "#e2e8f0",
+                }}
+              >
+                <div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: item.found ? item.color : "#cbd5e1" }}
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-slate-700">{t(item.label)}</div>
+                  <div className="text-xs text-slate-400">{t(item.desc)}</div>
+                </div>
+                {item.found && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: `${item.color}12`, color: item.color }}
+                  >
+                    {t("Found")}
+                  </span>
+                )}
+                <Toggle on={selected[item.id]} onChange={() => toggle(item.id)} />
+              </div>
+            ))
+          )}
         </div>
       </GradientCard>
 
