@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-06-16
+
+### Fixed
+
+- Fix TypeScript compile error `Parameter 'acc' implicitly has an 'any' type` by explicitly typing the Tauri `listen` callback event payload using the `SystemMetrics` interface in `App.tsx`.
+
 ## [0.8.1] - 2026-06-16
 
 ### Added

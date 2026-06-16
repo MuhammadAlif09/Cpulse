@@ -1908,7 +1908,7 @@ export default function App() {
     let hasNotifiedDisk = false;
 
     const setup = async () => {
-      unlisten = await listen<any>("system-metrics", (event) => {
+      unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
         const metrics = event.payload;
         setMetrics(metrics);
 
