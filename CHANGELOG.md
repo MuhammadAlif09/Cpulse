@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-16
+
+### Added
+
+- Implement administrator privilege checks (UAC validation) for CPU Priority, Network, and Disk tweaks, disabling them with lock indicators on the frontend for standard users.
+- Implement registry rollback/restore command handlers (`restore_boost`) in backend Rust to revert booster modifications to Windows defaults.
+- Enhance UI to display warning/lock badges, toggle Apply/Restore actions for individual items, and trigger Sonner toast notifications on boost success or error events.
+
 ## [0.10.0] - 2026-06-16
 
 ### Added

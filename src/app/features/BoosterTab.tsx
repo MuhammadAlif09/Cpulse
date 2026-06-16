@@ -11,8 +11,10 @@ import {
   Thermometer,
   CheckCircle2,
   RefreshCw,
+  Lock,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 const C = {
   indigo: "#4f46e5",
@@ -57,7 +59,7 @@ function GradientCard({
   );
 }
 
-export function BoosterTab() {
+export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   const { t } = useTranslation();
   const [boosted, setBoosted] = useState<Record<string, boolean>>({});
   const [boosting, setBoosting] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export function BoosterTab() {
       gain: "+1.4 GB freed",
       color: C.violet,
       category: "Memory",
+      adminRequired: false,
     },
     {
       id: "cpu",
@@ -85,6 +88,7 @@ export function BoosterTab() {
       gain: "~12% snappier",
       color: C.indigo,
       category: "Processor",
+      adminRequired: true,
     },
     {
       id: "net",
@@ -94,6 +98,7 @@ export function BoosterTab() {
       gain: "−18ms latency",
       color: C.cyan,
       category: "Network",
+      adminRequired: true,
     },
     {
       id: "visual",
@@ -103,6 +108,7 @@ export function BoosterTab() {
       gain: "+6% GPU free",
       color: C.amber,
       category: "Graphics",
+      adminRequired: false,
     },
     {
       id: "power",
@@ -112,6 +118,7 @@ export function BoosterTab() {
       gain: "Max clock speed",
       color: C.rose,
       category: "Power",
+      adminRequired: false,
     },
     {
       id: "disk",
@@ -121,6 +128,7 @@ export function BoosterTab() {
       gain: "−22% I/O wait",
       color: C.emerald,
       category: "Storage",
+      adminRequired: true,
     },
     {
       id: "game",
@@ -130,6 +138,7 @@ export function BoosterTab() {
       gain: "Smoother FPS",
       color: C.pink,
       category: "Gaming",
+      adminRequired: false,
     },
     {
       id: "temp",
@@ -139,27 +148,44 @@ export function BoosterTab() {
       gain: "−4°C average",
       color: C.amber,
       category: "Cooling",
+      adminRequired: false,
     },
   ];
 
   const applyBoost = async (id: string) => {
     setBoosting(id);
     try {
-      await invoke("apply_boost", { id, profile: mode });
+      const msg = await invoke<string>("apply_boost", { id, profile: mode });
       setBoosted((prev) => ({ ...prev, [id]: true }));
-    } catch (e) {
+      toast.success(t(msg));
+    } catch (e: any) {
       console.error(e);
+      toast.error(t(e.message || e));
+    }
+    setBoosting(null);
+  };
+
+  const restoreBoost = async (id: string) => {
+    setBoosting(id);
+    try {
+      const msg = await invoke<string>("restore_boost", { id });
+      setBoosted((prev) => ({ ...prev, [id]: false }));
+      toast.success(t(msg));
+    } catch (e: any) {
+      console.error(e);
+      toast.error(t(e.message || e));
     }
     setBoosting(null);
   };
 
   const applyAll = () => {
-    BOOSTS.filter((b) => !boosted[b.id]).forEach((b, i) => {
+    BOOSTS.filter((b) => !boosted[b.id] && (!b.adminRequired || isAdmin)).forEach((b, i) => {
       setTimeout(() => applyBoost(b.id), i * 250);
     });
   };
 
   const doneCount = BOOSTS.filter((b) => boosted[b.id]).length;
+  const totalAvailable = BOOSTS.filter((b) => !b.adminRequired || isAdmin).length;
   const scoreBoost = Math.round((doneCount / BOOSTS.length) * 28);
 
   return (
@@ -214,7 +240,7 @@ export function BoosterTab() {
             </span>
             <span className="text-xs text-slate-400 ml-1">{t("applied")}</span>
           </div>
-          {doneCount < BOOSTS.length ? (
+          {doneCount < totalAvailable ? (
             <button
               onClick={applyAll}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
@@ -237,17 +263,19 @@ export function BoosterTab() {
         {BOOSTS.map((b) => {
           const done = boosted[b.id];
           const loading = boosting === b.id;
+          const locked = b.adminRequired && !isAdmin;
+
           return (
             <GradientCard key={b.id}>
               <div className="flex gap-4">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
-                    background: done ? `${b.color}15` : "#f1f5f9",
-                    color: done ? b.color : "#64748b",
+                    background: locked ? `${C.rose}10` : done ? `${b.color}15` : "#f1f5f9",
+                    color: locked ? C.rose : done ? b.color : "#64748b",
                   }}
                 >
-                  {done ? <CheckCircle2 size={20} /> : b.icon}
+                  {locked ? <Lock size={18} /> : done ? <CheckCircle2 size={20} /> : b.icon}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
@@ -258,10 +286,24 @@ export function BoosterTab() {
                   </div>
                   <p className="text-xs text-slate-500 mb-3 leading-relaxed">{t(b.desc)}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold" style={{ color: b.color }}>
-                      {t(b.gain)}
+                    <span
+                      className="text-xs font-semibold"
+                      style={{ color: locked ? C.rose : b.color }}
+                    >
+                      {locked ? t("Requires Admin Privileges") : t(b.gain)}
                     </span>
-                    {!done ? (
+                    {locked ? (
+                      <div
+                        className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1"
+                        style={{
+                          background: "#fef2f2",
+                          color: C.rose,
+                          border: `1px solid #fee2e2`,
+                        }}
+                      >
+                        <Lock size={12} /> {t("Locked")}
+                      </div>
+                    ) : !done ? (
                       <button
                         onClick={() => applyBoost(b.id)}
                         disabled={loading}
@@ -275,9 +317,24 @@ export function BoosterTab() {
                         {loading ? <RefreshCw size={12} className="animate-spin" /> : t("Apply")}
                       </button>
                     ) : (
-                      <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 size={12} /> {t("applied")}
-                      </span>
+                      <button
+                        onClick={() => restoreBoost(b.id)}
+                        disabled={loading}
+                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 flex items-center gap-1"
+                        style={{
+                          background: "#ecfdf5",
+                          color: "#10b981",
+                          border: `1px solid #a7f3d0`,
+                        }}
+                      >
+                        {loading ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle2 size={12} /> {t("Restore")}
+                          </>
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>

@@ -21,7 +21,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 vi.mock("@tauri-apps/api/app", () => ({
-  getVersion: vi.fn().mockResolvedValue("0.10.0"),
+  getVersion: vi.fn().mockResolvedValue("0.11.0"),
   getName: vi.fn().mockResolvedValue("Cpulse"),
 }));
 

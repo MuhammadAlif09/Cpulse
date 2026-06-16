@@ -2287,7 +2287,7 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.10.0");
+  const [appVersion, setAppVersion] = useState("0.11.0");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
@@ -2703,7 +2703,7 @@ export default function App() {
               />
             )}
             {tab === "cleaner" && <CleanerTab lang={lang} />}
-            {tab === "booster" && <BoosterTab lang={lang} />}
+            {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
             {tab === "startup" && <StartupTab />}
             {tab === "privacy" && (
               <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
