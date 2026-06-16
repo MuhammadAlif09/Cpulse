@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.8] - 2026-06-16
+
+### Added
+
+- Implemented real Windows startup impact & boot delay detection:
+  - Added backend command to parse executable paths from registry startup commands.
+  - Implemented single-batch PowerShell query to retrieve real file metadata (size, company/publisher name).
+  - Designed deterministic startup impact classification (High/Medium/Low) and boot delay duration calculations.
+  - Updated React frontend `StartupTab` to use real startup metadata.
+  - Added custom emoji app icons for recognized programs (Discord, Spotify, Steam, OneDrive, Teams, etc.).
+
 ## [0.11.7] - 2026-06-16
 
 ### Added

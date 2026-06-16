@@ -88,6 +88,33 @@ interface StartupItem {
   icon?: string;
 }
 
+function getIconForApp(name: string, publisher: string): string {
+  const nameLower = name.toLowerCase();
+  const pubLower = publisher.toLowerCase();
+  if (nameLower.includes("discord")) return "💬";
+  if (nameLower.includes("spotify")) return "🎵";
+  if (nameLower.includes("steam")) return "🎮";
+  if (nameLower.includes("onedrive") || nameLower.includes("skydrive")) return "☁️";
+  if (nameLower.includes("teams") || nameLower.includes("skype") || nameLower.includes("zoom"))
+    return "👥";
+  if (pubLower.includes("google") || nameLower.includes("chrome")) return "🌐";
+  if (
+    pubLower.includes("microsoft") ||
+    pubLower.includes("windows") ||
+    nameLower.includes("explorer")
+  )
+    return "🪟";
+  if (
+    pubLower.includes("adobe") ||
+    nameLower.includes("photoshop") ||
+    nameLower.includes("creative cloud")
+  )
+    return "🎨";
+  if (nameLower.includes("nvidia") || nameLower.includes("radeon") || nameLower.includes("intel"))
+    return "⚙️";
+  return "⚡";
+}
+
 export function StartupTab() {
   const { t } = useTranslation();
   const [items, setItems] = useState<StartupItem[]>([]);
@@ -96,13 +123,9 @@ export function StartupTab() {
   useEffect(() => {
     invoke<StartupItem[]>("get_startup_items")
       .then((res) => {
-        // Mock metrics for real items
         const enriched = res.map((item) => ({
           ...item,
-          impact: Math.random() > 0.6 ? "High" : "Medium",
-          delay: Math.random() * 4,
-          publisher: item.command.includes("Microsoft") ? "Microsoft Corp" : "Unknown",
-          icon: "⚡",
+          icon: getIconForApp(item.name, item.publisher || ""),
         }));
         setItems(enriched);
       })
