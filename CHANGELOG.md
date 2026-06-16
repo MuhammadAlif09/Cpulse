@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.9] - 2026-06-16
+
+### Added
+
+- Integrated background CLI daemon for silent automatic system optimization:
+  - Intercepted the `--silent-clean` command-line argument during Tauri application setup callback.
+  - Executed a programmatic scan and clean cycle completely in the background without UI window generation.
+  - Logged optimization results (freed bytes, fixed count, execution duration, and type "Auto Clean") to the plugin store's `history.json` database.
+  - Terminated the daemon process immediately with exit code `0` on completion.
+  - Resolved PE/COFF dynamic library symbol export limit under MinGW toolchain by compiling the app library statically as a Rust library target (`rlib`).
+
 ## [0.11.8] - 2026-06-16
 
 ### Added
