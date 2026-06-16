@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-06-16
+
+### Fixed
+
+- Removed duplicated, hoisted components from App.tsx that were shadowing the fixed module imports.
+- Fixed a crash on the Privacy tab caused by stale code execution.
+- Fixed Booster functionality failing due to old component code.
+- Fixed text encoding issues (garbled characters) across UI menus.
+- Corrected application logo import to properly render on the Sidebar and Settings menus.
+- Fixed "About WinCleaner" text to "About CPulse".
+
 ## [0.11.0] - 2026-06-16
 
 ### Added
