@@ -492,6 +492,7 @@ interface SystemMetrics {
 }
 
 function DashboardTab({ 
+  lang,
   setTab, 
   metrics, 
   junkItems, 
@@ -516,6 +517,22 @@ function DashboardTab({
 
   const [ramCleanState, setRamCleanState] = useState<"ready" | "cleaning" | "done">("ready");
   const [freedRam, setFreedRam] = useState("0 MB");
+
+  const [isCleaningJunk, setIsCleaningJunk] = useState(false);
+  const [isJunkCleaned, setIsJunkCleaned] = useState(false);
+  const [cpuData, setCpuData] = useState<{ t: number; v: number }[]>(INITIAL_HISTORY);
+  const [ramData, setRamData] = useState<{ t: number; v: number }[]>(INITIAL_HISTORY);
+
+  useEffect(() => {
+    if (metrics) {
+      setCpuData((prev) => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.cpu_usage) }]);
+      setRamData((prev) => [...prev.slice(1), { t: Date.now(), v: Math.round(metrics.ram_usage) }]);
+    }
+  }, [metrics]);
+
+  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
+  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+  const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
   // Re-evaluate Junk state on data change
   useEffect(() => {
@@ -544,7 +561,7 @@ function DashboardTab({
   const STATS = metrics ? [
     { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
     { label: "RAM Usage", value: `${Math.round(metrics.ram_usage)}%`, sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`, icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: `${Math.round(metrics.disk_usage)}%`, sub: `${metrics.used_disk.toFixed(1)} / ${metrics.total_disk.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
+    { label: "Disk Usage", value: `${diskUsagePct}%`, sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
     { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
   ] : [
     { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
@@ -574,13 +591,13 @@ function DashboardTab({
             <p className="text-indigo-100 text-sm mt-1">
               {issues.length === 0
                 ? t(lang, "System is running optimally")
-                : `${t(lang, "Your PC needs some attention")} Ã¢â‚¬â€ ${issues.length} ${t(lang, issues.length > 1 ? "issues" : "issue")}`}
+                : `${t(lang, "Your PC needs some attention")} — ${issues.length} ${t(lang, issues.length > 1 ? "issues" : "issue")}`}
             </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
             <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
             <RadialGauge value={metrics ? Math.round(metrics.ram_usage) : 0} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={metrics ? Math.round(metrics.disk_usage) : 0} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge value={diskUsagePct} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
@@ -722,15 +739,15 @@ function DashboardTab({
           </div>
           <div className="flex items-center gap-3">
             <PieChart width={80} height={80}>
-              <Pie data={[{ v: metrics ? Math.round(metrics.disk_usage) : 0 }, { v: metrics ? 100 - Math.round(metrics.disk_usage) : 100 }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
+              <Pie data={[{ v: diskUsagePct }, { v: 100 - diskUsagePct }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
                 <Cell key="used" fill={C.amber} />
                 <Cell key="free" fill="#f1f5f9" />
               </Pie>
             </PieChart>
             <div>
-              <div className="text-xl font-bold text-slate-800">{metrics ? Math.round(metrics.disk_usage) : 0}%</div>
-              <div className="text-xs text-slate-500">{metrics ? metrics.used_disk.toFixed(1) : "..."} GB used</div>
-              <div className="text-xs text-slate-400">{metrics ? (metrics.total_disk - metrics.used_disk).toFixed(1) : "..."} GB free</div>
+              <div className="text-xl font-bold text-slate-800">{diskUsagePct}%</div>
+              <div className="text-xs text-slate-500">{metrics ? totalDiskUsed.toFixed(1) : "..."} GB used</div>
+              <div className="text-xs text-slate-400">{metrics ? (totalDiskSize - totalDiskUsed).toFixed(1) : "..."} GB free</div>
             </div>
           </div>
         </GradientCard>
@@ -1453,7 +1470,7 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ settings Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-function SettingsTab({ appName, appVersion }: { appName: string, appVersion: string }) {
+function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: string, appVersion: string, onLanguageChange?: (l: string) => void }) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
   
@@ -1825,9 +1842,12 @@ export default function App() {
   let score = 100;
   let issues: string[] = [];
 
-  const diskUsage = metrics ? metrics.disk_usage : 0;
-  if (diskUsage > 85) { score -= 15; issues.push(`Disk at ${Math.round(diskUsage)}% Ã¢â‚¬â€ consider cleaning`); }
-  else if (diskUsage > 75) { issues.push(`Disk at ${Math.round(diskUsage)}% Ã¢â‚¬â€ consider cleaning`); }
+  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
+  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+  const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+
+  if (diskUsagePct > 85) { score -= 15; issues.push(`Disk at ${diskUsagePct}% — consider cleaning`); }
+  else if (diskUsagePct > 75) { issues.push(`Disk at ${diskUsagePct}% — consider cleaning`); }
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
   if (junkBytes > 1073741824) {
@@ -1894,13 +1914,17 @@ export default function App() {
 
         if (!globalSettings.realTimeMonitoring) return;
         
-        if (metrics.disk_usage > 80 && !hasNotifiedDisk) {
+        const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
+        const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+        const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+
+        if (diskUsagePct > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
           if (globalSettings.notifications) {
             setNotifications(prev => [{
               id: Date.now(),
               title: "Disk Space Low",
-              desc: `C: Drive is at ${Math.round(metrics.disk_usage)}% capacity.`,
+              desc: `C: Drive is at ${diskUsagePct}% capacity.`,
               time: "Just now",
               unread: true
             }, ...prev]);
@@ -2166,9 +2190,9 @@ export default function App() {
               <p className="text-sm text-slate-500 mt-0.5">{t(lang, TAB_DESC[tab])}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
-            {tab === "cleaner" && <CleanerTab />}
-            {tab === "booster" && <BoosterTab />}
+            {tab === "dashboard" && <DashboardTab lang={lang} setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
+            {tab === "cleaner" && <CleanerTab lang={lang} />}
+            {tab === "booster" && <BoosterTab lang={lang} />}
             {tab === "startup" && <StartupTab />}
             {tab === "privacy" && (
               <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
