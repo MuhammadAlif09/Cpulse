@@ -491,6 +491,27 @@ interface SystemMetrics {
   network_down: number;
 }
 
+
+const NAV: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
+  { id: "dashboard", label: "Dashboard", icon: <Monitor size={16} /> },
+  { id: "cleaner", label: "Cleaner", icon: <Trash2 size={16} />, badge: 3 },
+  { id: "booster", label: "Booster", icon: <Zap size={16} /> },
+  { id: "startup", label: "Startup", icon: <PackageX size={16} />, badge: 3 },
+  { id: "privacy", label: "Privacy", icon: <Lock size={16} />, badge: 7 },
+  { id: "history", label: "History", icon: <BarChart3 size={16} /> },
+  { id: "settings", label: "Settings", icon: <Settings size={16} /> },
+];
+
+const TAB_DESC: Record<Tab, string> = {
+  dashboard: "System overview and real-time health metrics",
+  cleaner: "Scan and remove junk files to free up disk space",
+  booster: "Tune Windows settings for maximum performance",
+  startup: "Manage programs that launch automatically at boot",
+  privacy: "Find and erase privacy traces and tracking data",
+  history: "View past cleaning and optimization sessions",
+  settings: "Configure application preferences and automation",
+};
+
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -514,7 +535,7 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.11.1");
+  const [appVersion, setAppVersion] = useState("0.11.0");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
