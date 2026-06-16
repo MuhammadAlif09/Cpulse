@@ -96,13 +96,20 @@ export function DashboardTab({
 }: DashboardTabProps) {
   const { t } = useTranslation();
   const { metrics, cpuData, ramData } = useSystemMetrics();
-  const { scanning, cleaning, startScan, doClean } = useJunkScanner();
+
+  // In-place Clean Action States
+  const [cleanActionState, setCleanActionState] = useState<"idle" | "scanning" | "cleaning" | "cleaned">("idle");
+  const [cleanedSize, setCleanedSize] = useState("");
+
+  // In-place RAM Boost States
+  const [boostActionState, setBoostActionState] = useState<"idle" | "running" | "boosted">("idle");
+  const [boostedSize, setBoostedSize] = useState("");
 
   const activeStartup = startupItems ? startupItems.filter((i) => i.enabled).length : 0;
   const startupCountStr = `${activeStartup} ${t("items active")}`;
 
-  const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
-  const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
+  const totalDiskUsed = metrics ? metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0) : 0;
+  const totalDiskSize = metrics ? metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0) : 1;
   const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
   const totalJunkBytes = junkItems ? junkItems.reduce((acc, c) => acc + c.bytes, 0) : 0;
@@ -112,6 +119,55 @@ export function DashboardTab({
   if (metrics && metrics.cpu_temp > 0.0) {
     cpuTempStr = `${Math.round(metrics.cpu_temp)}°C`;
   }
+
+  const handleCleanJunk = async () => {
+    if (cleanActionState !== "idle") return;
+    setCleanActionState("scanning");
+    try {
+      const results: any[] = await invoke("scan_junk");
+      const bytes = results.reduce((acc, c) => acc + c.bytes, 0);
+      const sizeStr = (bytes / 1048576).toFixed(1) + " MB";
+      setCleanedSize(sizeStr);
+
+      if (bytes > 0) {
+        setCleanActionState("cleaning");
+        const categories = results.map((r) => r.name);
+        await invoke("clean_junk", { categories });
+        setCleanActionState("cleaned");
+      } else {
+        setCleanActionState("cleaned");
+        setCleanedSize("0 MB");
+      }
+
+      setTimeout(() => {
+        setCleanActionState("idle");
+      }, 4000);
+    } catch (err) {
+      console.error("Quick clean error:", err);
+      setCleanActionState("idle");
+    }
+  };
+
+  const handleRamBoost = async () => {
+    if (boostActionState !== "idle") return;
+    setBoostActionState("running");
+    try {
+      const bytesFreed = await invoke<number>("clean_ram");
+      const sizeStr = bytesFreed > 1073741824 
+        ? `+${(bytesFreed / 1073741824).toFixed(1)} GB freed`
+        : `+${(bytesFreed / 1048576).toFixed(0)} MB freed`;
+      
+      setBoostedSize(sizeStr);
+      setBoostActionState("boosted");
+
+      setTimeout(() => {
+        setBoostActionState("idle");
+      }, 4000);
+    } catch (err) {
+      console.error("RAM clean error:", err);
+      setBoostActionState("idle");
+    }
+  };
 
   const STATS = metrics
     ? [
@@ -394,42 +450,58 @@ export function DashboardTab({
           </div>
         </GradientCard>
 
-        {/* Disk Space */}
+        {/* Disk Space List */}
         <GradientCard style={{ background: "white" }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-700">{t("Disk Space")}</span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {metrics?.disks ? `${metrics.disks.length} ${t("drives")}` : "..."}
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <PieChart width={80} height={80}>
-                <Pie
-                  data={[
-                    { name: "used", value: diskUsagePct },
-                    { name: "free", value: 100 - diskUsagePct },
-                  ]}
-                  dataKey="value"
-                  cx={35}
-                  cy={35}
-                  innerRadius={22}
-                  outerRadius={35}
-                  startAngle={90}
-                  endAngle={-270}
-                  strokeWidth={0}
-                >
-                  <Cell key="used" fill={C.amber} />
-                  <Cell key="free" fill="#f1f5f9" />
-                </Pie>
-              </PieChart>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">{diskUsagePct}%</div>
-              <div className="text-xs text-slate-500 font-medium">
-                {metrics ? totalDiskUsed.toFixed(1) : "..."} GB {t("used")}
+          <div className="space-y-3 max-h-[96px] overflow-y-auto pr-1">
+            {metrics?.disks && metrics.disks.length > 0 ? (
+              metrics.disks.map((disk: any) => {
+                const usedPct = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
+                const barColor = usedPct > 85 ? C.rose : usedPct > 70 ? C.amber : C.indigo;
+                const barBg = usedPct > 85 ? "#ffe4e6" : usedPct > 70 ? "#fef3c7" : "#ede9fe";
+                return (
+                  <div key={disk.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5 min-w-0">
+                        <HardDrive size={13} className="text-slate-400 flex-shrink-0" />
+                        <span className="truncate">{disk.name}</span>
+                        <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.25 rounded flex-shrink-0">
+                          {disk.disk_type || "SSD"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium truncate hidden md:inline">
+                          {disk.model}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-slate-600 flex-shrink-0">
+                        {disk.used.toFixed(1)} / {disk.total.toFixed(1)} GB
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: barBg }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${usedPct}%`,
+                          backgroundColor: barColor,
+                        }}
+                      />
+                    </div>
+                    <div className="text-[9px] text-slate-400 flex md:hidden items-center justify-between font-medium">
+                      <span className="truncate max-w-[150px]">{disk.model}</span>
+                      <span>{usedPct}% used</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">
+                {t("Loading disks...")}
               </div>
-              <div className="text-xs text-slate-400 font-medium">
-                {metrics ? (totalDiskSize - totalDiskUsed).toFixed(1) : "..."} GB {t("free")}
-              </div>
-            </div>
+            )}
           </div>
         </GradientCard>
       </div>
@@ -442,18 +514,38 @@ export function DashboardTab({
             {
               id: "cleaner",
               icon: <Trash2 size={18} />,
-              label: t("Clean Junk"),
-              sub: scanning ? t("Scanning...") : cleaning ? t("Cleaning...") : junkSizeStr,
+              label: cleanActionState === "scanning" 
+                ? t("Scanning...") 
+                : cleanActionState === "cleaning" 
+                  ? t("Cleaning...") 
+                  : cleanActionState === "cleaned" 
+                    ? t("Cleaned!") 
+                    : t("Clean Junk"),
+              sub: cleanActionState === "cleaned" 
+                ? `${t("Cleaned")} ${cleanedSize}` 
+                : cleanActionState === "scanning" 
+                  ? t("Scanning...") 
+                  : cleanActionState === "cleaning" 
+                    ? t("Cleaning...") 
+                    : junkSizeStr,
               color: C.indigo,
-              tab: "cleaner" as const,
+              onClick: handleCleanJunk,
             },
             {
               id: "booster",
               icon: <Zap size={18} />,
-              label: t("Boost Now"),
-              sub: t("8 tweaks ready"),
+              label: boostActionState === "running"
+                ? t("Running...")
+                : boostActionState === "boosted"
+                  ? t("Boosted!")
+                  : t("Boost Now"),
+              sub: boostActionState === "boosted"
+                ? boostedSize
+                : boostActionState === "running"
+                  ? t("Optimizing...")
+                  : t("Optimize memory"),
               color: C.violet,
-              tab: "booster" as const,
+              onClick: handleRamBoost,
             },
             {
               id: "startup",
@@ -461,7 +553,7 @@ export function DashboardTab({
               label: t("Fix Startup"),
               sub: startupCountStr,
               color: C.amber,
-              tab: "startup" as const,
+              onClick: () => setTab("startup"),
             },
             {
               id: "privacy",
@@ -469,20 +561,22 @@ export function DashboardTab({
               label: t("Privacy Sweep"),
               sub: t("Traces found"),
               color: C.rose,
-              tab: "privacy" as const,
+              onClick: () => setTab("privacy"),
             },
           ].map((a) => (
             <button
               key={a.id}
-              onClick={() => setTab(a.tab)}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left"
+              onClick={a.onClick}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left w-full"
               style={{ background: `linear-gradient(135deg, ${a.color}05, ${a.color}0f)` }}
             >
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
                 style={{ background: `${a.color}15`, color: a.color }}
               >
-                {a.id === "cleaner" && (scanning || cleaning) ? (
+                {a.id === "cleaner" && (cleanActionState === "scanning" || cleanActionState === "cleaning") ? (
+                  <RefreshCw size={20} className="animate-spin" />
+                ) : a.id === "booster" && boostActionState === "running" ? (
                   <RefreshCw size={20} className="animate-spin" />
                 ) : (
                   a.icon

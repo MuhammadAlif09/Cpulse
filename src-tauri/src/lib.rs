@@ -24,6 +24,8 @@ struct DiskInfo {
     name: String,
     used: f64,
     total: f64,
+    disk_type: String,
+    model: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -47,6 +49,107 @@ struct JunkItem {
     count: usize,
     color: String,
     icon: String,
+}
+
+fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
+    let mut map = std::collections::HashMap::new();
+
+    let part_output = std::process::Command::new("powershell")
+        .args(&[
+            "-NoProfile",
+            "-Command",
+            "Get-Partition | Where-Object DriveLetter | Select-Object DriveLetter, DiskNumber | ConvertTo-Json"
+        ])
+        .output();
+
+    let phys_output = std::process::Command::new("powershell")
+        .args(&[
+            "-NoProfile",
+            "-Command",
+            "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json"
+        ])
+        .output();
+
+    let mut parts: Vec<serde_json::Value> = Vec::new();
+    if let Ok(out) = part_output {
+        let s = String::from_utf8_lossy(&out.stdout);
+        let trimmed = s.trim();
+        if !trimmed.is_empty() {
+            if trimmed.starts_with('{') {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed)) {
+                    if let Some(arr) = v.as_array() {
+                        parts = arr.clone();
+                    }
+                }
+            } else if trimmed.starts_with('[') {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed) {
+                    if let Some(arr) = v.as_array() {
+                        parts = arr.clone();
+                    }
+                }
+            }
+        }
+    }
+
+    let mut phys: Vec<serde_json::Value> = Vec::new();
+    if let Ok(out) = phys_output {
+        let s = String::from_utf8_lossy(&out.stdout);
+        let trimmed = s.trim();
+        if !trimmed.is_empty() {
+            if trimmed.starts_with('{') {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed)) {
+                    if let Some(arr) = v.as_array() {
+                        phys = arr.clone();
+                    }
+                }
+            } else if trimmed.starts_with('[') {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed) {
+                    if let Some(arr) = v.as_array() {
+                        phys = arr.clone();
+                    }
+                }
+            }
+        }
+    }
+
+    for p in parts {
+        let letter = match p.get("DriveLetter") {
+            Some(serde_json::Value::String(s)) => s.clone(),
+            _ => continue,
+        };
+        let disk_num = match p.get("DiskNumber") {
+            Some(serde_json::Value::Number(num)) => num.as_i64().unwrap_or(-1),
+            _ => -1,
+        };
+        if disk_num == -1 {
+            continue;
+        }
+
+        let mut model = "Local Disk".to_string();
+        let mut mtype = "SSD".to_string();
+
+        for d in &phys {
+            let id_str = match d.get("DeviceId") {
+                Some(serde_json::Value::String(s)) => s.clone(),
+                Some(serde_json::Value::Number(num)) => num.to_string(),
+                _ => String::new(),
+            };
+            if id_str == disk_num.to_string() {
+                if let Some(serde_json::Value::String(m)) = d.get("Model") {
+                    model = m.clone();
+                }
+                mtype = match d.get("MediaType") {
+                    Some(serde_json::Value::String(s)) => s.clone(),
+                    _ => "SSD".to_string(),
+                };
+                break;
+            }
+        }
+
+        map.insert(letter.to_uppercase(), (model, mtype));
+    }
+
+    map
 }
 
 #[tauri::command]
@@ -1022,6 +1125,8 @@ pub fn run() {
                 let mut disks = Disks::new_with_refreshed_list();
                 let mut components = Components::new_with_refreshed_list();
 
+                let disk_cache = get_disk_details();
+
                 loop {
                     sys.refresh_all();
                     networks.refresh(true);
@@ -1056,11 +1161,26 @@ pub fn run() {
                         let t = disk.total_space() as f64 / 1_073_741_824.0;
                         let u =
                             (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
-                        let n = disk.name().to_string_lossy().into_owned();
+                        let mount_p = disk.mount_point().to_string_lossy().into_owned();
+                        let letter = mount_p.chars().next().unwrap_or('C').to_string().to_uppercase();
+
+                        let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
+                            (m.clone(), dt.clone())
+                        } else {
+                            let dt = match disk.kind() {
+                                sysinfo::DiskKind::SSD => "SSD".to_string(),
+                                sysinfo::DiskKind::HDD => "HDD".to_string(),
+                                _ => "SSD".to_string(),
+                            };
+                            ("Local Disk".to_string(), dt)
+                        };
+
                         disks_info.push(DiskInfo {
-                            name: if n.is_empty() { "Disk".to_string() } else { n },
+                            name: format!("{}:", letter),
                             used: u,
                             total: t,
+                            disk_type,
+                            model,
                         });
                     }
 

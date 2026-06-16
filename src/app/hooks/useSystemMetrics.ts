@@ -5,6 +5,8 @@ export interface DiskInfo {
   name: string;
   used: number;
   total: number;
+  disk_type: string;
+  model: string;
 }
 
 export interface SystemMetrics {
