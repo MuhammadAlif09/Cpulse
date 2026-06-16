@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-06-16
+
+### Added
+
+- Restored real-time CPU History area chart with a clean watermarked background percentage display.
+- Restored real-time RAM History area chart with a clean watermarked background percentage display.
+- Added a Disk Space card containing a donut chart and detailed used/free space metrics.
+- Added the Quick Actions panel at the bottom of the dashboard containing Clean Junk (with size), Boost Now (tweaks count), Fix Startup (active items), and Privacy Sweep (traces found) links to transition between features.
+- Integrated UAC status and system warnings banner at the bottom of the Health Score card.
+
+## [0.11.2] - 2026-06-16
+
+### Fixed
+
+- Restored accidentally removed `NAV` and `TAB_DESC` constants during duplicate component cleanup which caused a `ReferenceError` resulting in a blank white screen upon application launch.
+
+## [0.11.1] - 2026-06-16
+
+### Fixed
+
+- Removed duplicated, hoisted components from App.tsx that were shadowing the fixed module imports.
+- Fixed a crash on the Privacy tab caused by stale code execution.
+- Fixed Booster functionality failing due to old component code.
+- Fixed text encoding issues (garbled characters) across UI menus.
+- Corrected application logo import to properly render on the Sidebar and Settings menus.
+- Fixed "About WinCleaner" text to "About CPulse".
+
 ## [0.11.0] - 2026-06-16
 
 ### Added
