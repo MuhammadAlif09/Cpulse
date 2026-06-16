@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Cpulse",
   "version": "0.10.0",
-    "identifier": "com.cpulse.app",
+  "identifier": "com.cpulse.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
