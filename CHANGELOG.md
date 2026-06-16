@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-16
+
+### Added
+
+- Implement real Privacy Scanner & Sweep on Windows backend (Recent Files list, RunMRU history, Windows Search recent queries, Wi-Fi profile count, browser history & cookies database sizes, and Clipboard status).
+- Implement real privacy sweep logic to clear recent files, Run registry keys, search history, clipboard, Wi-Fi profiles, and Chrome/Edge history/cookies.
+- Connect React `PrivacyTab` component dynamically to Tauri's `scan_privacy` and `sweep_privacy` command handlers.
+- Update application version configuration to v0.10.0 across `package.json`, `tauri.conf.json`, and default state in `App.tsx`.
+
 ## [0.9.1] - 2026-06-16
 
 ### Added

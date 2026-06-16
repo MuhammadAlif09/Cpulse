@@ -6,17 +6,18 @@ use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::Emitter;
 use trash::delete as move_to_trash;
-use winreg::enums::*;
-use winreg::RegKey;
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::System::ProcessStatus::EnumProcesses;
-#[cfg(target_os = "windows")]
-use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA};
+use windows_sys::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::ProcessStatus::EmptyWorkingSet;
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Foundation::CloseHandle;
-
+use windows_sys::Win32::System::ProcessStatus::EnumProcesses;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA,
+};
+use winreg::enums::*;
+use winreg::RegKey;
 
 #[derive(Clone, Serialize)]
 struct DiskInfo {
@@ -236,8 +237,8 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
             let _ = clear_dir(&PathBuf::from("C:\\Windows\\Temp"), false);
         }
     }
-        current_step += 1.0;
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    current_step += 1.0;
+    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
 
     if categories.contains(&"Browser Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
@@ -252,8 +253,8 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
             );
         }
     }
-        current_step += 1.0;
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    current_step += 1.0;
+    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
 
     if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
         let _ = clear_dir(
@@ -261,8 +262,8 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
             true,
         );
     }
-        current_step += 1.0;
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    current_step += 1.0;
+    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
 
     if categories.contains(&"Crash Dumps & Logs".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
@@ -273,8 +274,8 @@ fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, 
         }
     }
 
-        current_step += 1.0;
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    current_step += 1.0;
+    let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
 
     Ok("Cleaned successfully".into())
 }
@@ -294,10 +295,328 @@ fn flush_dns() -> Result<String, String> {
     }
 }
 
+#[derive(Clone, Serialize)]
+struct PrivacyCategoryInfo {
+    found: bool,
+    desc: String,
+    count: usize,
+}
+
+#[derive(Clone, Serialize)]
+struct PrivacyScanResult {
+    chrome_hist: PrivacyCategoryInfo,
+    edge_hist: PrivacyCategoryInfo,
+    recent_files: PrivacyCategoryInfo,
+    clipboard: PrivacyCategoryInfo,
+    search_hist: PrivacyCategoryInfo,
+    wifi_pass: PrivacyCategoryInfo,
+    cookies: PrivacyCategoryInfo,
+    run_hist: PrivacyCategoryInfo,
+}
+
+fn get_wifi_profiles_count() -> usize {
+    let path = Path::new("C:\\ProgramData\\Microsoft\\WlanSvc\\Profiles\\Interfaces");
+    if !path.exists() {
+        return 0;
+    }
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(path) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() {
+                if let Ok(sub_entries) = fs::read_dir(entry.path()) {
+                    count += sub_entries
+                        .flatten()
+                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "xml"))
+                        .count();
+                }
+            }
+        }
+    }
+    count
+}
+
+fn get_recent_files_count() -> usize {
+    if let Some(app_data) = std::env::var_os("APPDATA") {
+        let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
+        if let Ok(entries) = fs::read_dir(recent_dir) {
+            return entries.flatten().count();
+        }
+    }
+    0
+}
+
+fn get_run_mru_count() -> usize {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(key) =
+        hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU")
+    {
+        let count = key.enum_values().count();
+        if count > 0 {
+            return count.saturating_sub(1); // Exclude the MRUList value
+        }
+    }
+    0
+}
+
+fn get_search_history_count() -> usize {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(key) =
+        hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches")
+    {
+        return key.enum_keys().count();
+    }
+    0
+}
+
+fn get_file_size(path: &Path) -> u64 {
+    if let Ok(meta) = fs::metadata(path) {
+        meta.len()
+    } else {
+        0
+    }
+}
+
 #[tauri::command]
-fn sweep_privacy(_items: Vec<String>) -> Result<String, String> {
-    // Basic implementation for now
-    Ok("Swept successfully".into())
+fn scan_privacy() -> Result<PrivacyScanResult, String> {
+    let recent_count = get_recent_files_count();
+    let run_count = get_run_mru_count();
+    let search_count = get_search_history_count();
+    let wifi_count = get_wifi_profiles_count();
+
+    let local_app_data = std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+
+    let chrome_dir = local_app_data.join("Google\\Chrome\\User Data\\Default");
+    let chrome_hist_path = chrome_dir.join("History");
+    let chrome_cookies_path = chrome_dir.join("Network\\Cookies");
+    let chrome_hist_size = get_file_size(&chrome_hist_path);
+    let chrome_cookies_size = get_file_size(&chrome_cookies_path);
+
+    let edge_dir = local_app_data.join("Microsoft\\Edge\\User Data\\Default");
+    let edge_hist_path = edge_dir.join("History");
+    let edge_cookies_path = edge_dir.join("Network\\Cookies");
+    let edge_hist_size = get_file_size(&edge_hist_path);
+    let edge_cookies_size = get_file_size(&edge_cookies_path);
+
+    Ok(PrivacyScanResult {
+        chrome_hist: PrivacyCategoryInfo {
+            found: chrome_hist_size > 0,
+            desc: if chrome_hist_size > 0 {
+                format!("{} of history traces", format_size(chrome_hist_size))
+            } else {
+                "No Chrome history found".to_string()
+            },
+            count: if chrome_hist_size > 0 { 1 } else { 0 },
+        },
+        edge_hist: PrivacyCategoryInfo {
+            found: edge_hist_size > 0,
+            desc: if edge_hist_size > 0 {
+                format!("{} of history traces", format_size(edge_hist_size))
+            } else {
+                "No Edge history found".to_string()
+            },
+            count: if edge_hist_size > 0 { 1 } else { 0 },
+        },
+        recent_files: PrivacyCategoryInfo {
+            found: recent_count > 0,
+            desc: if recent_count > 0 {
+                format!("{} recent entries found", recent_count)
+            } else {
+                "No recent entries".to_string()
+            },
+            count: recent_count,
+        },
+        clipboard: PrivacyCategoryInfo {
+            found: true,
+            desc: "Clipboard history and current content".to_string(),
+            count: 1,
+        },
+        search_hist: PrivacyCategoryInfo {
+            found: search_count > 0,
+            desc: if search_count > 0 {
+                format!("{} search terms indexed", search_count)
+            } else {
+                "No search terms found".to_string()
+            },
+            count: search_count,
+        },
+        wifi_pass: PrivacyCategoryInfo {
+            found: wifi_count > 0,
+            desc: if wifi_count > 0 {
+                format!("{} stored profiles", wifi_count)
+            } else {
+                "No stored Wi-Fi profiles".to_string()
+            },
+            count: wifi_count,
+        },
+        cookies: PrivacyCategoryInfo {
+            found: (chrome_cookies_size + edge_cookies_size) > 0,
+            desc: if (chrome_cookies_size + edge_cookies_size) > 0 {
+                format!(
+                    "Chrome: {}, Edge: {}",
+                    format_size(chrome_cookies_size),
+                    format_size(edge_cookies_size)
+                )
+            } else {
+                "No tracking cookies found".to_string()
+            },
+            count: if (chrome_cookies_size + edge_cookies_size) > 0 {
+                1
+            } else {
+                0
+            },
+        },
+        run_hist: PrivacyCategoryInfo {
+            found: run_count > 0,
+            desc: if run_count > 0 {
+                format!("{} run command entries", run_count)
+            } else {
+                "No run command entries".to_string()
+            },
+            count: run_count,
+        },
+    })
+}
+
+#[tauri::command]
+fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let local_app_data = std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+
+    let mut success_msgs = Vec::new();
+    let mut fail_msgs = Vec::new();
+
+    for item in items {
+        match item.as_str() {
+            "recent_files" => {
+                let _ = hkcu.delete_subkey_all(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
+                );
+                if let Some(app_data) = std::env::var_os("APPDATA") {
+                    let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
+                    let _ = clear_dir(&recent_dir, false);
+                }
+                success_msgs.push("Recent files cleared.");
+            }
+            "run_hist" => {
+                let _ = hkcu.delete_subkey_all(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
+                );
+                success_msgs.push("Run history cleared.");
+            }
+            "search_hist" => {
+                let _ = hkcu.delete_subkey_all(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches",
+                );
+                success_msgs.push("Windows search history cleared.");
+            }
+            "clipboard" => {
+                let output = std::process::Command::new("powershell")
+                    .args([
+                        "-NoProfile",
+                        "-WindowStyle",
+                        "Hidden",
+                        "-Command",
+                        "Clear-Clipboard",
+                    ])
+                    .creation_flags(0x08000000)
+                    .output();
+                match output {
+                    Ok(out) if out.status.success() => {
+                        success_msgs.push("Clipboard cleared successfully.");
+                    }
+                    _ => {
+                        fail_msgs.push("Failed to clear clipboard.");
+                    }
+                }
+            }
+            "wifi_pass" => {
+                let output = std::process::Command::new("netsh")
+                    .args(["wlan", "delete", "profile", "name=*"])
+                    .creation_flags(0x08000000)
+                    .output();
+                match output {
+                    Ok(out) if out.status.success() => {
+                        success_msgs.push("Wi-Fi profiles cleared.");
+                    }
+                    _ => {
+                        fail_msgs.push("Failed to clear Wi-Fi profiles.");
+                    }
+                }
+            }
+            "chrome_hist" => {
+                let chrome_hist_path =
+                    local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
+                if chrome_hist_path.exists() {
+                    if fs::remove_file(&chrome_hist_path).is_ok() {
+                        success_msgs.push("Chrome history cleared.");
+                    } else {
+                        fail_msgs.push("Could not clear Chrome history. Close Chrome first.");
+                    }
+                }
+            }
+            "edge_hist" => {
+                let edge_hist_path =
+                    local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
+                if edge_hist_path.exists() {
+                    if fs::remove_file(&edge_hist_path).is_ok() {
+                        success_msgs.push("Edge history cleared.");
+                    } else {
+                        fail_msgs.push("Could not clear Edge history. Close Edge first.");
+                    }
+                }
+            }
+            "cookies" => {
+                let chrome_cookies_path =
+                    local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
+                let edge_cookies_path =
+                    local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
+
+                let mut chrome_ok = true;
+                let mut edge_ok = true;
+
+                if chrome_cookies_path.exists() {
+                    if fs::remove_file(&chrome_cookies_path).is_err() {
+                        chrome_ok = false;
+                    }
+                }
+                if edge_cookies_path.exists() {
+                    if fs::remove_file(&edge_cookies_path).is_err() {
+                        edge_ok = false;
+                    }
+                }
+
+                if chrome_ok && edge_ok {
+                    success_msgs.push("Chrome & Edge cookies cleared.");
+                } else if !chrome_ok && !edge_ok {
+                    fail_msgs.push("Could not clear Chrome & Edge cookies. Close browsers first.");
+                } else if !chrome_ok {
+                    success_msgs.push("Edge cookies cleared.");
+                    fail_msgs.push("Could not clear Chrome cookies. Close Chrome first.");
+                } else {
+                    success_msgs.push("Chrome cookies cleared.");
+                    fail_msgs.push("Could not clear Edge cookies. Close Edge first.");
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if fail_msgs.is_empty() {
+        Ok(format!(
+            "Privacy sweep completed successfully: {}",
+            success_msgs.join(" ")
+        ))
+    } else {
+        Err(format!(
+            "Sweep finished with warnings: {}. Successes: {}",
+            fail_msgs.join(" "),
+            success_msgs.join(" ")
+        ))
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -393,11 +712,8 @@ fn clean_ram() -> Result<u64, String> {
                 for i in 0..count {
                     let pid = processes[i as usize];
                     if pid != 0 {
-                        let handle = OpenProcess(
-                            PROCESS_QUERY_INFORMATION | PROCESS_SET_QUOTA,
-                            0,
-                            pid,
-                        );
+                        let handle =
+                            OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_SET_QUOTA, 0, pid);
                         if !handle.is_null() {
                             if EmptyWorkingSet(handle) != 0 {
                                 freed_mb += 1; // Simplification metric
@@ -408,14 +724,14 @@ fn clean_ram() -> Result<u64, String> {
                 }
             }
         }
-        
+
         // As actual freed bytes calculation is complex without before/after memory snapshots,
         // we'll simulate a realistic GB-range return based on successful process empties.
         // E.g. freeing 5-20MB per successful process on average.
-        let actual_freed_bytes = (freed_mb as u64 * 12 * 1024 * 1024) + 250_000_000; 
+        let actual_freed_bytes = (freed_mb as u64 * 12 * 1024 * 1024) + 250_000_000;
         return Ok(actual_freed_bytes);
     }
-    
+
     #[cfg(not(target_os = "windows"))]
     {
         Ok(0)
@@ -448,12 +764,13 @@ fn apply_context_menu_reg(hkcu: &RegKey, base_path: &str, enable: bool) -> Resul
 
     if enable {
         let (key, _) = hkcu.create_subkey(&path).map_err(|e| e.to_string())?;
-        key.set_value("", &"Clean with WinCleaner").map_err(|e| e.to_string())?;
-        
+        key.set_value("", &"Clean with WinCleaner")
+            .map_err(|e| e.to_string())?;
+
         if let Ok(exe_path) = std::env::current_exe() {
             if let Some(exe_str) = exe_path.to_str() {
                 let _ = key.set_value("Icon", &format!("\"{}\",0", exe_str));
-                
+
                 let (cmd_key, _) = hkcu.create_subkey(&cmd_path).map_err(|e| e.to_string())?;
                 let cmd_val = format!("\"{}\" --silent-clean", exe_str);
                 let _ = cmd_key.set_value("", &cmd_val);
@@ -482,7 +799,9 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            if let Ok((key, _)) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl") {
+            if let Ok((key, _)) =
+                hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
+            {
                 let _ = key.set_value("Win32PrioritySeparation", &26u32);
             }
         }
@@ -494,8 +813,10 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "visual" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            if let Ok((key, _)) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects") {
-                let _ = key.set_value("VisualFXSetting", &2u32); 
+            if let Ok((key, _)) = hkcu.create_subkey(
+                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+            ) {
+                let _ = key.set_value("VisualFXSetting", &2u32);
             }
         }
         "power" => {
@@ -516,7 +837,13 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "temp" => {
             let _ = std::process::Command::new("powercfg")
-                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "1"])
+                .args([
+                    "-setacvalueindex",
+                    "SCHEME_CURRENT",
+                    "SUB_PROCESSOR",
+                    "SYSCOOLPOL",
+                    "1",
+                ])
                 .creation_flags(0x08000000)
                 .output();
             let _ = std::process::Command::new("powercfg")
@@ -535,19 +862,28 @@ fn update_auto_clean(enable: bool) -> Result<String, String> {
         let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
         let exe_str = exe_path.to_str().unwrap_or_default();
         let cmd = format!("\"{}\" --silent-clean", exe_str);
-        
-        let mut args = vec!["/create", "/tn", "WinCleanerAuto", "/tr", &cmd, "/sc", "WEEKLY", "/f"];
+
+        let mut args = vec![
+            "/create",
+            "/tn",
+            "WinCleanerAuto",
+            "/tr",
+            &cmd,
+            "/sc",
+            "WEEKLY",
+            "/f",
+        ];
         if is_elevated::is_elevated() {
             args.push("/rl");
             args.push("HIGHEST");
         }
-        
+
         let output = std::process::Command::new("schtasks")
             .args(&args)
             .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
-        
+
         if output.status.success() {
             Ok("Auto-clean scheduled".into())
         } else {
@@ -600,8 +936,12 @@ pub fn run() {
                     components.refresh(true);
 
                     let cpu_usage = sys.global_cpu_usage();
-                    let cpu_name = sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string());
-                    
+                    let cpu_name = sys
+                        .cpus()
+                        .first()
+                        .map(|c| c.brand().to_string())
+                        .unwrap_or_else(|| "Unknown CPU".to_string());
+
                     let mut cpu_temp = 0.0;
                     for comp in components.list() {
                         if comp.label().to_lowercase().contains("cpu") {
@@ -621,7 +961,8 @@ pub fn run() {
                     let mut disks_info = Vec::new();
                     for disk in disks.list() {
                         let t = disk.total_space() as f64 / 1_073_741_824.0;
-                        let u = (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
+                        let u =
+                            (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
                         let n = disk.name().to_string_lossy().into_owned();
                         disks_info.push(DiskInfo {
                             name: if n.is_empty() { "Disk".to_string() } else { n },
@@ -661,6 +1002,7 @@ pub fn run() {
             scan_junk,
             clean_junk,
             flush_dns,
+            scan_privacy,
             sweep_privacy,
             is_admin,
             get_startup_items,
@@ -713,7 +1055,7 @@ mod tests {
             color: "#4f46e5".to_string(),
             icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â".to_string(),
         };
-        
+
         assert_eq!(item.name, "Test Cache");
         assert_eq!(item.bytes, 1572864);
         assert_eq!(item.count, 10);
@@ -728,7 +1070,7 @@ mod tests {
             registry_path: "Software\\Microsoft\\Windows\\CurrentVersion\\Run".to_string(),
             is_hkcu: true,
         };
-        
+
         assert_eq!(item.name, "TestApp");
         assert_eq!(item.command, "test.exe");
         assert!(item.enabled);
@@ -742,7 +1084,7 @@ mod tests {
             used: 100.5,
             total: 500.0,
         };
-        
+
         assert_eq!(disk.name, "C:");
         assert!(disk.used > 0.0);
         assert!(disk.total > disk.used);
@@ -752,8 +1094,29 @@ mod tests {
     fn test_path_validation() {
         let valid_path = PathBuf::from("C:\\Windows\\Temp");
         assert!(valid_path.is_absolute());
-        
+
         let relative_path = PathBuf::from("temp");
         assert!(!relative_path.is_absolute());
+    }
+
+    #[test]
+    fn test_get_wifi_profiles_count() {
+        // Should not panic, returns a count (>=0)
+        let _ = get_wifi_profiles_count();
+    }
+
+    #[test]
+    fn test_get_recent_files_count() {
+        let _ = get_recent_files_count();
+    }
+
+    #[test]
+    fn test_get_run_mru_count() {
+        let _ = get_run_mru_count();
+    }
+
+    #[test]
+    fn test_get_search_history_count() {
+        let _ = get_search_history_count();
     }
 }
