@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 
@@ -323,84 +323,232 @@ fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
     scan_junk_internal(Some(&app))
 }
 
-fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
+fn clear_dir_internal(
+    writer: &mut Option<BufWriter<fs::File>>,
+    path: &Path,
+    category: &str,
+    to_trash: bool,
+    time_str: &str,
+    is_root: bool,
+) {
     if !path.exists() {
-        return Ok(());
+        return;
     }
-    if let Ok(entries) = fs::read_dir(path) {
-        for entry in entries.flatten() {
-            let entry_path = entry.path();
-            if to_trash {
-                let _ = move_to_trash(&entry_path); // ignore error on locked files
+
+    if path.is_file() {
+        let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+        let path_str = path.to_string_lossy();
+
+        let result = if to_trash {
+            move_to_trash(path).map_err(|e| e.to_string())
+        } else {
+            fs::remove_file(path).map_err(|e| e.to_string())
+        };
+
+        if let Some(w) = writer.as_mut() {
+            match result {
+                Ok(_) => {
+                    let status = if to_trash { "TRASHED" } else { "CLEANED" };
+                    let _ = writeln!(
+                        w,
+                        "{} | {} | {} | {} | {} |",
+                        time_str, status, category, format_size(size), path_str
+                    );
+                }
+                Err(e) => {
+                    let status = if e.contains("Access is denied") || e.contains("permission") {
+                        "FAILED_LOCKED"
+                    } else {
+                        "FAILED_ERROR"
+                    };
+                    let _ = writeln!(
+                        w,
+                        "{} | {} | {} | {} | {} | {}",
+                        time_str, status, category, format_size(size), path_str, e
+                    );
+                }
+            }
+        }
+    } else if path.is_dir() {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries.flatten() {
+                clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
+            }
+        }
+
+        if !is_root {
+            let path_str = path.to_string_lossy();
+            let result = if to_trash {
+                move_to_trash(path).map_err(|e| e.to_string())
             } else {
-                if entry_path.is_dir() {
-                    let _ = fs::remove_dir_all(&entry_path);
-                } else {
-                    let _ = fs::remove_file(&entry_path);
+                fs::remove_dir(path).map_err(|e| e.to_string())
+            };
+
+            if let Some(w) = writer.as_mut() {
+                match result {
+                    Ok(_) => {
+                        let status = if to_trash { "TRASHED" } else { "CLEANED" };
+                        let _ = writeln!(
+                            w,
+                            "{} | {} | {} | 0 B | {} |",
+                            time_str, status, category, path_str
+                        );
+                    }
+                    Err(e) => {
+                        let status = if e.contains("Access is denied") || e.contains("permission") {
+                            "FAILED_LOCKED"
+                        } else {
+                            "FAILED_ERROR"
+                        };
+                        let _ = writeln!(
+                            w,
+                            "{} | {} | {} | 0 B | {} | {}",
+                            time_str, status, category, path_str, e
+                        );
+                    }
                 }
             }
         }
     }
+}
+
+fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
+    let mut dummy: Option<BufWriter<fs::File>> = None;
+    clear_dir_internal(&mut dummy, path, "", to_trash, "", true);
     Ok(())
 }
 
-fn clean_junk_internal(app: Option<&tauri::AppHandle>, categories: Vec<String>) -> Result<String, String> {
+fn clean_junk_internal(
+    app: &tauri::AppHandle,
+    categories: Vec<String>,
+    emit_progress: bool,
+) -> Result<String, String> {
     let is_admin = is_elevated::is_elevated();
+
+    let mut writer: Option<BufWriter<fs::File>> = None;
+    let mut time_str = String::new();
+
+    if let Ok(app_data) = app.path().app_data_dir() {
+        let _ = fs::create_dir_all(&app_data);
+        let log_path = app_data.join("cleaner_audit.log");
+        if let Ok(file) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+            writer = Some(BufWriter::new(file));
+        }
+    }
+
+    if writer.is_some() {
+        let out = std::process::Command::new("powershell")
+            .args(&["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
+            .creation_flags(0x08000000)
+            .output();
+        if let Ok(o) = out {
+            if o.status.success() {
+                time_str = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            }
+        }
+        if time_str.is_empty() {
+            time_str = "2026-06-16 22:00:00".to_string(); // fallback
+        }
+    }
 
     let total_steps = categories.len() as f32;
     let mut current_step = 0.0;
     if categories.contains(&"Windows Temp Files".to_string()) {
-        let _ = clear_dir(&std::env::temp_dir(), false);
+        clear_dir_internal(
+            &mut writer,
+            &std::env::temp_dir(),
+            "Windows Temp Files",
+            false,
+            &time_str,
+            true,
+        );
         if is_admin {
-            let _ = clear_dir(&PathBuf::from("C:\\Windows\\Temp"), false);
+            clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\Temp"),
+                "Windows Temp Files",
+                false,
+                &time_str,
+                true,
+            );
         }
     }
     current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if emit_progress {
+        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
     }
 
     if categories.contains(&"Browser Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let local_app_data = PathBuf::from(local_app_data);
-            let _ = clear_dir(
+            clear_dir_internal(
+                &mut writer,
                 &local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"),
+                "Browser Cache",
+                true,
+                &time_str,
                 true,
             );
-            let _ = clear_dir(
+            clear_dir_internal(
+                &mut writer,
                 &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"),
+                "Browser Cache",
+                true,
+                &time_str,
                 true,
             );
         }
     }
     current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if emit_progress {
+        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
     }
 
     if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
-        let _ = clear_dir(
+        clear_dir_internal(
+            &mut writer,
             &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
+            "Windows Update Cache",
+            true,
+            &time_str,
             true,
         );
     }
     current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if emit_progress {
+        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
     }
 
     if categories.contains(&"Crash Dumps & Logs".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let _ = clear_dir(&PathBuf::from(local_app_data).join("CrashDumps"), true);
+            clear_dir_internal(
+                &mut writer,
+                &PathBuf::from(local_app_data).join("CrashDumps"),
+                "Crash Dumps & Logs",
+                true,
+                &time_str,
+                true,
+            );
         }
         if is_admin {
-            let _ = clear_dir(&PathBuf::from("C:\\Windows\\Minidump"), true);
+            clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\Minidump"),
+                "Crash Dumps & Logs",
+                true,
+                &time_str,
+                true,
+            );
         }
     }
 
     current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    if emit_progress {
+        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
+    }
+
+    if let Some(mut w) = writer {
+        let _ = w.flush();
     }
 
     Ok("Cleaned successfully".into())
@@ -408,7 +556,7 @@ fn clean_junk_internal(app: Option<&tauri::AppHandle>, categories: Vec<String>) 
 
 #[tauri::command]
 fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, String> {
-    clean_junk_internal(Some(&app), categories)
+    clean_junk_internal(&app, categories, true)
 }
 
 fn run_silent_clean(app_handle: &tauri::AppHandle) {
@@ -423,7 +571,7 @@ fn run_silent_clean(app_handle: &tauri::AppHandle) {
     let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
     
     // 2. Perform the clean
-    let _ = clean_junk_internal(None, categories);
+    let _ = clean_junk_internal(app_handle, categories, false);
     
     let duration = start_time.elapsed().as_secs_f64();
     let duration_str = format!("{:.1}s", duration);
@@ -483,6 +631,21 @@ fn run_silent_clean(app_handle: &tauri::AppHandle) {
     }
     
     println!("Silent Clean Completed. Freed {} across {} files in {:.1}s.", freed_str, total_files, duration);
+}
+
+#[tauri::command]
+fn open_cleaner_audit_log(app: tauri::AppHandle) -> Result<String, String> {
+    if let Ok(app_data) = app.path().app_data_dir() {
+        let log_path = app_data.join("cleaner_audit.log");
+        if log_path.exists() {
+            std::process::Command::new("notepad.exe")
+                .arg(log_path)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+            return Ok("Opened cleaner_audit.log".into());
+        }
+    }
+    Err("Audit log file does not exist yet. Run a cleanup first.".into())
 }
 
 #[tauri::command]
@@ -1540,6 +1703,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             scan_junk,
             clean_junk,
+            open_cleaner_audit_log,
             flush_dns,
             scan_privacy,
             sweep_privacy,

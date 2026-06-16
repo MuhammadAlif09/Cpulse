@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-06-16
+
+### Added
+
+- Implemented detailed file-level audit logging for Disk Cleaner:
+  - Created a recursive folder traversal and deletion logger (`clear_dir_internal`) in the backend Rust code.
+  - Recorded pipe-separated logs (`[Timestamp] | [Status] | [Category] | [Size] | [Path] | [Error]`) to `%AppData%\com.cpulse.app\cleaner_audit.log`.
+  - Identified file locks, access warnings, UAC constraints, and mapped them to `FAILED_LOCKED` or `FAILED_ERROR` statuses with exact OS descriptions.
+  - Preserved backward compatibility of the wrapper `clear_dir` with a dummy writer for privacy sweeps.
+  - Implemented the `open_cleaner_audit_log` Tauri command to launch Notepad for immediate audit viewing.
+  - Added a responsive "View Audit Log" button to the Cleaner tab frontend UI, with interactive toast notices.
+
 ## [0.11.9] - 2026-06-16
 
 ### Added

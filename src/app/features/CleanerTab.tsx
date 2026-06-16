@@ -3,6 +3,8 @@ import { Trash2, RotateCcw, CheckCircle2, Sparkles, RefreshCw } from "lucide-rea
 import { useTranslation } from "react-i18next";
 import { ScanAnimation } from "../components/ScanAnimation";
 import { useJunkScanner } from "../hooks/useJunkScanner";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
@@ -111,11 +113,26 @@ export function CleanerTab() {
               </>
             )}
             {cleaned && (
-              <div
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700"
-                style={{ background: "#d1fae5" }}
-              >
-                <CheckCircle2 size={16} /> {t("Cleaned Successfully!")}
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const msg = await invoke<string>("open_cleaner_audit_log");
+                      toast.success(t(msg));
+                    } catch (e: any) {
+                      toast.error(t(e));
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  {t("View Audit Log")}
+                </button>
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700"
+                  style={{ background: "#d1fae5" }}
+                >
+                  <CheckCircle2 size={16} /> {t("Cleaned Successfully!")}
+                </div>
               </div>
             )}
           </div>
