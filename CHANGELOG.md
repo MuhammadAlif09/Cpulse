@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-06-16
+
+### Added
+
+- Re-enable Tauri Auto-Updater plugin in backend Rust code and update the configuration with newly generated public key.
+- Re-enable Sentry in frontend safely, wrapping initialization with a check on the `VITE_SENTRY_DSN` environment variable to prevent blank screen crashes.
+- Exclude environment variables file from git by updating `.gitignore` and document the local updater key in `.env`.
+
 ## [0.9.0] - 2026-06-16
 
 ### Added

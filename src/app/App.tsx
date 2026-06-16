@@ -491,11 +491,11 @@ interface SystemMetrics {
   network_down: number;
 }
 
-function DashboardTab({ 
+function DashboardTab({
   lang,
-  setTab, 
-  metrics, 
-  junkItems, 
+  setTab,
+  metrics,
+  junkItems,
   setJunkItems,
   startupItems,
   score,
@@ -555,20 +555,87 @@ function DashboardTab({
     }
   }
 
-  const enabledStartupCount = startupItems.filter(i => i.enabled).length;
-  const startupCountStr = startupItems.length > 0 ? `${enabledStartupCount} items active` : "Checking...";
+  const enabledStartupCount = startupItems.filter((i) => i.enabled).length;
+  const startupCountStr =
+    startupItems.length > 0 ? `${enabledStartupCount} items active` : "Checking...";
 
-  const STATS = metrics ? [
-    { label: "CPU Usage", value: `${Math.round(metrics.cpu_usage)}%`, sub: "Global CPU Load", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
-    { label: "RAM Usage", value: `${Math.round(metrics.ram_usage)}%`, sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`, icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: `${diskUsagePct}%`, sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB in use`, icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
-    { label: "Network I/O", value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`, sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`, icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
-  ] : [
-    { label: "CPU Usage", value: "...", sub: "Waiting for data", icon: <Cpu size={18} />, color: C.indigo, trend: 0, gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
-    { label: "RAM Usage", value: "...", sub: "Waiting for data", icon: <MemoryStick size={18} />, color: C.violet, trend: 0, gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)" },
-    { label: "Disk Usage", value: "...", sub: "Waiting for data", icon: <HardDrive size={18} />, color: C.amber, trend: 0, gradient: "linear-gradient(135deg,#fef3c7,#fde68a)" },
-    { label: "Network", value: "...", sub: "Waiting for data", icon: <Wifi size={18} />, color: C.emerald, trend: 0, gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)" },
-  ];
+  const STATS = metrics
+    ? [
+        {
+          label: "CPU Usage",
+          value: `${Math.round(metrics.cpu_usage)}%`,
+          sub: "Global CPU Load",
+          icon: <Cpu size={18} />,
+          color: C.indigo,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
+        },
+        {
+          label: "RAM Usage",
+          value: `${Math.round(metrics.ram_usage)}%`,
+          sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB in use`,
+          icon: <MemoryStick size={18} />,
+          color: C.violet,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)",
+        },
+        {
+          label: "Disk Usage",
+          value: `${diskUsagePct}%`,
+          sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB in use`,
+          icon: <HardDrive size={18} />,
+          color: C.amber,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#fef3c7,#fde68a)",
+        },
+        {
+          label: "Network I/O",
+          value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`,
+          sub: `Up: ${metrics.network_up.toFixed(1)} | Down: ${metrics.network_down.toFixed(1)}`,
+          icon: <Wifi size={18} />,
+          color: C.emerald,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)",
+        },
+      ]
+    : [
+        {
+          label: "CPU Usage",
+          value: "...",
+          sub: "Waiting for data",
+          icon: <Cpu size={18} />,
+          color: C.indigo,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
+        },
+        {
+          label: "RAM Usage",
+          value: "...",
+          sub: "Waiting for data",
+          icon: <MemoryStick size={18} />,
+          color: C.violet,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)",
+        },
+        {
+          label: "Disk Usage",
+          value: "...",
+          sub: "Waiting for data",
+          icon: <HardDrive size={18} />,
+          color: C.amber,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#fef3c7,#fde68a)",
+        },
+        {
+          label: "Network",
+          value: "...",
+          sub: "Waiting for data",
+          icon: <Wifi size={18} />,
+          color: C.emerald,
+          trend: 0,
+          gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)",
+        },
+      ];
 
   return (
     <div className="space-y-5">
@@ -577,10 +644,14 @@ function DashboardTab({
         gradient="linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%)"
         className="text-white border-0"
       >
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }} />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
         <div className="relative flex items-center justify-between flex-wrap gap-6">
           <div>
             <p className="text-indigo-100 text-sm mb-1">{t(lang, "System Health Score")}</p>
@@ -595,9 +666,27 @@ function DashboardTab({
             </p>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
-            <RadialGauge value={metrics ? Math.round(metrics.cpu_usage) : 0} label="CPU" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={metrics ? Math.round(metrics.ram_usage) : 0} label="RAM" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
-            <RadialGauge value={diskUsagePct} label="Disk" color="rgba(255,255,255,0.9)" trackColor="rgba(255,255,255,0.2)" size={90} />
+            <RadialGauge
+              value={metrics ? Math.round(metrics.cpu_usage) : 0}
+              label="CPU"
+              color="rgba(255,255,255,0.9)"
+              trackColor="rgba(255,255,255,0.2)"
+              size={90}
+            />
+            <RadialGauge
+              value={metrics ? Math.round(metrics.ram_usage) : 0}
+              label="RAM"
+              color="rgba(255,255,255,0.9)"
+              trackColor="rgba(255,255,255,0.2)"
+              size={90}
+            />
+            <RadialGauge
+              value={diskUsagePct}
+              label="Disk"
+              color="rgba(255,255,255,0.9)"
+              trackColor="rgba(255,255,255,0.2)"
+              size={90}
+            />
           </div>
         </div>
         <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
@@ -645,7 +734,9 @@ function DashboardTab({
             </div>
             <div className="text-2xl font-bold text-slate-800">{s.value}</div>
             <div className="text-xs text-slate-500 mt-0.5">{s.sub}</div>
-            <div className="text-xs font-medium mt-2" style={{ color: s.color }}>{s.label}</div>
+            <div className="text-xs font-medium mt-2" style={{ color: s.color }}>
+              {s.label}
+            </div>
           </GradientCard>
         ))}
       </div>
@@ -685,8 +776,24 @@ function DashboardTab({
                 </defs>
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "CPU"]} />
-                <Area type="monotone" dataKey="v" stroke={C.indigo} strokeWidth={2} fill="url(#cpuGrad)" dot={false} />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 8,
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  }}
+                  labelStyle={{ display: "none" }}
+                  formatter={(v: number) => [`${v}%`, "CPU"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={C.indigo}
+                  strokeWidth={2}
+                  fill="url(#cpuGrad)"
+                  dot={false}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -725,8 +832,24 @@ function DashboardTab({
                 </defs>
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} hide />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }} labelStyle={{ display: "none" }} formatter={(v: number) => [`${v}%`, "RAM"]} />
-                <Area type="monotone" dataKey="v" stroke={C.violet} strokeWidth={2} fill="url(#ramGrad)" dot={false} />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 8,
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  }}
+                  labelStyle={{ display: "none" }}
+                  formatter={(v: number) => [`${v}%`, "RAM"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={C.violet}
+                  strokeWidth={2}
+                  fill="url(#ramGrad)"
+                  dot={false}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -739,15 +862,29 @@ function DashboardTab({
           </div>
           <div className="flex items-center gap-3">
             <PieChart width={80} height={80}>
-              <Pie data={[{ v: diskUsagePct }, { v: 100 - diskUsagePct }]} dataKey="v" cx={35} cy={35} innerRadius={22} outerRadius={36} startAngle={90} endAngle={-270} strokeWidth={0}>
+              <Pie
+                data={[{ v: diskUsagePct }, { v: 100 - diskUsagePct }]}
+                dataKey="v"
+                cx={35}
+                cy={35}
+                innerRadius={22}
+                outerRadius={36}
+                startAngle={90}
+                endAngle={-270}
+                strokeWidth={0}
+              >
                 <Cell key="used" fill={C.amber} />
                 <Cell key="free" fill="#f1f5f9" />
               </Pie>
             </PieChart>
             <div>
               <div className="text-xl font-bold text-slate-800">{diskUsagePct}%</div>
-              <div className="text-xs text-slate-500">{metrics ? totalDiskUsed.toFixed(1) : "..."} GB used</div>
-              <div className="text-xs text-slate-400">{metrics ? (totalDiskSize - totalDiskUsed).toFixed(1) : "..."} GB free</div>
+              <div className="text-xs text-slate-500">
+                {metrics ? totalDiskUsed.toFixed(1) : "..."} GB used
+              </div>
+              <div className="text-xs text-slate-400">
+                {metrics ? (totalDiskSize - totalDiskUsed).toFixed(1) : "..."} GB free
+              </div>
             </div>
           </div>
         </GradientCard>
@@ -758,16 +895,49 @@ function DashboardTab({
         <h3 className="text-sm font-semibold text-slate-700 mb-3">{t(lang, "Quick Actions")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { id: "cleaner", icon: <Trash2 size={18} />, label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk", sub: junkSize, color: C.indigo, tab: "cleaner" as Tab },
-            { id: "booster", icon: <Zap size={18} />, label: "Boost Now", sub: "8 tweaks ready", color: C.violet, tab: "booster" as Tab },
-            { id: "startup", icon: <PackageX size={18} />, label: "Fix Startup", sub: startupCountStr, color: C.amber, tab: "startup" as Tab },
-            { id: "privacy", icon: <Lock size={18} />, label: "Privacy Sweep", sub: "Traces found", color: C.rose, tab: "privacy" as Tab },
+            {
+              id: "cleaner",
+              icon: <Trash2 size={18} />,
+              label: isJunkCleaned ? "Cleaned!" : isCleaningJunk ? "Cleaning..." : "Clean Junk",
+              sub: junkSize,
+              color: C.indigo,
+              tab: "cleaner" as Tab,
+            },
+            {
+              id: "booster",
+              icon: <Zap size={18} />,
+              label: "Boost Now",
+              sub: "8 tweaks ready",
+              color: C.violet,
+              tab: "booster" as Tab,
+            },
+            {
+              id: "startup",
+              icon: <PackageX size={18} />,
+              label: "Fix Startup",
+              sub: startupCountStr,
+              color: C.amber,
+              tab: "startup" as Tab,
+            },
+            {
+              id: "privacy",
+              icon: <Lock size={18} />,
+              label: "Privacy Sweep",
+              sub: "Traces found",
+              color: C.rose,
+              tab: "privacy" as Tab,
+            },
           ].map((a) => (
             <button
               key={a.id}
               onClick={async (e) => {
                 if (a.id === "cleaner") {
-                  if (junkSize === "Scanning..." || junkItems.length === 0 || isCleaningJunk || isJunkCleaned) {
+                  if (
+                    junkSize === "Scanning..." ||
+                    junkItems.length === 0 ||
+                    isCleaningJunk ||
+                    isJunkCleaned
+                  ) {
                     if (junkItems.length === 0 && junkSize === "0 MB ready") {
                       setTab(a.tab);
                     }
@@ -775,7 +945,7 @@ function DashboardTab({
                   }
                   setIsCleaningJunk(true);
                   try {
-                    await invoke("clean_junk", { categories: junkItems.map(j => j.name) });
+                    await invoke("clean_junk", { categories: junkItems.map((j) => j.name) });
                     setJunkItems([]);
                     setIsJunkCleaned(true);
                     setTimeout(() => setIsJunkCleaned(false), 3000);
@@ -791,8 +961,15 @@ function DashboardTab({
               className="flex flex-col items-center gap-2 p-4 rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95"
               style={{ background: `${a.color}08`, borderColor: `${a.color}20` }}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${a.color}15`, color: a.color }}>
-                {a.id === "cleaner" && isCleaningJunk ? <RefreshCw size={18} className="animate-spin" /> : a.icon}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: `${a.color}15`, color: a.color }}
+              >
+                {a.id === "cleaner" && isCleaningJunk ? (
+                  <RefreshCw size={18} className="animate-spin" />
+                ) : (
+                  a.icon
+                )}
               </div>
               <div className="text-center">
                 <div className="text-xs font-semibold text-slate-700">{a.label}</div>
@@ -966,7 +1143,8 @@ function CleanerTab({ lang }: { lang: string }) {
                   : t(lang, "Found Ã¢â‚¬â€ Select to Clean")}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {totalFiles.toLocaleString()} {t(lang, "files")} Ã‚Â· {totalGB} GB {t(lang, "ready")}
+                {totalFiles.toLocaleString()} {t(lang, "files")} Ã‚Â· {totalGB} GB{" "}
+                {t(lang, "ready")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -1240,21 +1418,36 @@ function BoosterTab({ lang }: { lang: string }) {
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div>
                       <span className="text-sm font-semibold text-slate-800">{b.title}</span>
-                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded text-slate-400 bg-slate-100">{b.category}</span>
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded text-slate-400 bg-slate-100">
+                        {b.category}
+                      </span>
                     </div>
                     {done ? (
-                      <CheckCircle2 size={17} className="flex-shrink-0 mt-0.5" style={{ color: C.emerald }} />
+                      <CheckCircle2
+                        size={17}
+                        className="flex-shrink-0 mt-0.5"
+                        style={{ color: C.emerald }}
+                      />
                     ) : (
-                      <button onClick={() => applyBoost(b.id)} disabled={loading}
+                      <button
+                        onClick={() => applyBoost(b.id)}
+                        disabled={loading}
                         className="text-xs px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 transition-all hover:shadow-sm active:scale-95"
-                        style={{ background: `${b.color}15`, color: b.color, border: `1px solid ${b.color}25` }}>
+                        style={{
+                          background: `${b.color}15`,
+                          color: b.color,
+                          border: `1px solid ${b.color}25`,
+                        }}
+                      >
                         {loading ? <RefreshCw size={12} className="animate-spin" /> : "Apply"}
                       </button>
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mb-2">{b.desc}</p>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: `${b.color}12`, color: b.color }}>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: `${b.color}12`, color: b.color }}
+                  >
                     {b.gain}
                   </span>
                 </div>
@@ -1273,49 +1466,83 @@ function StartupTab() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    invoke<StartupItem[]>("get_startup_items").then((res) => {
-      // Mock metrics for real items
-      const enriched = res.map(item => ({
-        ...item,
-        impact: Math.random() > 0.6 ? "High" : "Medium",
-        delay: Math.random() * 4,
-        publisher: item.command.includes("Microsoft") ? "Microsoft Corp" : "Unknown",
-        icon: "Ã¢Å¡Â¡"
-      }));
-      setItems(enriched);
-    }).catch(console.error);
+    invoke<StartupItem[]>("get_startup_items")
+      .then((res) => {
+        // Mock metrics for real items
+        const enriched = res.map((item) => ({
+          ...item,
+          impact: Math.random() > 0.6 ? "High" : "Medium",
+          delay: Math.random() * 4,
+          publisher: item.command.includes("Microsoft") ? "Microsoft Corp" : "Unknown",
+          icon: "Ã¢Å¡Â¡",
+        }));
+        setItems(enriched);
+      })
+      .catch(console.error);
   }, []);
 
   const toggle = async (name: string, is_hkcu: boolean, current_enabled: boolean) => {
     try {
       await invoke("toggle_startup_item", { name, isHkcu: is_hkcu, enable: !current_enabled });
-      setItems((prev) => prev.map((item) => item.name === name ? { ...item, enabled: !item.enabled } : item));
-    } catch(e) {
+      setItems((prev) =>
+        prev.map((item) => (item.name === name ? { ...item, enabled: !item.enabled } : item))
+      );
+    } catch (e) {
       console.error("Failed to toggle:", e);
       alert("Failed to toggle: " + e);
     }
   };
 
-  const filtered = items.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase()) ||
-    (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
+  const filtered = items.filter(
+    (i) =>
+      i.name.toLowerCase().includes(search.toLowerCase()) ||
+      (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
   );
 
   const disabledCount = items.filter((i) => !i.enabled).length;
-  const timeSaved = items.filter((i) => !i.enabled).reduce((s, i) => s + (i.delay || 0), 0).toFixed(1);
-  const bootTime = (items.filter((i) => i.enabled).reduce((s, i) => s + (i.delay || 0), 0) + 8).toFixed(1);
+  const timeSaved = items
+    .filter((i) => !i.enabled)
+    .reduce((s, i) => s + (i.delay || 0), 0)
+    .toFixed(1);
+  const bootTime = (
+    items.filter((i) => i.enabled).reduce((s, i) => s + (i.delay || 0), 0) + 8
+  ).toFixed(1);
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-4">
         {[
-          { icon: <Clock size={18} />, label: "Est. Boot Time", value: `${bootTime}s`, sub: "With enabled items", color: C.indigo },
-          { icon: <TrendingUp size={18} />, label: "Time Saved", value: `${timeSaved}s`, sub: `${disabledCount} items disabled`, color: C.emerald },
-          { icon: <PackageX size={18} />, label: "High Impact", value: `${items.filter(i => i.impact === "High" && i.enabled).length}`, sub: "Items still enabled", color: C.rose },
+          {
+            icon: <Clock size={18} />,
+            label: "Est. Boot Time",
+            value: `${bootTime}s`,
+            sub: "With enabled items",
+            color: C.indigo,
+          },
+          {
+            icon: <TrendingUp size={18} />,
+            label: "Time Saved",
+            value: `${timeSaved}s`,
+            sub: `${disabledCount} items disabled`,
+            color: C.emerald,
+          },
+          {
+            icon: <PackageX size={18} />,
+            label: "High Impact",
+            value: `${items.filter((i) => i.impact === "High" && i.enabled).length}`,
+            sub: "Items still enabled",
+            color: C.rose,
+          },
         ].map((s) => (
-          <GradientCard key={s.label} style={{ background: `${s.color}06`, borderColor: `${s.color}15` }}>
+          <GradientCard
+            key={s.label}
+            style={{ background: `${s.color}06`, borderColor: `${s.color}15` }}
+          >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: `${s.color}15`, color: s.color }}
+              >
                 {s.icon}
               </div>
               <span className="text-xs font-medium text-slate-500">{s.label}</span>
@@ -1350,15 +1577,23 @@ function StartupTab() {
             <div
               key={item.name}
               className="flex items-center gap-4 p-3.5 rounded-xl border transition-all hover:bg-slate-50"
-              style={{ borderColor: item.enabled ? "#e2e8f0" : "#f1f5f9", background: item.enabled ? "white" : "#fafafa" }}
+              style={{
+                borderColor: item.enabled ? "#e2e8f0" : "#f1f5f9",
+                background: item.enabled ? "white" : "#fafafa",
+              }}
             >
               <span className="text-2xl">{item.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-slate-800">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate" title={item.command}>{item.publisher} Ã‚Â· Boot delay: +{item.delay?.toFixed(1)}s</div>
+                <div className="text-xs text-slate-400 truncate" title={item.command}>
+                  {item.publisher} Ã‚Â· Boot delay: +{item.delay?.toFixed(1)}s
+                </div>
               </div>
               <PillBadge label={item.impact || "Low"} color="" />
-              <Toggle on={item.enabled} onChange={() => toggle(item.name, item.is_hkcu, item.enabled)} />
+              <Toggle
+                on={item.enabled}
+                onChange={() => toggle(item.name, item.is_hkcu, item.enabled)}
+              />
             </div>
           ))}
         </div>
@@ -1368,7 +1603,13 @@ function StartupTab() {
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ privacy Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, setPrivacySwept: (v: boolean) => void }) {
+function PrivacyTab({
+  privacySwept,
+  setPrivacySwept,
+}: {
+  privacySwept: boolean;
+  setPrivacySwept: (v: boolean) => void;
+}) {
   const [items, setItems] = useState(PRIVACY_ITEMS);
   const [sweeping, setSweeping] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>(
@@ -1379,16 +1620,19 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
 
   const doSweep = async () => {
     setSweeping(true);
-    
+
     // Attempt real sweep via Rust
     try {
-      const selectedItems = Object.keys(selected).filter(k => selected[k]);
+      const selectedItems = Object.keys(selected).filter((k) => selected[k]);
       await invoke("sweep_privacy", { items: selectedItems });
     } catch (e) {
       console.error("Sweep failed:", e);
     }
-    
-    setTimeout(() => { setSweeping(false); setPrivacySwept(true); }, 2000);
+
+    setTimeout(() => {
+      setSweeping(false);
+      setPrivacySwept(true);
+    }, 2000);
   };
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
@@ -1402,16 +1646,36 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
               <Lock size={18} style={{ color: C.rose }} />
               <h3 className="text-base font-semibold text-slate-800">Privacy Scanner</h3>
             </div>
-            <p className="text-xs text-slate-500">Finds browsing history, search traces, saved passwords, and tracking data left on your PC</p>
+            <p className="text-xs text-slate-500">
+              Finds browsing history, search traces, saved passwords, and tracking data left on your
+              PC
+            </p>
           </div>
           {!privacySwept ? (
-            <button onClick={doSweep} disabled={sweeping || selectedCount === 0}
+            <button
+              onClick={doSweep}
+              disabled={sweeping || selectedCount === 0}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: sweeping ? "#fda4af" : "linear-gradient(135deg,#f43f5e,#ec4899)", boxShadow: sweeping ? "none" : "0 4px 14px rgba(244,63,94,0.35)" }}>
-              {sweeping ? <><RefreshCw size={15} className="animate-spin" /> Sweeping...</> : <><Eye size={15} /> Sweep {selectedCount} Items</>}
+              style={{
+                background: sweeping ? "#fda4af" : "linear-gradient(135deg,#f43f5e,#ec4899)",
+                boxShadow: sweeping ? "none" : "0 4px 14px rgba(244,63,94,0.35)",
+              }}
+            >
+              {sweeping ? (
+                <>
+                  <RefreshCw size={15} className="animate-spin" /> Sweeping...
+                </>
+              ) : (
+                <>
+                  <Eye size={15} /> Sweep {selectedCount} Items
+                </>
+              )}
             </button>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 flex-shrink-0" style={{ background: "#d1fae5" }}>
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 flex-shrink-0"
+              style={{ background: "#d1fae5" }}
+            >
               <EyeOff size={16} /> Privacy Cleared!
             </div>
           )}
@@ -1433,13 +1697,19 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
                 borderColor: selected[item.id] ? `${item.color}20` : "#e2e8f0",
               }}
             >
-              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.found ? item.color : "#cbd5e1" }} />
+              <div
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: item.found ? item.color : "#cbd5e1" }}
+              />
               <div className="flex-1">
                 <div className="text-sm font-medium text-slate-700">{item.label}</div>
                 <div className="text-xs text-slate-400">{item.desc}</div>
               </div>
               {item.found && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${item.color}12`, color: item.color }}>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: `${item.color}12`, color: item.color }}
+                >
                   Found
                 </span>
               )}
@@ -1453,12 +1723,24 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Privacy Protection Tips</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
-            { icon: "Ã°Å¸â€â€™", tip: "Enable BitLocker encryption on your drive for full data protection." },
-            { icon: "Ã°Å¸Å’Â", tip: "Use a private DNS (like Cloudflare 1.1.1.1) to prevent ISP tracking." },
+            {
+              icon: "Ã°Å¸â€â€™",
+              tip: "Enable BitLocker encryption on your drive for full data protection.",
+            },
+            {
+              icon: "Ã°Å¸Å’Â",
+              tip: "Use a private DNS (like Cloudflare 1.1.1.1) to prevent ISP tracking.",
+            },
             { icon: "Ã°Å¸ÂÂª", tip: "Clear cookies weekly to remove cross-site tracking data." },
-            { icon: "Ã°Å¸â€œÂµ", tip: "Review app permissions Ã¢â‚¬â€ revoke access to camera and mic you don't need." },
+            {
+              icon: "Ã°Å¸â€œÂµ",
+              tip: "Review app permissions Ã¢â‚¬â€ revoke access to camera and mic you don't need.",
+            },
           ].map((t) => (
-            <div key={t.tip} className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <div
+              key={t.tip}
+              className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100"
+            >
               <span className="text-lg">{t.icon}</span>
               <p className="text-xs text-slate-600">{t.tip}</p>
             </div>
@@ -1470,10 +1752,18 @@ function PrivacyTab({ privacySwept, setPrivacySwept }: { privacySwept: boolean, 
 }
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ settings Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: string, appVersion: string, onLanguageChange?: (l: string) => void }) {
+function SettingsTab({
+  appName,
+  appVersion,
+  onLanguageChange,
+}: {
+  appName: string;
+  appVersion: string;
+  onLanguageChange?: (l: string) => void;
+}) {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
-  
+
   const [settings, setSettings] = useState({
     startWithWindows: false,
     minimizeToTray: true,
@@ -1490,23 +1780,23 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
       if (!store) {
         store = await load("settings.json");
       }
-      const saved = await store.get("user-settings") as {
-        startWithWindows: boolean,
-        minimizeToTray: boolean,
-        autoUpdate: boolean,
-        autoClean: boolean,
-        realTimeMonitoring: boolean,
-        contextMenu: boolean,
-        notifications: boolean,
-        soundEffects: boolean
+      const saved = (await store.get("user-settings")) as {
+        startWithWindows: boolean;
+        minimizeToTray: boolean;
+        autoUpdate: boolean;
+        autoClean: boolean;
+        realTimeMonitoring: boolean;
+        contextMenu: boolean;
+        notifications: boolean;
+        soundEffects: boolean;
       } | null;
-      
+
       const autostart = await isEnabled();
 
       if (saved) {
         setSettings({ ...saved, startWithWindows: autostart });
       } else {
-        setSettings(prev => ({ ...prev, startWithWindows: autostart }));
+        setSettings((prev) => ({ ...prev, startWithWindows: autostart }));
       }
     };
     loadSettings();
@@ -1548,14 +1838,14 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
         let contentLength = 0;
         await update.downloadAndInstall((event) => {
           switch (event.event) {
-            case 'Started':
+            case "Started":
               contentLength = event.data.contentLength || 0;
               break;
-            case 'Progress':
+            case "Progress":
               downloaded += event.data.chunkLength;
               setUpdateMsg(`Downloading... ${Math.round((downloaded / contentLength) * 100)}%`);
               break;
-            case 'Finished':
+            case "Finished":
               setUpdateMsg("Installing update...");
               break;
           }
@@ -1582,24 +1872,35 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
             <h3 className="text-sm font-semibold text-slate-800">General Preferences</h3>
           </div>
           <div className="space-y-1">
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("startWithWindows")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("startWithWindows")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Start with Windows</div>
                 <div className="text-xs text-slate-400">Launch automatically when PC boots</div>
               </div>
               <Toggle on={settings.startWithWindows} onChange={() => {}} />
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("minimizeToTray")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("minimizeToTray")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Minimize to Tray</div>
                 <div className="text-xs text-slate-400">Keep running in background when closed</div>
               </div>
               <Toggle on={settings.minimizeToTray} onChange={() => {}} />
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("contextMenu")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("contextMenu")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Context Menu Integration</div>
-                <div className="text-xs text-slate-400">Add "Clean with WinCleaner" to right-click menu</div>
+                <div className="text-xs text-slate-400">
+                  Add "Clean with WinCleaner" to right-click menu
+                </div>
               </div>
               <Toggle on={settings.contextMenu} onChange={() => {}} />
             </div>
@@ -1613,24 +1914,39 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
             <h3 className="text-sm font-semibold text-slate-800">Automation</h3>
           </div>
           <div className="space-y-1">
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("autoClean")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("autoClean")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Auto-Clean Schedule</div>
-                <div className="text-xs text-slate-400">Clean junk files automatically every week</div>
+                <div className="text-xs text-slate-400">
+                  Clean junk files automatically every week
+                </div>
               </div>
               <Toggle on={settings.autoClean} onChange={() => {}} />
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("realTimeMonitoring")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("realTimeMonitoring")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Real-time Monitoring</div>
-                <div className="text-xs text-slate-400">Alert when disk space is critically low</div>
+                <div className="text-xs text-slate-400">
+                  Alert when disk space is critically low
+                </div>
               </div>
               <Toggle on={settings.realTimeMonitoring} onChange={() => {}} />
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("autoUpdate")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("autoUpdate")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Automatic Updates</div>
-                <div className="text-xs text-slate-400">Install new versions silently in background</div>
+                <div className="text-xs text-slate-400">
+                  Install new versions silently in background
+                </div>
               </div>
               <Toggle on={settings.autoUpdate} onChange={() => {}} />
             </div>
@@ -1644,17 +1960,27 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
             <h3 className="text-sm font-semibold text-slate-800">Alerts & Sounds</h3>
           </div>
           <div className="space-y-1">
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("notifications")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("notifications")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Push Notifications</div>
-                <div className="text-xs text-slate-400">Show system tray alerts for important events</div>
+                <div className="text-xs text-slate-400">
+                  Show system tray alerts for important events
+                </div>
               </div>
               <Toggle on={settings.notifications} onChange={() => {}} />
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer" onClick={() => toggle("soundEffects")}>
+            <div
+              className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              onClick={() => toggle("soundEffects")}
+            >
               <div>
                 <div className="text-sm font-medium text-slate-700">Sound Effects</div>
-                <div className="text-xs text-slate-400">Play sounds when scans or cleans finish</div>
+                <div className="text-xs text-slate-400">
+                  Play sounds when scans or cleans finish
+                </div>
               </div>
               <Toggle on={settings.soundEffects} onChange={() => {}} />
             </div>
@@ -1673,8 +1999,14 @@ function SettingsTab({ appName, appVersion, onLanguageChange }: { appName: strin
             </div>
             <div className="text-base font-bold text-slate-800">{appName}</div>
             <div className="text-xs text-slate-500 mb-2">Version {appVersion}</div>
-            {updateMsg && <div className="text-xs text-indigo-600 mb-2 font-medium">{updateMsg}</div>}
-            <button onClick={checkUpdates} disabled={checkingUpdate} className="px-5 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition active:scale-95 disabled:opacity-50">
+            {updateMsg && (
+              <div className="text-xs text-indigo-600 mb-2 font-medium">{updateMsg}</div>
+            )}
+            <button
+              onClick={checkUpdates}
+              disabled={checkingUpdate}
+              className="px-5 py-2 rounded-xl text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition active:scale-95 disabled:opacity-50"
+            >
               {checkingUpdate ? "Checking..." : "Check for Updates"}
             </button>
           </div>
@@ -1693,7 +2025,7 @@ function HistoryTab() {
     const loadHistory = async () => {
       try {
         const historyStore = await load("history.json");
-        const logs = await historyStore.get<SessionLog[]>("logs") || [];
+        const logs = (await historyStore.get<SessionLog[]>("logs")) || [];
         setHistory(logs);
       } catch (error) {
         console.error("Failed to load history", error);
@@ -1720,13 +2052,37 @@ function HistoryTab() {
         <>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { icon: <HardDrive size={18} />, label: "Total Freed", value: `${history.reduce((acc, curr) => acc + parseFloat(curr.freed), 0).toFixed(1)} GB`, sub: "All time", color: C.indigo },
-              { icon: <BarChart3 size={18} />, label: "Scans Run", value: history.length.toString(), sub: "Last 30 days", color: C.violet },
-              { icon: <Star size={18} />, label: "Issues Fixed", value: history.reduce((acc, curr) => acc + curr.fixed, 0).toString(), sub: "All time", color: C.amber },
+              {
+                icon: <HardDrive size={18} />,
+                label: "Total Freed",
+                value: `${history.reduce((acc, curr) => acc + parseFloat(curr.freed), 0).toFixed(1)} GB`,
+                sub: "All time",
+                color: C.indigo,
+              },
+              {
+                icon: <BarChart3 size={18} />,
+                label: "Scans Run",
+                value: history.length.toString(),
+                sub: "Last 30 days",
+                color: C.violet,
+              },
+              {
+                icon: <Star size={18} />,
+                label: "Issues Fixed",
+                value: history.reduce((acc, curr) => acc + curr.fixed, 0).toString(),
+                sub: "All time",
+                color: C.amber,
+              },
             ].map((s) => (
-              <GradientCard key={s.label} style={{ background: `${s.color}05`, borderColor: `${s.color}15` }}>
+              <GradientCard
+                key={s.label}
+                style={{ background: `${s.color}05`, borderColor: `${s.color}15` }}
+              >
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: `${s.color}15`, color: s.color }}
+                  >
                     {s.icon}
                   </div>
                   <span className="text-xs font-medium text-slate-500">{s.label}</span>
@@ -1739,24 +2095,38 @@ function HistoryTab() {
 
           <GradientCard>
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Space Freed Per Month</h3>
-            <div className="py-10 text-center text-slate-400 text-sm">Data grafik akan muncul setelah beberapa pembersihan.</div>
+            <div className="py-10 text-center text-slate-400 text-sm">
+              Data grafik akan muncul setelah beberapa pembersihan.
+            </div>
           </GradientCard>
 
           <GradientCard>
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Session Log</h3>
             <div className="space-y-2">
               {history.map((h, i) => (
-                <div key={i} className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: h.type === "Deep Clean" ? `${C.indigo}10` : `${C.emerald}10`, color: h.type === "Deep Clean" ? C.indigo : C.emerald }}>
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition"
+                >
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: h.type === "Deep Clean" ? `${C.indigo}10` : `${C.emerald}10`,
+                      color: h.type === "Deep Clean" ? C.indigo : C.emerald,
+                    }}
+                  >
                     {h.type === "Deep Clean" ? <Sparkles size={15} /> : <Zap size={15} />}
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-medium text-slate-700">{h.date}</div>
-                    <div className="text-xs text-slate-400">{h.type} Ã‚Â· {h.duration} Ã‚Â· {h.fixed} issues fixed</div>
+                    <div className="text-xs text-slate-400">
+                      {h.type} Ã‚Â· {h.duration} Ã‚Â· {h.fixed} issues fixed
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold" style={{ color: C.indigo }}>{h.freed}</div>
+                    <div className="text-sm font-semibold" style={{ color: C.indigo }}>
+                      {h.freed}
+                    </div>
                     <div className="text-xs text-slate-400">freed</div>
                   </div>
                 </div>
@@ -1846,8 +2216,12 @@ export default function App() {
   const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
   const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
-  if (diskUsagePct > 85) { score -= 15; issues.push(`Disk at ${diskUsagePct}% — consider cleaning`); }
-  else if (diskUsagePct > 75) { issues.push(`Disk at ${diskUsagePct}% — consider cleaning`); }
+  if (diskUsagePct > 85) {
+    score -= 15;
+    issues.push(`Disk at ${diskUsagePct}% — consider cleaning`);
+  } else if (diskUsagePct > 75) {
+    issues.push(`Disk at ${diskUsagePct}% — consider cleaning`);
+  }
 
   const junkBytes = junkItems.reduce((acc, c) => acc + c.bytes, 0);
   if (junkBytes > 1073741824) {
@@ -1913,7 +2287,7 @@ export default function App() {
         setMetrics(metrics);
 
         if (!globalSettings.realTimeMonitoring) return;
-        
+
         const totalDiskUsed = metrics ? metrics.disks.reduce((acc, d) => acc + d.used, 0) : 0;
         const totalDiskSize = metrics ? metrics.disks.reduce((acc, d) => acc + d.total, 0) : 1;
         const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
@@ -1921,14 +2295,17 @@ export default function App() {
         if (diskUsagePct > 80 && !hasNotifiedDisk) {
           hasNotifiedDisk = true;
           if (globalSettings.notifications) {
-            setNotifications(prev => [{
-              id: Date.now(),
-              title: "Disk Space Low",
-              desc: `C: Drive is at ${diskUsagePct}% capacity.`,
-              time: "Just now",
-              unread: true
-            }, ...prev]);
-            
+            setNotifications((prev) => [
+              {
+                id: Date.now(),
+                title: "Disk Space Low",
+                desc: `C: Drive is at ${diskUsagePct}% capacity.`,
+                time: "Just now",
+                unread: true,
+              },
+              ...prev,
+            ]);
+
             if (globalSettings.soundEffects) {
               // Play a mock sound
               // new Audio('/alert.mp3').play().catch(() => {});
@@ -1976,8 +2353,10 @@ export default function App() {
         style={{ borderColor: "#e2e8f0" }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
-            style={{ background: "white" }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
+            style={{ background: "white" }}
+          >
             <img src="/src/assets/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
@@ -2050,11 +2429,18 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="flex flex-col">
-                      {notifications.map(n => (
-                        <div 
-                          key={n.id} 
-                          className={cn("px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-default", n.unread ? "bg-indigo-50/30" : "")} 
-                          onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? {...x, unread: false} : x))}
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={cn(
+                            "px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-default",
+                            n.unread ? "bg-indigo-50/30" : ""
+                          )}
+                          onClick={() =>
+                            setNotifications((prev) =>
+                              prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x))
+                            )
+                          }
                         >
                           <div className="flex gap-3">
                             <div
@@ -2158,16 +2544,26 @@ export default function App() {
 
           <div className="mt-auto px-1 transition-all duration-500 ease-in-out">
             {/* score card */}
-            <div className="rounded-xl p-3.5 mb-2"
-              style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 4px 14px rgba(79,70,229,0.3)" }}>
+            <div
+              className="rounded-xl p-3.5 mb-2"
+              style={{
+                background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
+              }}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={13} color="rgba(255,255,255,0.8)" />
                 <span className="text-xs text-indigo-100 font-medium">Health Score</span>
               </div>
               <div className="text-2xl font-bold text-white">{score} / 100</div>
-              <div className="text-xs text-indigo-200 mt-0.5">{healthText} Ã¢â‚¬â€ {issues.length} issue{issues.length !== 1 ? 's' : ''}</div>
+              <div className="text-xs text-indigo-200 mt-0.5">
+                {healthText} Ã¢â‚¬â€ {issues.length} issue{issues.length !== 1 ? "s" : ""}
+              </div>
               <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
-                <div className="h-1.5 rounded-full bg-white/80 transition-all" style={{ width: `${score}%` }} />
+                <div
+                  className="h-1.5 rounded-full bg-white/80 transition-all"
+                  style={{ width: `${score}%` }}
+                />
               </div>
             </div>
 
@@ -2190,7 +2586,19 @@ export default function App() {
               <p className="text-sm text-slate-500 mt-0.5">{t(lang, TAB_DESC[tab])}</p>
             </div>
 
-            {tab === "dashboard" && <DashboardTab lang={lang} setTab={setTab} metrics={metrics} junkItems={junkItems} setJunkItems={setJunkItems} startupItems={startupItems} score={score} issues={issues} healthText={healthText} />}
+            {tab === "dashboard" && (
+              <DashboardTab
+                lang={lang}
+                setTab={setTab}
+                metrics={metrics}
+                junkItems={junkItems}
+                setJunkItems={setJunkItems}
+                startupItems={startupItems}
+                score={score}
+                issues={issues}
+                healthText={healthText}
+              />
+            )}
             {tab === "cleaner" && <CleanerTab lang={lang} />}
             {tab === "booster" && <BoosterTab lang={lang} />}
             {tab === "startup" && <StartupTab />}
