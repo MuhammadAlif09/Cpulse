@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-06-16
+
 ### Added
 
 - Add opencode.json configuration for project automation commands
+
+### Changed
+
+- Refined Dashboard UI:
+  - Applied iOS Liquid Glass (Glassmorphism) styling to the "System Health Score" banner.
+  - Adjusted opacity, added heavy backdrop blur, and glossy border reflections.
+  - Standardized the Quick Actions buttons ("Scan Junk", "Clean Junk", "RAM Cleaner") to use consistent semi-transparent backgrounds matching the wrapper card.
+  - Improved color contrast for texts on transparent backgrounds.
 
 ### Documentation
 
@@ -17,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolve `isJunkCleaned` ReferenceError and disk metrics in DashboardTab
 - Resolve Rust compiler warnings and Option unwrap error
 - Downgrade eslint to 9.16.0 for compatibility with eslint-plugin-react
 - Escape special characters in changelog extraction for workflow
@@ -29,45 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove template literal syntax errors in loadSettings and loadGlobalSettings
 - Grant required plugin permissions in desktop capability to prevent app blank screen
 - Remove BOM from desktop.json capability file
+- Downgrade ESLint to 9.16.0 for compatibility with eslint-plugin-react 7.37.5
 
 ### Miscellaneous
 
 - Resolve merge conflict from main into dev
 
-### Other
-
-- 	modified:   .github/workflows/tauri-build.yml
-	new file:   cliff.toml
-- 	new file:   CHANGELOG.md.backup
-	new file:   cliff.toml.backup
-- 	modified:   .github/workflows/tauri-build.yml
-	new file:   src-tauri/src/lib.rs.backup
-	new file:   src-tauri/src/lib.rs.tmp
-
 ### Styling
 
 - Apply glassmorphism to dashboard ui
-
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Changed
-
-- Refined Dashboard UI:
-  - Applied iOS Liquid Glass (Glassmorphism) styling to the "System Health Score" banner.
-  - Adjusted opacity, added heavy backdrop blur, and glossy border reflections.
-  - Standardized the Quick Actions buttons ("Scan Junk", "Clean Junk", "RAM Cleaner") to use consistent semi-transparent backgrounds matching the wrapper card.
-  - Improved color contrast for texts on transparent backgrounds.
-
-### Fixed
-
-- Downgrade ESLint to 9.16.0 for compatibility with eslint-plugin-react 7.37.5
 
 ## [0.8.0] - 2026-06-13
 
@@ -89,7 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade README and add .clinerules to .gitignore
 - Match README features with UI labels
 - Add placeholders for UI screenshots in README
-  ... (1 duplicate lines)
 - Add Live UI Demo badge to README
 
 ### Fixed
