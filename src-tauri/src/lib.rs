@@ -4,6 +4,7 @@ use std::fs;
 use std::io::{BufWriter, Write};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
@@ -23,6 +24,10 @@ use winreg::enums::*;
 use winreg::RegKey;
 use winreg::RegValue;
 
+static DISK_READ_BYTES: AtomicU64 = AtomicU64::new(0);
+static DISK_WRITE_BYTES: AtomicU64 = AtomicU64::new(0);
+static TYPEPERF_CHILD_PID: AtomicU32 = AtomicU32::new(0);
+
 #[derive(Clone, Serialize)]
 struct DiskInfo {
     name: String,
@@ -37,12 +42,17 @@ struct SystemMetrics {
     cpu_usage: f32,
     cpu_temp: f32,
     cpu_name: String,
+    cpu_cores: Vec<f32>,
     ram_usage: f32,
     total_ram: f64,
     used_ram: f64,
     disks: Vec<DiskInfo>,
     network_up: f64,
     network_down: f64,
+    disk_read_speed: f64,
+    disk_write_speed: f64,
+    uptime: u64,
+    process_count: u64,
 }
 
 #[derive(Clone, Serialize)]
@@ -1577,6 +1587,240 @@ fn update_auto_clean(enable: bool) -> Result<String, String> {
         Ok("Auto-clean removed".into())
     }
 }
+fn parse_typeperf_line(line: &str) -> Option<(u64, u64)> {
+    let parts: Vec<&str> = line.split('"').collect();
+    if parts.len() >= 6 {
+        let read_str = parts[3].replace(',', ".");
+        let write_str = parts[5].replace(',', ".");
+        if let (Ok(r_val), Ok(w_val)) = (read_str.trim().parse::<f64>(), write_str.trim().parse::<f64>()) {
+            return Some((r_val as u64, w_val as u64));
+        }
+    }
+    None
+}
+
+fn spawn_typeperf_listener() {
+    std::thread::spawn(|| {
+        loop {
+            let mut cmd = std::process::Command::new("typeperf");
+            cmd.args(&[
+                r#"\PhysicalDisk(_Total)\Disk Read Bytes/sec"#,
+                r#"\PhysicalDisk(_Total)\Disk Write Bytes/sec"#,
+                "-si",
+                "1",
+            ]);
+            cmd.stdout(std::process::Stdio::piped());
+            cmd.stderr(std::process::Stdio::null());
+            #[cfg(target_os = "windows")]
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+            match cmd.spawn() {
+                Ok(mut child) => {
+                    let pid = child.id();
+                    TYPEPERF_CHILD_PID.store(pid, Ordering::SeqCst);
+                    
+                    if let Some(stdout) = child.stdout.take() {
+                        let reader = std::io::BufReader::new(stdout);
+                        use std::io::BufRead;
+                        for line_result in reader.lines() {
+                            if let Ok(line) = line_result {
+                                if let Some((read, write)) = parse_typeperf_line(&line) {
+                                    DISK_READ_BYTES.store(read, Ordering::SeqCst);
+                                    DISK_WRITE_BYTES.store(write, Ordering::SeqCst);
+                                }
+                            }
+                        }
+                    }
+                    
+                    let _ = child.wait();
+                }
+                Err(e) => {
+                    eprintln!("Failed to spawn typeperf: {}", e);
+                    DISK_READ_BYTES.store(0, Ordering::SeqCst);
+                    DISK_WRITE_BYTES.store(0, Ordering::SeqCst);
+                }
+            }
+            TYPEPERF_CHILD_PID.store(0, Ordering::SeqCst);
+            std::thread::sleep(Duration::from_secs(5));
+        }
+    });
+}
+
+fn cleanup_typeperf() {
+    let pid = TYPEPERF_CHILD_PID.swap(0, Ordering::SeqCst);
+    if pid != 0 {
+        let _ = std::process::Command::new("taskkill")
+            .args(&["/F", "/PID", &pid.to_string()])
+            .creation_flags(0x08000000)
+            .status();
+    }
+}
+
+#[tauri::command]
+async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, String> {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    
+    let mut components = Components::new_with_refreshed_list();
+    components.refresh(true);
+    
+    let mut disks = Disks::new_with_refreshed_list();
+    disks.refresh(true);
+    
+    let mut networks = Networks::new_with_refreshed_list();
+    networks.refresh(true);
+
+    let os_name = System::name().unwrap_or_else(|| "Windows".to_string());
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown Version".to_string());
+    let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown Kernel".to_string());
+    let host_name = System::host_name().unwrap_or_else(|| "Unknown Host".to_string());
+    
+    let cpu_brand = sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string());
+    let cpu_cores = sys.cpus().len();
+    
+    let total_ram = sys.total_memory() as f64 / 1_073_741_824.0;
+    let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
+    let free_ram = total_ram - used_ram;
+    
+    let mut cpu_temp = 0.0;
+    for comp in components.list() {
+        if comp.label().to_lowercase().contains("cpu") {
+            cpu_temp = comp.temperature().unwrap_or(0.0);
+            break;
+        }
+    }
+    
+    let disk_cache = get_disk_details();
+    
+    let mut processes: Vec<_> = sys.processes().values().collect();
+    processes.sort_by(|a, b| b.cpu_usage().partial_cmp(&a.cpu_usage()).unwrap_or(std::cmp::Ordering::Equal));
+    let top_cpu: Vec<_> = processes.iter().take(10).map(|p| {
+        format!("| {} | {} | {:.1}% | {} |", p.pid(), p.name().to_string_lossy(), p.cpu_usage(), format_size(p.memory()))
+    }).collect();
+    
+    processes.sort_by(|a, b| b.memory().cmp(&a.memory()));
+    let top_mem: Vec<_> = processes.iter().take(10).map(|p| {
+        format!("| {} | {} | {} | {:.1}% |", p.pid(), p.name().to_string_lossy(), format_size(p.memory()), p.cpu_usage())
+    }).collect();
+    
+    let date_output = std::process::Command::new("powershell")
+        .args(&["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
+        .creation_flags(0x08000000)
+        .output();
+    let date_str = date_output.ok().and_then(|o| {
+        if o.status.success() {
+            Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+        } else {
+            None
+        }
+    }).unwrap_or_else(|| "2026-06-17 00:00:00".to_string());
+    
+    let mut report = String::new();
+    report.push_str("# CPulse System Diagnostics Report\n\n");
+    report.push_str(&format!("**Generated on:** {}\n", date_str));
+    report.push_str(&format!("**Host Name:** {}\n", host_name));
+    report.push_str("\n## OS Information\n");
+    report.push_str(&format!("- **OS Name:** {}\n", os_name));
+    report.push_str(&format!("- **OS Version:** {}\n", os_version));
+    report.push_str(&format!("- **Kernel Version:** {}\n", kernel_version));
+    
+    report.push_str("\n## Hardware Specifications\n");
+    report.push_str(&format!("- **CPU:** {}\n", cpu_brand));
+    report.push_str(&format!("- **Logical Cores:** {}\n", cpu_cores));
+    report.push_str(&format!("- **Total Memory:** {:.2} GB\n", total_ram));
+    report.push_str(&format!("- **Used Memory:** {:.2} GB ({:.1}%)\n", used_ram, if total_ram > 0.0 { used_ram / total_ram * 100.0 } else { 0.0 }));
+    report.push_str(&format!("- **Free Memory:** {:.2} GB\n", free_ram));
+    
+    report.push_str("\n## Disk Storage Details\n");
+    report.push_str("| Drive | Model | Type | Used | Total | Free | % Used |\n");
+    report.push_str("| --- | --- | --- | --- | --- | --- | --- |\n");
+    for disk in disks.list() {
+        let t = disk.total_space() as f64 / 1_073_741_824.0;
+        let u = (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
+        let f = disk.available_space() as f64 / 1_073_741_824.0;
+        let mount_p = disk.mount_point().to_string_lossy().into_owned();
+        let letter = mount_p.chars().next().unwrap_or('C').to_string().to_uppercase();
+        let pct = if t > 0.0 { (u / t * 100.0) as u32 } else { 0 };
+        
+        let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
+            (m.clone(), dt.clone())
+        } else {
+            let dt = match disk.kind() {
+                sysinfo::DiskKind::SSD => "SSD".to_string(),
+                sysinfo::DiskKind::HDD => "HDD".to_string(),
+                _ => "SSD".to_string(),
+            };
+            ("Local Disk".to_string(), dt)
+        };
+        
+        report.push_str(&format!("| {}: | {} | {} | {:.1} GB | {:.1} GB | {:.1} GB | {}% |\n", letter, model, disk_type, u, t, f, pct));
+    }
+    
+    report.push_str("\n## Active Network Interfaces\n");
+    report.push_str("| Interface | Sent (Total) | Received (Total) |\n");
+    report.push_str("| --- | --- | --- |\n");
+    for (name, data) in networks.iter() {
+        if data.transmitted() > 0 || data.received() > 0 {
+            report.push_str(&format!("| {} | {} | {} |\n", name, format_size(data.total_transmitted()), format_size(data.total_received())));
+        }
+    }
+    
+    report.push_str("\n## Top 10 CPU-Consuming Processes\n");
+    report.push_str("| PID | Process Name | CPU Usage | Memory |\n");
+    report.push_str("| --- | --- | --- | --- |\n");
+    for p_line in top_cpu {
+        report.push_str(&format!("{}\n", p_line));
+    }
+    
+    report.push_str("\n## Top 10 Memory-Consuming Processes\n");
+    report.push_str("| PID | Process Name | Memory | CPU Usage |\n");
+    report.push_str("| --- | --- | --- | --- |\n");
+    for p_line in top_mem {
+        report.push_str(&format!("{}\n", p_line));
+    }
+    
+    report.push_str("\n## Diagnostic Health Check\n");
+    let mut alerts: Vec<String> = Vec::new();
+    if total_ram > 0.0 && used_ram / total_ram > 0.90 {
+        alerts.push("- [WARNING] Memory usage is critically high (>90%). Close some applications.".to_string());
+    }
+    if cpu_temp > 85.0 {
+        alerts.push("- [WARNING] CPU temperature is high (>85°C). Check cooling/airflow.".to_string());
+    }
+    for disk in disks.list() {
+        let t = disk.total_space() as f64;
+        let a = disk.available_space() as f64;
+        if t > 0.0 && (a / t) < 0.10 {
+            let mount_p = disk.mount_point().to_string_lossy();
+            alerts.push(format!("- [WARNING] Disk space on {} is low (<10% free).", mount_p));
+        }
+    }
+    
+    if alerts.is_empty() {
+        report.push_str("All core diagnostics look healthy! No issues detected.\n");
+    } else {
+        report.push_str("The following warnings were detected:\n\n");
+        for alert in alerts {
+            report.push_str(&format!("{}\n", alert));
+        }
+    }
+    
+    if let Ok(app_data) = app.path().app_data_dir() {
+        let _ = fs::create_dir_all(&app_data);
+        let report_path = app_data.join("diagnostics_report.md");
+        fs::write(&report_path, report)
+            .map_err(|e| format!("Failed to write report file: {}", e))?;
+            
+        std::process::Command::new("notepad.exe")
+            .arg(&report_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open report: {}", e))?;
+            
+        Ok(format!("Report saved and opened: {}", report_path.to_string_lossy()))
+    } else {
+        Err("Could not retrieve app data directory".to_string())
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -1608,6 +1852,8 @@ pub fn run() {
 
             let app_handle = app.handle().clone();
 
+            spawn_typeperf_listener();
+
             std::thread::spawn(move || {
                 let mut sys = System::new_all();
                 let mut networks = Networks::new_with_refreshed_list();
@@ -1628,6 +1874,14 @@ pub fn run() {
                         .first()
                         .map(|c| c.brand().to_string())
                         .unwrap_or_else(|| "Unknown CPU".to_string());
+
+                    let mut cpu_cores = Vec::new();
+                    for cpu in sys.cpus() {
+                        cpu_cores.push(cpu.cpu_usage());
+                    }
+
+                    let uptime = sysinfo::System::uptime();
+                    let process_count = sys.processes().len() as u64;
 
                     let mut cpu_temp = 0.0;
                     for comp in components.list() {
@@ -1680,16 +1934,24 @@ pub fn run() {
                         network_down += data.received() as f64 / 1_048_576.0;
                     }
 
+                    let disk_read_speed = DISK_READ_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+                    let disk_write_speed = DISK_WRITE_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+
                     let metrics = SystemMetrics {
                         cpu_usage,
                         cpu_temp,
                         cpu_name,
+                        cpu_cores,
                         ram_usage,
                         total_ram,
                         used_ram,
                         disks: disks_info,
                         network_up,
                         network_down,
+                        disk_read_speed,
+                        disk_write_speed,
+                        uptime,
+                        process_count,
                     };
 
                     let _ = app_handle.emit("system-metrics", metrics);
@@ -1715,10 +1977,16 @@ pub fn run() {
             restore_boost,
             set_power_plan,
             toggle_context_menu,
-            update_auto_clean
+            update_auto_clean,
+            generate_diagnostics_report
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                cleanup_typeperf();
+            }
+        });
 }
 
 #[cfg(test)]

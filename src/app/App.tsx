@@ -60,6 +60,7 @@ import { StartupTab } from "./features/StartupTab";
 import { PrivacyTab } from "./features/PrivacyTab";
 import { HistoryTab } from "./features/HistoryTab";
 import { SettingsTab } from "./features/SettingsTab";
+import { DiagnosticsTab } from "./features/DiagnosticsTab";
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ translations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -396,7 +397,7 @@ const PRIVACY_ITEMS = [
   { id: "run_hist", label: "Run Dialog History", desc: "23 entries", found: false, color: C.slate },
 ];
 
-type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings";
+type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings" | "diagnostics";
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ shared helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function cn(...classes: (string | undefined | false)[]) {
@@ -477,18 +478,25 @@ interface DiskInfo {
   name: string;
   used: number;
   total: number;
+  disk_type: string;
+  model: string;
 }
 
 interface SystemMetrics {
   cpu_usage: number;
   cpu_temp: number;
   cpu_name: string;
+  cpu_cores: number[];
   ram_usage: number;
   total_ram: number;
   used_ram: number;
   disks: DiskInfo[];
   network_up: number;
   network_down: number;
+  disk_read_speed: number;
+  disk_write_speed: number;
+  uptime: number;
+  process_count: number;
 }
 
 const NAV: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -497,6 +505,7 @@ const NAV: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] =
   { id: "booster", label: "Booster", icon: <Zap size={16} /> },
   { id: "startup", label: "Startup", icon: <PackageX size={16} />, badge: 3 },
   { id: "privacy", label: "Privacy", icon: <Lock size={16} />, badge: 7 },
+  { id: "diagnostics", label: "Diagnostics", icon: <Activity size={16} /> },
   { id: "history", label: "History", icon: <BarChart3 size={16} /> },
   { id: "settings", label: "Settings", icon: <Settings size={16} /> },
 ];
@@ -507,6 +516,7 @@ const TAB_DESC: Record<Tab, string> = {
   booster: "Tune Windows settings for maximum performance",
   startup: "Manage programs that launch automatically at boot",
   privacy: "Find and erase privacy traces and tracking data",
+  diagnostics: "In-depth resource telemetry & health analysis",
   history: "View past cleaning and optimization sessions",
   settings: "Configure application preferences and automation",
 };
@@ -534,7 +544,7 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.12.0");
+  const [appVersion, setAppVersion] = useState("0.13.0");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
@@ -956,6 +966,7 @@ export default function App() {
               <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
             )}
             {tab === "history" && <HistoryTab />}
+            {tab === "diagnostics" && <DiagnosticsTab />}
             {tab === "settings" && (
               <SettingsTab
                 appName={appName}

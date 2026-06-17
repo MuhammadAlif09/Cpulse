@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings";
+type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings" | "diagnostics";
 
 interface AppState {
   currentTab: Tab;

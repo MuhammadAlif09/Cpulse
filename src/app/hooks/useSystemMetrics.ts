@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export interface DiskInfo {
   name: string;
@@ -13,12 +13,17 @@ export interface SystemMetrics {
   cpu_usage: number;
   cpu_temp: number;
   cpu_name: string;
+  cpu_cores: number[];
   ram_usage: number;
   total_ram: number;
   used_ram: number;
   disks: DiskInfo[];
   network_up: number;
   network_down: number;
+  disk_read_speed: number;
+  disk_write_speed: number;
+  uptime: number;
+  process_count: number;
 }
 
 const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
@@ -30,9 +35,11 @@ export function useSystemMetrics() {
 
   useEffect(() => {
     let tick = 20;
-    const interval = setInterval(async () => {
-      try {
-        const data: SystemMetrics = await invoke("get_system_metrics");
+    let unlistenFn: (() => void) | null = null;
+
+    const setupListener = async () => {
+      unlistenFn = await listen<SystemMetrics>("system-metrics", (event) => {
+        const data = event.payload;
         setMetrics(data);
 
         setCpuData((prev) => {
@@ -46,12 +53,16 @@ export function useSystemMetrics() {
         });
 
         tick++;
-      } catch (err) {
-        console.error("Metrics error:", err);
-      }
-    }, 1000);
+      });
+    };
 
-    return () => clearInterval(interval);
+    setupListener().catch(console.error);
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
   }, []);
 
   return { metrics, cpuData, ramData };

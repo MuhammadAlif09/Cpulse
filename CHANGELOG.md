@@ -7,10 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-06-17
+
+### Added
+
+- Implemented System Diagnostics & Telemetry Dashboard:
+  - Spawned background `typeperf` child process monitoring `Disk Read Bytes/sec` and `Disk Write Bytes/sec` with locale-independent CSV parser and automatic process cleanup on application exit to prevent orphaned processes.
+  - Extended backend telemetry loop inside `lib.rs` to stream per-core CPU usage, process count, uptime, and disk read/write throughput rates.
+  - Implemented async Tauri command `generate_diagnostics_report` that aggregates system specifications, hardware details, storage status, and top CPU/Memory processes, exporting a markdown health report and opening it in Notepad.
+  - Added new "Diagnostics" tab in React frontend featuring logical CPU core load grids (visual hue load representation), real-time Disk and Network I/O graphs using Recharts (`isAnimationActive={false}` for efficiency), process count, and uptime tracker.
+  - Refactored `useSystemMetrics` hook to consume Tauri `"system-metrics"` events directly to avoid console polling errors.
+
 ### Documentation
 
 - Updated `guidelines/Guidelines.md` with rules on input sanitization, scan limits, Rust/Vitest testing boundaries, Zustand state management, naming conventions, error propagation, and performance budgets.
-
 
 ## [0.12.0] - 2026-06-16
 
