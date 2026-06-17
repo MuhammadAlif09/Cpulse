@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Updated `guidelines/Guidelines.md` with rules on input sanitization, scan limits, Rust/Vitest testing boundaries, Zustand state management, naming conventions, error propagation, and performance budgets.
+
+
 ## [0.12.0] - 2026-06-16
 
 ### Added
