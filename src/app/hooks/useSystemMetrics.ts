@@ -28,6 +28,8 @@ export interface SystemMetrics {
 
 const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 export function useSystemMetrics() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [cpuData, setCpuData] = useState<{ t: number; v: number }[]>(INITIAL_HISTORY);
@@ -38,6 +40,7 @@ export function useSystemMetrics() {
     let unlistenFn: (() => void) | null = null;
 
     const setupListener = async () => {
+      if (!isTauri) return;
       unlistenFn = await listen<SystemMetrics>("system-metrics", (event) => {
         const data = event.payload;
         setMetrics(data);

@@ -62,6 +62,8 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   );
 }
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 export function PrivacyTab({
   privacySwept,
   setPrivacySwept,
@@ -97,7 +99,11 @@ export function PrivacyTab({
   };
 
   useEffect(() => {
-    runScan();
+    if (isTauri) {
+      runScan();
+    } else {
+      setScanning(false);
+    }
   }, []);
 
   const toggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));

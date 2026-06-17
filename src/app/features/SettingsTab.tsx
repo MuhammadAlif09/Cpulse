@@ -67,6 +67,8 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   );
 }
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 export function SettingsTab({
   appName,
   appVersion,
@@ -95,8 +97,13 @@ export function SettingsTab({
 
   useEffect(() => {
     const initStore = async () => {
-      const s = await load("settings.json");
-      setStore(s);
+      if (!isTauri) return;
+      try {
+        const s = await load("settings.json");
+        setStore(s);
+      } catch (e) {
+        console.error("Failed to load settings store:", e);
+      }
     };
     initStore();
   }, []);
@@ -104,24 +111,31 @@ export function SettingsTab({
   useEffect(() => {
     if (!store) return;
     const loadSettings = async () => {
-      const saved = (await store.get("user-settings")) as {
-        startWithWindows: boolean;
-        minimizeToTray: boolean;
-        autoUpdate: boolean;
-        autoClean: boolean;
-        realTimeMonitoring: boolean;
-        contextMenu: boolean;
-        notifications: boolean;
-        soundEffects: boolean;
-        language?: string;
-      } | null;
+      try {
+        const saved = (await store.get("user-settings")) as {
+          startWithWindows: boolean;
+          minimizeToTray: boolean;
+          autoUpdate: boolean;
+          autoClean: boolean;
+          realTimeMonitoring: boolean;
+          contextMenu: boolean;
+          notifications: boolean;
+          soundEffects: boolean;
+          language?: string;
+        } | null;
 
-      const autostart = await isEnabled();
+        let autostart = false;
+        if (isTauri) {
+          autostart = await isEnabled();
+        }
 
-      if (saved) {
-        setSettings({ ...saved, startWithWindows: autostart, language: saved.language || "en" });
-      } else {
-        setSettings((prev) => ({ ...prev, startWithWindows: autostart }));
+        if (saved) {
+          setSettings({ ...saved, startWithWindows: autostart, language: saved.language || "en" });
+        } else {
+          setSettings((prev) => ({ ...prev, startWithWindows: autostart }));
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
       }
     };
     loadSettings();

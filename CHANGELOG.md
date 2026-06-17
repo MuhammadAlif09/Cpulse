@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-06-17
+
+### Fixed
+
+- Resolved startup blank screen (white screen) error in standard web browser environments:
+  - Added centralized environment checking (`isTauri`) that detects both Tauri IPC availability (`window.__TAURI_IPC__`) and Vitest test context (`process.env.NODE_ENV === "test"`).
+  - Guarded all startup and mount-time Tauri API calls (e.g. `invoke`, `listen`, `getVersion`, `getName`, `load`) in `App.tsx`, `useSystemMetrics.ts`, `StartupTab.tsx`, `SettingsTab.tsx`, `BoosterTab.tsx`, `HistoryTab.tsx`, and `PrivacyTab.tsx`.
+  - Allowed safe fallback states and mock data for UI design previewing in standard browsers while fully executing Tauri features in test and runtime environments.
+
 ## [0.13.0] - 2026-06-17
 
 ### Added

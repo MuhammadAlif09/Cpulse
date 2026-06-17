@@ -474,6 +474,8 @@ import { relaunch } from "@tauri-apps/plugin-process";
 
 let store: any = null;
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 interface DiskInfo {
   name: string;
   used: number;
@@ -526,6 +528,7 @@ export default function App() {
 
   useEffect(() => {
     const checkAdmin = async () => {
+      if (!isTauri) return;
       try {
         const adminStatus = await invoke<boolean>("is_admin");
         setIsAdmin(adminStatus);
@@ -544,12 +547,14 @@ export default function App() {
   const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.13.0");
+  const [appVersion, setAppVersion] = useState("0.13.1");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
-    getVersion().then(setAppVersion).catch(console.error);
-    getName().then(setAppName).catch(console.error);
+    if (isTauri) {
+      getVersion().then(setAppVersion).catch(console.error);
+      getName().then(setAppName).catch(console.error);
+    }
   }, []);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -564,8 +569,10 @@ export default function App() {
 
   // Initial data fetch
   useEffect(() => {
-    invoke<JunkItem[]>("scan_junk").then(setJunkItems).catch(console.error);
-    invoke<StartupItem[]>("get_startup_items").then(setStartupItems).catch(console.error);
+    if (isTauri) {
+      invoke<JunkItem[]>("scan_junk").then(setJunkItems).catch(console.error);
+      invoke<StartupItem[]>("get_startup_items").then(setStartupItems).catch(console.error);
+    }
   }, []);
 
   // Health Score Calculation
@@ -642,6 +649,7 @@ export default function App() {
     let hasNotifiedDisk = false;
 
     const setup = async () => {
+      if (!isTauri) return;
       unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
         const metrics = event.payload;
         setMetrics(metrics);

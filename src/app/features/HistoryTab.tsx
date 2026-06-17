@@ -54,6 +54,8 @@ function GradientCard({
   );
 }
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 export function HistoryTab() {
   const { t } = useTranslation();
   const [history, setHistory] = useState<SessionLog[]>([]);
@@ -61,6 +63,10 @@ export function HistoryTab() {
 
   useEffect(() => {
     const loadHistory = async () => {
+      if (!isTauri) {
+        setIsLoading(false);
+        return;
+      }
       try {
         const historyStore = await load("history.json");
         const logs = (await historyStore.get<SessionLog[]>("logs")) || [];

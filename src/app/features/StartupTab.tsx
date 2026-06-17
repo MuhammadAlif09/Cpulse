@@ -115,21 +115,25 @@ function getIconForApp(name: string, publisher: string): string {
   return "⚡";
 }
 
+const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+
 export function StartupTab() {
   const { t } = useTranslation();
   const [items, setItems] = useState<StartupItem[]>([]);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    invoke<StartupItem[]>("get_startup_items")
-      .then((res) => {
-        const enriched = res.map((item) => ({
-          ...item,
-          icon: getIconForApp(item.name, item.publisher || ""),
-        }));
-        setItems(enriched);
-      })
-      .catch(console.error);
+    if (isTauri) {
+      invoke<StartupItem[]>("get_startup_items")
+        .then((res) => {
+          const enriched = res.map((item) => ({
+            ...item,
+            icon: getIconForApp(item.name, item.publisher || ""),
+          }));
+          setItems(enriched);
+        })
+        .catch(console.error);
+    }
   }, []);
 
   const toggle = async (name: string, is_hkcu: boolean, current_enabled: boolean) => {
