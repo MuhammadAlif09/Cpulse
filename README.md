@@ -69,7 +69,6 @@ CPulse adalah aplikasi desktop Windows yang cepat, ringan, dan cantik untuk memb
 
 ### Installation
 
-```bash
 git clone https://github.com/MuhammadAlif09/Cpulse.git
 cd Cpulse
 
