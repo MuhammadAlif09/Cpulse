@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-06-18
+
+### Refactored
+
+- Cleaned root directory by removing orphaned files:
+  - Deleted `CHANGELOG.md.backup`, `cliff.toml.backup` (manual backups superseded by Git history).
+  - Deleted `src-tauri/2` (accidental npm output dump).
+  - Deleted `app-icon.png` and `app-icon-square.png` from root (hash-verified exact duplicates of `src/assets/app-icon.png` and `src/assets/logo.png`).
+- Relocated utility scripts to `scripts/` directory:
+  - Moved `bump-version.js` → `scripts/bump-version.js` with updated relative path resolution (`__dirname` → `rootDir` via `path.join(__dirname, "..")`).
+  - Moved `extract.cjs` → `scripts/extract.cjs`.
+  - Updated `package.json` `version` script to reference new path.
+- Moved `default_shadcn_theme.css` from root to `src/styles/` for proper organization.
+- Removed empty `src/styles/globals.css` (0 bytes, zero import references in codebase).
+- Updated `.gitignore` with patterns for `*.backup` files and `opencode.json` (AI editor config).
+
+### Documentation
+
+- Created `docs/ADR/` (Architecture Decision Records) directory structure with template and index.
+- Added ADR-001: Tauri v2 + Rust Backend decision documenting context, rationale, and trade-offs for the core technology stack.
+- Added `docs/shadcn-ui-audit.md` — comprehensive usage audit of all 48 shadcn/ui components finding 0 active imports across the entire codebase (~133KB of orphaned source code). No deletions performed; documented for future cleanup decision.
+
 ## [0.13.1] - 2026-06-17
 
 ### Fixed
