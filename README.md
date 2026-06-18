@@ -18,8 +18,6 @@ CPulse adalah aplikasi desktop Windows yang cepat, ringan, dan cantik untuk memb
 ![Dashboard](https://github.com/MuhammadAlif09/Cpulse/blob/main/assets/screenshots/dashboard.png?raw=true)
 ![Cleaner](https://github.com/MuhammadAlif09/Cpulse/blob/main/assets/screenshots/cleaner.png?raw=true)
 
-*(Silakan tambahkan folder `assets/screenshots/` dan upload gambarnya)*
-
 ---
 
 ## ✨ Key Features
@@ -83,15 +81,19 @@ npm run tauri dev
 Build Production
 Bashnpm run tauri build
 File hasil build akan ada di src-tauri/target/release/bundle/
+```
 
 📌 Roadmap
 
- Auto-updater
- More browser support (Firefox, Brave)
- One-click Full Optimization
- Portable version + Winget package
- Dark/Light mode toggle
- Export system report
+- [ ] Auto-updater
+- [ ] More browser support (Firefox, Brave)
+- [ ] One-click Full Optimization
+- [ ] Portable version + Winget package
+- [ ] Dark/Light mode toggle
+- [ ] Export system report
+- [ ] Update to Flutter
+- [ ] Optimize UI
+- [ ] Add more features
 
 
 🤝 Contributing
