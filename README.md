@@ -80,3 +80,31 @@ pnpm install
 
 # Run development
 npm run tauri dev
+Build Production
+Bashnpm run tauri build
+File hasil build akan ada di src-tauri/target/release/bundle/
+
+📌 Roadmap
+
+ Auto-updater
+ More browser support (Firefox, Brave)
+ One-click Full Optimization
+ Portable version + Winget package
+ Dark/Light mode toggle
+ Export system report
+
+
+🤝 Contributing
+Kontribusi sangat dihargai!
+
+Fork project ini
+Buat branch fitur (git checkout -b feature/awesome-feature)
+Commit perubahan (git commit -m "feat: add something")
+Push ke branch
+Buat Pull Request ke dev
+
+
+📄 License
+Project ini dilisensikan di bawah MIT License. Lihat file LICENSE untuk detail.
+
+Made with ❤️ by Muhammad Alif
