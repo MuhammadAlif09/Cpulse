@@ -70,6 +70,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
             "-Command",
             "Get-Partition | Where-Object DriveLetter | Select-Object DriveLetter, DiskNumber | ConvertTo-Json"
         ])
+        .creation_flags(0x08000000)
         .output();
 
     let phys_output = std::process::Command::new("powershell")
@@ -78,6 +79,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
             "-Command",
             "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json"
         ])
+        .creation_flags(0x08000000)
         .output();
 
     let mut parts: Vec<serde_json::Value> = Vec::new();
@@ -602,6 +604,7 @@ $paths | ForEach-Object {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
+        .creation_flags(0x08000000)
         .spawn()
         .and_then(|mut child| {
             if let Some(mut stdin) = child.stdin.take() {

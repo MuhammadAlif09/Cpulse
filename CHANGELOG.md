@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **lib.rs Slim Down**: Moved ~500 lines of junk-related Rust logic out of `lib.rs`, wire up new Tauri command registrations, and clean up duplicate unit tests.
 
+### Fixed
+
+- **White Screen Crash**: Resolved a React ReferenceError caused by passing an undeclared `setJunkItems` prop to `DashboardTab` inside `App.tsx`.
+- **Silent Process Execution**: Applied the `CREATE_NO_WINDOW` (0x08000000) creation flag to all background PowerShell processes in the backend (`get_disk_details` and `get_startup_items`) to prevent console windows from popping up and flashing on user startup.
+
 
 ## [0.13.2] - 2026-06-18
 

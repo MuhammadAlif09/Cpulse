@@ -961,7 +961,6 @@ export default function App() {
                 setTab={setTab}
                 metrics={metrics}
                 junkItems={junkItems}
-                setJunkItems={setJunkItems}
                 startupItems={startupItems}
                 score={score}
                 issues={issues}
