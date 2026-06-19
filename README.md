@@ -18,8 +18,6 @@ CPulse adalah aplikasi desktop Windows yang cepat, ringan, dan cantik untuk memb
 ![Dashboard](https://github.com/MuhammadAlif09/Cpulse/blob/main/assets/screenshots/dashboard.png?raw=true)
 ![Cleaner](https://github.com/MuhammadAlif09/Cpulse/blob/main/assets/screenshots/cleaner.png?raw=true)
 
-*(Silakan tambahkan folder `assets/screenshots/` dan upload gambarnya)*
-
 ---
 
 ## ✨ Key Features
