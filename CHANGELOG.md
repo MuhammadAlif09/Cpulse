@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Backend Cleaner Module**: Created [cleaner.rs](file:///c:/Projek/Cpulse_package/src-tauri/src/cleaner.rs) containing all scanning, cleaning, cancel, and CLI silent optimization logic, separating cleaner domain concerns from `lib.rs`.
+- **Thirteen Scan Categories**: Expanded junk scans to include Recycle Bin, Windows Prefetch, Thumbnail Cache, Windows Log Files, Font Cache, DirectX Shader Cache, Windows Error Reports, Delivery Optimization Cache, App Caches (Discord, Teams, Steam, Riot Games), and Brave browser cache.
+- **Safety Traversal Limits**: Implemented recursion depth, path length, and file count safeguards to prevent OOM/stack overflow on junction loops or anomalous directory structures.
+- **Cancel Scan Command**: Wired up a thread-safe `ScanCancelFlag` (`Arc<AtomicBool>`) and corresponding `cancel_scan` command checked on each directory traversal iteration.
+- **Zustand Cleaner Store**: Built [useCleanerStore.ts](file:///c:/Projek/Cpulse_package/src/app/store/useCleanerStore.ts) store for reactive, global state management across dashboard quick actions, sidebar badges, and the cleaner menu.
+- **Premium Cleaner UI**: Added compositional donut chart, summary stats cards, warning labels, administrator badges, instant cancel scan buttons, and a smart Radix UI `AlertDialog` security prompt before cleaning system/sensitive cache.
+- **Translations (EN/ID)**: Added bilingual descriptions and warnings for all 13 junk categories.
+
+### Refactored
+
+- **lib.rs Slim Down**: Moved ~500 lines of junk-related Rust logic out of `lib.rs`, wire up new Tauri command registrations, and clean up duplicate unit tests.
+
+
 ## [0.13.2] - 2026-06-18
 
 ### Refactored

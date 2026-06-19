@@ -61,6 +61,7 @@ import { PrivacyTab } from "./features/PrivacyTab";
 import { HistoryTab } from "./features/HistoryTab";
 import { SettingsTab } from "./features/SettingsTab";
 import { DiagnosticsTab } from "./features/DiagnosticsTab";
+import { useCleanerStore } from "./store/useCleanerStore";
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ translations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -544,7 +545,7 @@ export default function App() {
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [junkItems, setJunkItems] = useState<JunkItem[]>([]);
+  const junkItems = useCleanerStore((state) => state.junkCats);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
   const [appVersion, setAppVersion] = useState("0.13.2");
@@ -570,7 +571,7 @@ export default function App() {
   // Initial data fetch
   useEffect(() => {
     if (isTauri) {
-      invoke<JunkItem[]>("scan_junk").then(setJunkItems).catch(console.error);
+      useCleanerStore.getState().startScan().catch(console.error);
       invoke<StartupItem[]>("get_startup_items").then(setStartupItems).catch(console.error);
     }
   }, []);
