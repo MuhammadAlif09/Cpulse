@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { addHistoryLog } from "../utils/history";
 
 const C = {
   indigo: "#4f46e5",
@@ -160,6 +161,16 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       const msg = await invoke<string>("apply_boost", { id, profile: mode });
       setBoosted((prev) => ({ ...prev, [id]: true }));
       toast.success(t(msg));
+      const booster = BOOSTS.find((b) => b.id === id);
+      if (booster) {
+        addHistoryLog({
+          type: "Booster Applied",
+          freed: booster.gain,
+          fixed: 1,
+          duration: "0.0s",
+          details: t("Applied {{name}}", { name: t(booster.title) }),
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast.error(t(e.message || e));
@@ -173,6 +184,16 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       const msg = await invoke<string>("restore_boost", { id });
       setBoosted((prev) => ({ ...prev, [id]: false }));
       toast.success(t(msg));
+      const booster = BOOSTS.find((b) => b.id === id);
+      if (booster) {
+        addHistoryLog({
+          type: "Booster Restored",
+          freed: "N/A",
+          fixed: 1,
+          duration: "0.0s",
+          details: t("Restored {{name}}", { name: t(booster.title) }),
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast.error(t(e.message || e));
