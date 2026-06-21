@@ -47,6 +47,48 @@ interface SystemInfo {
   host_name: string;
 }
 
+// Premium glassmorphism tooltip — replaces generic Recharts tooltip
+const ChartTooltip = ({ active, payload, label, unit }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        backdropFilter: "blur(12px)",
+        border: "1px solid var(--border)",
+        borderRadius: "14px",
+        padding: "10px 14px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {payload.map((entry: any, idx: number) => (
+        <div key={idx} className="flex items-center gap-2 text-xs" style={{ color: "var(--card-foreground)" }}>
+          <span
+            className="w-2 h-2 rounded-full inline-block"
+            style={{ backgroundColor: entry.stroke }}
+          />
+          <span className="text-slate-500 dark:text-slate-400">{entry.name}:</span>
+          <span className="font-bold" style={{ color: entry.stroke }}>
+            {entry.value?.toFixed(2)} {unit || "MB/s"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Live pulsing dot at the latest data point — signals "this is real-time"
+const PulsingDot = ({ cx, cy, stroke }: any) => (
+  <g>
+    <circle cx={cx} cy={cy} r={6} fill={stroke} opacity={0.15}>
+      <animate attributeName="r" values="6;10;6" dur="2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.15;0.05;0.15" dur="2s" repeatCount="indefinite" />
+    </circle>
+    <circle cx={cx} cy={cy} r={3} fill={stroke} stroke="var(--card)" strokeWidth={1.5} />
+  </g>
+);
+
 export function DiagnosticsTab() {
   const { t } = useTranslation();
   const { metrics } = useSystemMetrics();
@@ -591,50 +633,71 @@ export function DiagnosticsTab() {
       {/* Telemetry Visualizations Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Disk Throughput Chart */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col h-[320px]">
-          <div className="flex items-center justify-between mb-4">
+        <div
+          className="relative p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col h-[320px] overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, var(--card) 0%, var(--card) 85%, ${C.emerald}06 100%)`,
+          }}
+        >
+          {/* Big ghost current value */}
+          <div className="absolute top-3 right-4 pointer-events-none select-none">
+            <span
+              className="font-black leading-none"
+              style={{
+                fontSize: "3.5rem",
+                fontVariantNumeric: "tabular-nums",
+                background: `linear-gradient(180deg, ${C.emerald}15 0%, ${C.emerald}03 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                letterSpacing: "-0.04em",
+              }}
+            >
+              {metrics ? metrics.disk_read_speed.toFixed(1) : "0.0"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mb-3 relative z-10">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-              <HardDrive size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                <HardDrive size={14} className="text-emerald-600 dark:text-emerald-400" />
+              </div>
               {t("Disk I/O Throughput (MB/s)")}
             </h3>
-            {!isTypeperfActive && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-505 dark:text-slate-400">
-                Fallback: 0.00 MB/s
-              </span>
-            )}
+            {/* Live indicator dot */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {t("Live")}
+            </div>
           </div>
+
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={diskHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={diskHistory} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="readGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C.emerald} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={C.emerald} stopOpacity={0} />
+                  <linearGradient id="readGradPremium" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.emerald} stopOpacity={0.35} />
+                    <stop offset="50%" stopColor={C.emerald} stopOpacity={0.08} />
+                    <stop offset="100%" stopColor={C.emerald} stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="writeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C.rose} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={C.rose} stopOpacity={0} />
+                  <linearGradient id="writeGradPremium" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.rose} stopOpacity={0.3} />
+                    <stop offset="50%" stopColor={C.rose} stopOpacity={0.06} />
+                    <stop offset="100%" stopColor={C.rose} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="t" hide />
-                <YAxis />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    color: "var(--card-foreground)",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)",
-                  }}
-                />
-                <Legend iconType="circle" />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltip unit="MB/s" />} />
                 <Area
                   type="monotone"
                   dataKey="read"
                   name={t("Read Speed")}
                   stroke={C.emerald}
+                  strokeWidth={2.5}
                   fillOpacity={1}
-                  fill="url(#readGrad)"
+                  fill="url(#readGradPremium)"
+                  activeDot={<PulsingDot />}
                   isAnimationActive={false}
                 />
                 <Area
@@ -642,58 +705,101 @@ export function DiagnosticsTab() {
                   dataKey="write"
                   name={t("Write Speed")}
                   stroke={C.rose}
+                  strokeWidth={2}
                   fillOpacity={1}
-                  fill="url(#writeGrad)"
+                  fill="url(#writeGradPremium)"
+                  activeDot={<PulsingDot />}
                   isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Bottom legend bar */}
+          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.emerald }} />
+              <span className="text-slate-500 dark:text-slate-400">{t("Read Speed")}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {metrics ? `${metrics.disk_read_speed.toFixed(2)}` : "0.00"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.rose }} />
+              <span className="text-slate-500 dark:text-slate-400">{t("Write Speed")}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {metrics ? `${metrics.disk_write_speed.toFixed(2)}` : "0.00"}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Network Throughput Chart */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col h-[320px]">
-          <div className="flex items-center justify-between mb-4">
+        <div
+          className="relative p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col h-[320px] overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, var(--card) 0%, var(--card) 85%, ${C.cyan}06 100%)`,
+          }}
+        >
+          {/* Big ghost current value */}
+          <div className="absolute top-3 right-4 pointer-events-none select-none">
+            <span
+              className="font-black leading-none"
+              style={{
+                fontSize: "3.5rem",
+                fontVariantNumeric: "tabular-nums",
+                background: `linear-gradient(180deg, ${C.cyan}15 0%, ${C.cyan}03 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                letterSpacing: "-0.04em",
+              }}
+            >
+              {metrics ? metrics.network_down.toFixed(1) : "0.0"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mb-3 relative z-10">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-              <Activity size={16} className="text-cyan-500 rate" />
+              <div className="p-1.5 bg-cyan-50 dark:bg-cyan-950/30 rounded-lg">
+                <Activity size={14} className="text-cyan-600 dark:text-cyan-400" />
+              </div>
               {t("Network Traffic Rate (MB/s)")}
             </h3>
+            {/* Live indicator dot */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+              {t("Live")}
+            </div>
           </div>
+
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={networkHistory}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
+              <AreaChart data={networkHistory} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="upGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C.cyan} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={C.cyan} stopOpacity={0} />
+                  <linearGradient id="upGradPremium" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.cyan} stopOpacity={0.35} />
+                    <stop offset="50%" stopColor={C.cyan} stopOpacity={0.08} />
+                    <stop offset="100%" stopColor={C.cyan} stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="downGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C.indigo} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={C.indigo} stopOpacity={0} />
+                  <linearGradient id="downGradPremium" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.indigo} stopOpacity={0.3} />
+                    <stop offset="50%" stopColor={C.indigo} stopOpacity={0.06} />
+                    <stop offset="100%" stopColor={C.indigo} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="t" hide />
-                <YAxis />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    color: "var(--card-foreground)",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)",
-                  }}
-                />
-                <Legend iconType="circle" />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltip unit="MB/s" />} />
                 <Area
                   type="monotone"
                   dataKey="up"
                   name={t("Upload Speed")}
                   stroke={C.cyan}
+                  strokeWidth={2.5}
                   fillOpacity={1}
-                  fill="url(#upGrad)"
+                  fill="url(#upGradPremium)"
+                  activeDot={<PulsingDot />}
                   isAnimationActive={false}
                 />
                 <Area
@@ -701,12 +807,32 @@ export function DiagnosticsTab() {
                   dataKey="down"
                   name={t("Download Speed")}
                   stroke={C.indigo}
+                  strokeWidth={2}
                   fillOpacity={1}
-                  fill="url(#downGrad)"
+                  fill="url(#downGradPremium)"
+                  activeDot={<PulsingDot />}
                   isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+
+          {/* Bottom legend bar */}
+          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.cyan }} />
+              <span className="text-slate-500 dark:text-slate-400">{t("Upload Speed")}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {metrics ? `${metrics.network_up.toFixed(2)}` : "0.00"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.indigo }} />
+              <span className="text-slate-500 dark:text-slate-400">{t("Download Speed")}</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {metrics ? `${metrics.network_down.toFixed(2)}` : "0.00"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

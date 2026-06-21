@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.1] - 2026-06-22
+
+### Changed
+
+- **Telemetry Visualizations Redesign**: Redesigned Disk I/O and Network Traffic telemetry charts in the Diagnostics tab with premium custom styling, 3-stop gradient fills, custom glassmorphism tooltips, pulsing active dots at latest data points, live legend displays, and big ghost current-value indicators.
+
 ## [0.16.0] - 2026-06-22
 
 ### Added

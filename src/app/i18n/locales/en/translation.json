@@ -278,5 +278,6 @@
   "CPU usage is critically high ({{pct}}%)": "CPU usage is critically high ({{pct}}%)",
   "CPU temperature is high ({{temp}}°C)": "CPU temperature is high ({{temp}}°C)",
   "Disk space on {{drive}} is critically low ({{pct}}% used)": "Disk space on {{drive}} is critically low ({{pct}}% used)",
-  "All systems are operating normally": "All systems are operating normally"
+  "All systems are operating normally": "All systems are operating normally",
+  "Live": "Live"
 }

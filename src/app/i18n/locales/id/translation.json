@@ -284,5 +284,6 @@
   "CPU usage is critically high ({{pct}}%)": "Penggunaan CPU sangat tinggi ({{pct}}%)",
   "CPU temperature is high ({{temp}}°C)": "Suhu CPU tinggi ({{temp}}°C)",
   "Disk space on {{drive}} is critically low ({{pct}}% used)": "Ruang disk pada {{drive}} sangat rendah ({{pct}}% terpakai)",
-  "All systems are operating normally": "Semua sistem beroperasi normal"
+  "All systems are operating normally": "Semua sistem beroperasi normal",
+  "Live": "Langsung"
 }
