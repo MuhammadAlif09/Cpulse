@@ -60,11 +60,11 @@ function GradientCard({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden",
+        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-colors duration-300 bg-card text-card-foreground",
         className
       )}
       style={{
-        background: gradient ?? "#ffffff",
+        background: gradient,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
         ...style,
       }}
@@ -223,7 +223,6 @@ export function DashboardTab({
           color: C.indigo,
           temp: cpuTempStr,
           trend: 0,
-          gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
         },
         {
           label: "RAM Usage",
@@ -232,7 +231,6 @@ export function DashboardTab({
           icon: <MemoryStick size={18} />,
           color: C.violet,
           trend: 0,
-          gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)",
         },
         {
           label: "Disk Usage",
@@ -241,7 +239,6 @@ export function DashboardTab({
           icon: <HardDrive size={18} />,
           color: C.amber,
           trend: 0,
-          gradient: "linear-gradient(135deg,#fef3c7,#fde68a)",
         },
         {
           label: "Network I/O",
@@ -250,7 +247,6 @@ export function DashboardTab({
           icon: <Wifi size={18} />,
           color: C.emerald,
           trend: 0,
-          gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)",
         },
       ]
     : [
@@ -262,7 +258,6 @@ export function DashboardTab({
           color: C.indigo,
           temp: "",
           trend: 0,
-          gradient: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
         },
         {
           label: "RAM Usage",
@@ -271,7 +266,6 @@ export function DashboardTab({
           icon: <MemoryStick size={18} />,
           color: C.violet,
           trend: 0,
-          gradient: "linear-gradient(135deg,#f3e8ff,#e9d5ff)",
         },
         {
           label: "Disk Usage",
@@ -280,7 +274,6 @@ export function DashboardTab({
           icon: <HardDrive size={18} />,
           color: C.amber,
           trend: 0,
-          gradient: "linear-gradient(135deg,#fef3c7,#fde68a)",
         },
         {
           label: "Network I/O",
@@ -289,7 +282,6 @@ export function DashboardTab({
           icon: <Wifi size={18} />,
           color: C.emerald,
           trend: 0,
-          gradient: "linear-gradient(135deg,#d1fae5,#a7f3d0)",
         },
       ];
 
@@ -361,7 +353,7 @@ export function DashboardTab({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {STATS.map((s) => (
-          <GradientCard key={s.label} gradient={s.gradient}>
+          <GradientCard key={s.label}>
             <div className="flex items-start justify-between mb-3">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -370,8 +362,10 @@ export function DashboardTab({
                 {s.icon}
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5 truncate">{s.sub}</div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{s.value}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+              {s.sub}
+            </div>
             <div className="text-xs font-medium mt-2" style={{ color: s.color }}>
               {t(s.label)}
             </div>
@@ -382,16 +376,18 @@ export function DashboardTab({
       {/* charts + disk space */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* CPU History */}
-        <GradientCard style={{ background: "white", overflow: "hidden" }}>
+        <GradientCard style={{ overflow: "hidden" }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">{t("CPU History")}</span>
-            <span className="text-xs text-slate-400">{t("Last 20s")}</span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("CPU History")}
+            </span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
           </div>
           <div className="relative h-20">
             {/* big bg number */}
             <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
               <span
-                className="font-black leading-none"
+                className="font-black leading-none animate-pulse-subtle"
                 style={{
                   fontSize: "4.5rem",
                   background: `linear-gradient(180deg, ${C.indigo}18 0%, ${C.indigo}02 100%)`,
@@ -420,6 +416,8 @@ export function DashboardTab({
                     borderRadius: 8,
                     border: "none",
                     boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    background: "var(--card)",
+                    color: "var(--card-foreground)",
                   }}
                   labelStyle={{ display: "none" }}
                   formatter={(v: number) => [`${v}%`, "CPU"]}
@@ -438,16 +436,18 @@ export function DashboardTab({
         </GradientCard>
 
         {/* RAM History */}
-        <GradientCard style={{ background: "white", overflow: "hidden" }}>
+        <GradientCard style={{ overflow: "hidden" }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">{t("RAM History")}</span>
-            <span className="text-xs text-slate-400">{t("Last 20s")}</span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("RAM History")}
+            </span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
           </div>
           <div className="relative h-20">
             {/* big bg number */}
             <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
               <span
-                className="font-black leading-none"
+                className="font-black leading-none animate-pulse-subtle"
                 style={{
                   fontSize: "4.5rem",
                   background: `linear-gradient(180deg, ${C.violet}18 0%, ${C.violet}02 100%)`,
@@ -476,6 +476,8 @@ export function DashboardTab({
                     borderRadius: 8,
                     border: "none",
                     boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    background: "var(--card)",
+                    color: "var(--card-foreground)",
                   }}
                   labelStyle={{ display: "none" }}
                   formatter={(v: number) => [`${v}%`, "RAM"]}
@@ -494,10 +496,12 @@ export function DashboardTab({
         </GradientCard>
 
         {/* Disk Space List */}
-        <GradientCard style={{ background: "white" }}>
+        <GradientCard>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-slate-700">{t("Disk Space")}</span>
-            <span className="text-[10px] text-slate-400 font-medium">
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t("Disk Space")}
+            </span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
               {metrics?.disks ? `${metrics.disks.length} ${t("drives")}` : "..."}
             </span>
           </div>
@@ -506,21 +510,29 @@ export function DashboardTab({
               metrics.disks.map((disk: any) => {
                 const usedPct = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
                 const barColor = usedPct > 85 ? C.rose : usedPct > 70 ? C.amber : C.indigo;
-                const barBg = usedPct > 85 ? "#ffe4e6" : usedPct > 70 ? "#fef3c7" : "#ede9fe";
+                const barBg =
+                  usedPct > 85
+                    ? "rgba(244,63,94,0.15)"
+                    : usedPct > 70
+                      ? "rgba(245,158,11,0.15)"
+                      : "rgba(79,70,229,0.15)";
                 return (
                   <div key={disk.name} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="font-bold text-slate-800 flex items-center gap-1.5 min-w-0">
-                        <HardDrive size={13} className="text-slate-400 flex-shrink-0" />
+                      <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 min-w-0">
+                        <HardDrive
+                          size={13}
+                          className="text-slate-400 dark:text-slate-500 flex-shrink-0"
+                        />
                         <span className="truncate">{disk.name}</span>
-                        <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1 py-0.25 rounded flex-shrink-0">
+                        <span className="text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-1 py-0.25 rounded flex-shrink-0">
                           {disk.disk_type || "SSD"}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium truncate hidden md:inline">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate hidden md:inline">
                           {disk.model}
                         </span>
                       </div>
-                      <span className="font-semibold text-slate-600 flex-shrink-0">
+                      <span className="font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
                         {disk.used.toFixed(1)} / {disk.total.toFixed(1)} GB
                       </span>
                     </div>
@@ -533,7 +545,7 @@ export function DashboardTab({
                         }}
                       />
                     </div>
-                    <div className="text-[9px] text-slate-400 flex md:hidden items-center justify-between font-medium">
+                    <div className="text-[9px] text-slate-400 dark:text-slate-500 flex md:hidden items-center justify-between font-medium">
                       <span className="truncate max-w-[150px]">{disk.model}</span>
                       <span>{usedPct}% used</span>
                     </div>
@@ -548,8 +560,10 @@ export function DashboardTab({
       </div>
 
       {/* quick actions */}
-      <GradientCard style={{ background: "white" }}>
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">{t("Quick Actions")}</h3>
+      <GradientCard>
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4">
+          {t("Quick Actions")}
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             {
@@ -612,7 +626,7 @@ export function DashboardTab({
             <button
               key={a.id}
               onClick={a.onClick}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left w-full"
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left w-full cursor-pointer"
               style={{ background: `linear-gradient(135deg, ${a.color}05, ${a.color}0f)` }}
             >
               <div
@@ -629,8 +643,10 @@ export function DashboardTab({
                 )}
               </div>
               <div className="text-center">
-                <div className="text-xs font-bold text-slate-800">{a.label}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{a.sub}</div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                  {a.label}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{a.sub}</div>
               </div>
             </button>
           ))}

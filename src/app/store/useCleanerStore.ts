@@ -41,9 +41,7 @@ interface CleanerState {
 let scanUnlisten: UnlistenFn | null = null;
 let cleanUnlisten: UnlistenFn | null = null;
 
-const setupListeners = async (
-  setProgress: (progress: number) => void
-) => {
+const setupListeners = async (setProgress: (progress: number) => void) => {
   // Clean up existing listeners if any
   if (scanUnlisten) scanUnlisten();
   if (cleanUnlisten) cleanUnlisten();

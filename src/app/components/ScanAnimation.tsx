@@ -15,35 +15,17 @@ const CATEGORY_LOGS = [
     "Analyzing browser storage files...",
   ],
   // 20% - 30%: Update Cache
-  [
-    "Checking Windows Update residuals...",
-    "Analyzing SoftwareDistribution directory...",
-  ],
+  ["Checking Windows Update residuals...", "Analyzing SoftwareDistribution directory..."],
   // 30% - 40%: Crash Dumps & Logs
-  [
-    "Analyzing crash dump files...",
-    "Checking Minidumps directory...",
-  ],
+  ["Analyzing crash dump files...", "Checking Minidumps directory..."],
   // 40% - 50%: Recycle Bin
-  [
-    "Querying Recycle Bin items...",
-    "Checking all drive trash paths...",
-  ],
+  ["Querying Recycle Bin items...", "Checking all drive trash paths..."],
   // 50% - 60%: Prefetch
-  [
-    "Scanning Windows Prefetch data...",
-    "Analyzing application launch metadata...",
-  ],
+  ["Scanning Windows Prefetch data...", "Analyzing application launch metadata..."],
   // 60% - 70%: Thumbnail Cache
-  [
-    "Checking Explorer thumbnail database...",
-    "Analyzing thumbcache index files...",
-  ],
+  ["Checking Explorer thumbnail database...", "Analyzing thumbcache index files..."],
   // 70% - 80%: Windows Log Files
-  [
-    "Scanning system log files...",
-    "Checking CBS and DISM logs...",
-  ],
+  ["Scanning system log files...", "Checking CBS and DISM logs..."],
   // 80% - 90%: System Caches (Font, Shader, WER)
   [
     "Checking DirectX shader caches...",

@@ -48,11 +48,11 @@ function GradientCard({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden transition-all duration-300",
+        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card text-card-foreground",
         className
       )}
       style={{
-        background: gradient ?? "#ffffff",
+        background: gradient,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
         ...style,
       }}
@@ -126,13 +126,11 @@ export function CleanerTab() {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       const sizeStr =
-        data.value > 1024
-          ? (data.value / 1024).toFixed(2) + " GB"
-          : data.value + " MB";
+        data.value > 1024 ? (data.value / 1024).toFixed(2) + " GB" : data.value + " MB";
       return (
-        <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 rounded-xl shadow-lg font-sans text-xs">
-          <p className="font-semibold text-slate-800">{data.name}</p>
-          <p className="text-indigo-600 font-medium mt-0.5">{sizeStr}</p>
+        <div className="bg-card/95 backdrop-blur-sm p-3 border border-border rounded-xl shadow-lg font-sans text-xs text-foreground">
+          <p className="font-semibold text-card-foreground">{data.name}</p>
+          <p className="text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{sizeStr}</p>
         </div>
       );
     }
@@ -142,13 +140,13 @@ export function CleanerTab() {
   return (
     <div className="space-y-5">
       {/* SCAN CONTROLLER CARD */}
-      <GradientCard gradient="linear-gradient(135deg, #f8faff, #f0f4ff)">
+      <GradientCard className="bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-slate-900/40 dark:to-indigo-950/20">
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h3 className="text-base font-semibold text-slate-800">
+            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               {t("Junk File Scanner")}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {t(
                 "Deep scan for all unnecessary files — temporary data, cache, and residual clutter"
               )}
@@ -170,16 +168,12 @@ export function CleanerTab() {
 
             {scanning && (
               <div className="flex items-center gap-2">
-                <div
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold opacity-70"
-                  style={{ background: "#ede9fe", color: "#4f46e5" }}
-                >
-                  <RefreshCw size={15} className="animate-spin" />{" "}
-                  {t("Scanning...")}
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold opacity-70 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                  <RefreshCw size={15} className="animate-spin" /> {t("Scanning...")}
                 </div>
                 <button
                   onClick={cancelScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30 hover:border-red-300 dark:hover:border-red-800/50 transition active:scale-95 cursor-pointer"
                 >
                   <XCircle size={15} /> {t("Cancel Scan")}
                 </button>
@@ -190,7 +184,7 @@ export function CleanerTab() {
               <>
                 <button
                   onClick={startScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition cursor-pointer"
                 >
                   <RotateCcw size={12} /> {t("Rescan")}
                 </button>
@@ -201,7 +195,7 @@ export function CleanerTab() {
                   style={{
                     background:
                       cleaning || totalSelectedBytes === 0
-                        ? "#a5b4fc"
+                        ? "var(--border)"
                         : "linear-gradient(135deg, #4f46e5, #7c3aed)",
                     boxShadow:
                       cleaning || totalSelectedBytes === 0
@@ -210,9 +204,7 @@ export function CleanerTab() {
                   }}
                 >
                   <Trash2 size={15} />{" "}
-                  {cleaning
-                    ? t("Wait...")
-                    : `${t("Clean")} ${totalSelectedGB} GB`}
+                  {cleaning ? t("Wait...") : `${t("Clean")} ${totalSelectedGB} GB`}
                 </button>
               </>
             )}
@@ -228,20 +220,17 @@ export function CleanerTab() {
                       toast.error(t(e));
                     }
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition cursor-pointer"
                 >
                   {t("View Audit Log")}
                 </button>
                 <button
                   onClick={startScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition cursor-pointer"
                 >
                   <RotateCcw size={12} /> {t("Scan Again")}
                 </button>
-                <div
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700"
-                  style={{ background: "#d1fae5" }}
-                >
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
                   <CheckCircle2 size={16} /> {t("Cleaned Successfully!")}
                 </div>
               </div>
@@ -252,17 +241,13 @@ export function CleanerTab() {
         {/* PROGRESS BAR */}
         {(scanning || done || cleaning) && (
           <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
               <span>
-                {scanning
-                  ? t("Scanning...")
-                  : cleaning
-                  ? t("Wait...")
-                  : t("Scan complete")}
+                {scanning ? t("Scanning...") : cleaning ? t("Wait...") : t("Scan complete")}
               </span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-100 mb-4 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 overflow-hidden">
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{
@@ -282,9 +267,7 @@ export function CleanerTab() {
         <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3">
           <ShieldAlert className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
           <div>
-            <h4 className="text-sm font-semibold text-red-800">
-              Error occurred during operations
-            </h4>
+            <h4 className="text-sm font-semibold text-red-800">Error occurred during operations</h4>
             <p className="text-xs text-red-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -297,14 +280,14 @@ export function CleanerTab() {
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <GradientCard className="hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
                   <HardDrive size={20} />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     {t("Total Junk")}
                   </p>
-                  <p className="text-lg font-extrabold text-slate-800 mt-0.5">
+                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
                     {totalSelectedGB} GB
                   </p>
                 </div>
@@ -313,14 +296,14 @@ export function CleanerTab() {
 
             <GradientCard className="hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
                   <Files size={20} />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     {t("Files Found")}
                   </p>
-                  <p className="text-lg font-extrabold text-slate-800 mt-0.5">
+                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
                     {totalSelectedFiles.toLocaleString()}
                   </p>
                 </div>
@@ -329,14 +312,14 @@ export function CleanerTab() {
 
             <GradientCard className="hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-xl">
                   <Clock size={20} />
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
                     {t("Scan Duration")}
                   </p>
-                  <p className="text-lg font-extrabold text-slate-800 mt-0.5">
+                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
                     {scanDuration}
                   </p>
                 </div>
@@ -347,25 +330,23 @@ export function CleanerTab() {
               <GradientCard className="h-full flex flex-col justify-center">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-800">
-                      {cleaned
-                        ? `✅ ${t("Cleaned Successfully!")}`
-                        : t("Found — Select to Clean")}
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      {cleaned ? `✅ ${t("Cleaned Successfully!")}` : t("Found — Select to Clean")}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {t("Manage your cleanup targets to protect performance")}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={selectAllCategories}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition cursor-pointer"
                     >
                       {t("Select All")}
                     </button>
                     <button
                       onClick={deselectAllCategories}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition cursor-pointer"
                     >
                       {t("None")}
                     </button>
@@ -377,7 +358,7 @@ export function CleanerTab() {
 
           {/* COMPOSITION DONUT CHART */}
           <GradientCard className="flex flex-col items-center justify-center p-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 self-start">
+            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 self-start">
               {t("Junk Composition")}
             </h4>
             {chartData.length > 0 ? (
@@ -401,16 +382,16 @@ export function CleanerTab() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-slate-400 text-[10px] uppercase font-semibold">
+                  <span className="text-slate-400 dark:text-slate-550 text-[10px] uppercase font-semibold">
                     {t("Selected")}
                   </span>
-                  <span className="text-lg font-black text-slate-800">
+                  <span className="text-lg font-black text-slate-800 dark:text-slate-200">
                     {totalSelectedGB} GB
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="h-44 flex items-center justify-center text-xs text-slate-400">
+              <div className="h-44 flex items-center justify-center text-xs text-slate-400 dark:text-slate-500">
                 {t("No categories selected or scanned")}
               </div>
             )}
@@ -432,8 +413,8 @@ export function CleanerTab() {
                 onClick={() => toggleSelectedCategory(cat.name)}
                 className="text-left p-4 rounded-xl border transition-all duration-200 hover:shadow-md cursor-pointer select-none relative overflow-hidden flex flex-col justify-between"
                 style={{
-                  background: isOn ? `${cat.color}06` : "#fafafa",
-                  borderColor: isOn ? `${cat.color}35` : "#e2e8f0",
+                  background: isOn ? `${cat.color}12` : "var(--card)",
+                  borderColor: isOn ? `${cat.color}50` : "var(--border)",
                 }}
               >
                 <div>
@@ -441,24 +422,24 @@ export function CleanerTab() {
                     <span className="text-lg mt-0.5">{cat.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-700">
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                           {t(cat.name)}
                         </span>
                         {cat.requires_admin && (
-                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
                             <Shield size={9} />
                             {t("Requires Admin")}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-normal">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-normal">
                         {t(cat.description)}
                       </p>
                     </div>
                     <div
                       className={cn(
                         "w-4 h-4 rounded flex items-center justify-center border transition-all flex-shrink-0 mt-0.5",
-                        isOn ? "border-0" : "border-slate-300"
+                        isOn ? "border-0" : "border-slate-300 dark:border-slate-700"
                       )}
                       style={isOn ? { background: cat.color } : {}}
                     >
@@ -468,9 +449,9 @@ export function CleanerTab() {
 
                   {/* WARNING FLAGS */}
                   {isOn && cat.warning && (
-                    <div className="mt-2.5 p-2 rounded-lg bg-amber-50/50 border border-amber-100 flex items-start gap-1.5">
+                    <div className="mt-2.5 p-2 rounded-lg bg-amber-50/20 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 flex items-start gap-1.5">
                       <AlertTriangle className="text-amber-500 mt-0.5 flex-shrink-0" size={12} />
-                      <p className="text-[10px] leading-relaxed text-amber-800 font-medium">
+                      <p className="text-[10px] leading-relaxed text-amber-800 dark:text-amber-300 font-medium">
                         {t("Warning")}: {t(cat.warning)}
                       </p>
                     </div>
@@ -478,7 +459,7 @@ export function CleanerTab() {
                 </div>
 
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-medium">
+                  <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500 mb-1.5 font-medium">
                     <span>
                       {cat.count.toLocaleString()} {t("files")}
                     </span>
@@ -486,7 +467,7 @@ export function CleanerTab() {
                       {cat.size}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-slate-100/80 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <div
                       className="h-1.5 rounded-full transition-all duration-500"
                       style={{ width: `${pct}%`, background: cat.color }}
@@ -501,16 +482,18 @@ export function CleanerTab() {
 
       {/* CONFIRMATION DIALOG MODAL */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent className="sm:max-w-md bg-white">
+        <AlertDialogContent className="sm:max-w-md bg-card text-card-foreground border border-border">
           <AlertDialogHeader>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
               <ShieldAlert className="h-6 w-6" />
             </div>
-            <AlertDialogTitle className="text-center text-slate-800 mt-2">
+            <AlertDialogTitle className="text-center text-slate-800 dark:text-slate-100 mt-2">
               {t("Security Warning")}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-slate-500 text-sm mt-1 leading-relaxed">
-              {t("Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?")}
+            <AlertDialogDescription className="text-center text-slate-500 dark:text-slate-400 text-sm mt-1 leading-relaxed">
+              {t(
+                "Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?"
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -519,10 +502,13 @@ export function CleanerTab() {
             {junkCats
               .filter((c) => selected[c.name] && (c.warning.length > 0 || c.requires_admin))
               .map((c) => (
-                <div key={c.name} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 text-xs font-semibold text-slate-700">
+                <div
+                  key={c.name}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                >
                   <span>{c.icon}</span>
                   <span className="flex-1">{t(c.name)}</span>
-                  <span className="text-[10px] font-bold text-amber-600 uppercase">
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
                     {c.requires_admin ? t("Admin Required") : t("Warning")}
                   </span>
                 </div>
@@ -530,7 +516,7 @@ export function CleanerTab() {
           </div>
 
           <AlertDialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
-            <AlertDialogCancel className="w-full sm:w-auto font-semibold cursor-pointer">
+            <AlertDialogCancel className="w-full sm:w-auto font-semibold border border-border bg-transparent hover:bg-muted dark:text-slate-200 cursor-pointer">
               {t("Cancel")}
             </AlertDialogCancel>
             <AlertDialogAction

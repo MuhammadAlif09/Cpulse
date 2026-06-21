@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+
+## [0.14.0] - 2026-06-22
+
+### Added
+
+- **Visual Theme Switcher**: Introduced Appearance customization card in Settings with "Light", "Dark", and "System" mode selection synced via `next-themes`.
+- **Indonesian Translation**: Mapped Indonesian localization keys for theme mode selection.
 - **Backend Cleaner Module**: Created [cleaner.rs](file:///c:/Projek/Cpulse_package/src-tauri/src/cleaner.rs) containing all scanning, cleaning, cancel, and CLI silent optimization logic, separating cleaner domain concerns from `lib.rs`.
 - **Thirteen Scan Categories**: Expanded junk scans to include Recycle Bin, Windows Prefetch, Thumbnail Cache, Windows Log Files, Font Cache, DirectX Shader Cache, Windows Error Reports, Delivery Optimization Cache, App Caches (Discord, Teams, Steam, Riot Games), and Brave browser cache.
 - **Safety Traversal Limits**: Implemented recursion depth, path length, and file count safeguards to prevent OOM/stack overflow on junction loops or anomalous directory structures.
@@ -19,10 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Refactored
 
+- **Premium Dark Mode Palette**: Configured variable overrides inside `.dark` class block for slate card panels, border assets, deep navy background (`#090d16`), and low-opacity tinted indigo shadows.
+- **Root Shell Theme Wrapper**: Wrapped the root rendering tree in a dynamic `ThemeProvider` with HTML-level class toggling.
+- **Tab Layouts Redesign**: Refactored `DashboardTab`, `CleanerTab`, `BoosterTab`, `StartupTab`, `DiagnosticsTab`, `HistoryTab`, and `PrivacyTab` to adapt dynamic layouts and borders using `var(--card)` and `var(--border)` variables instead of hardcoded white backgrounds.
 - **lib.rs Slim Down**: Moved ~500 lines of junk-related Rust logic out of `lib.rs`, wire up new Tauri command registrations, and clean up duplicate unit tests.
 
 ### Fixed
 
+- **Dark Mode Mirroring**: Resolved layout mirroring where dark mode variables in `theme.css` duplicates of light mode, establishing true color adjustments.
 - **White Screen Crash**: Resolved a React ReferenceError caused by passing an undeclared `setJunkItems` prop to `DashboardTab` inside `App.tsx`.
 - **Silent Process Execution**: Applied the `CREATE_NO_WINDOW` (0x08000000) creation flag to all background PowerShell processes in the backend (`get_disk_details` and `get_startup_items`) to prevent console windows from popping up and flashing on user startup.
 

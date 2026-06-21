@@ -398,7 +398,15 @@ const PRIVACY_ITEMS = [
   { id: "run_hist", label: "Run Dialog History", desc: "23 entries", found: false, color: C.slate },
 ];
 
-type Tab = "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings" | "diagnostics";
+type Tab =
+  | "dashboard"
+  | "cleaner"
+  | "booster"
+  | "startup"
+  | "privacy"
+  | "history"
+  | "settings"
+  | "diagnostics";
 
 // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ shared helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function cn(...classes: (string | undefined | false)[]) {
@@ -419,11 +427,11 @@ function GradientCard({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden",
+        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-colors duration-300 bg-card text-card-foreground",
         className
       )}
       style={{
-        background: gradient ?? "#ffffff",
+        background: gradient,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
         ...style,
       }}
@@ -455,11 +463,14 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
     <button
       onClick={onChange}
-      className="relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0"
-      style={{ background: on ? C.indigo : "#e2e8f0" }}
+      className="relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 cursor-pointer"
+      style={{ background: on ? C.indigo : "var(--border)" }}
     >
       <span
-        className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300"
+        className={cn(
+          "absolute top-1 w-4 h-4 rounded-full transition-all duration-300",
+          on ? "bg-white shadow-sm" : "bg-slate-400 dark:bg-slate-600"
+        )}
         style={{ left: on ? "calc(100% - 20px)" : "4px" }}
       />
     </button>
@@ -475,7 +486,10 @@ import { relaunch } from "@tauri-apps/plugin-process";
 
 let store: any = null;
 
-const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+const isTauri =
+  typeof window !== "undefined" &&
+  ((window as any).__TAURI_IPC__ !== undefined ||
+    (window as any).process?.env?.NODE_ENV === "test");
 
 interface DiskInfo {
   name: string;
@@ -710,30 +724,20 @@ export default function App() {
 
   return (
     <div
-      className="h-screen w-full flex flex-col overflow-hidden"
+      className="h-screen w-full flex flex-col overflow-hidden bg-background text-foreground transition-colors duration-300"
       style={{
-        background: "#f0f4ff",
         fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
       }}
     >
       {/* topbar */}
-      <div
-        className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-white/80 backdrop-blur-md flex-shrink-0"
-        style={{ borderColor: "#e2e8f0" }}
-      >
+      <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-card/85 dark:bg-slate-900/85 backdrop-blur-md flex-shrink-0 border-border">
         <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm"
-            style={{ background: "white" }}
-          >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-800">
             <img src={AppLogo} alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div>
-            <span className="text-sm font-bold text-slate-800">{appName}</span>
-            <span
-              className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium"
-              style={{ background: "#ede9fe", color: C.indigo }}
-            >
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{appName}</span>
+            <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300">
               v{appVersion}
             </span>
           </div>
@@ -741,48 +745,46 @@ export default function App() {
 
         <div className="flex items-center gap-3">
           {isAdmin ? (
-            <div
-              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 px-3 py-1.5 rounded-full"
-              style={{ background: "#fef3c7", border: "1px solid #fde68a" }}
-            >
+            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               {t(lang, "Administrator Mode")}
             </div>
           ) : (
-            <div
-              className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 px-3 py-1.5 rounded-full"
-              style={{ background: "#d1fae5", border: "1px solid #a7f3d0" }}
-            >
+            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {t(lang, "Standard Mode")}
             </div>
           )}
-          <span className="text-xs text-slate-400 font-mono">{time.toLocaleTimeString()}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+            {time.toLocaleTimeString()}
+          </span>
 
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               className={cn(
-                "relative w-8 h-8 rounded-lg flex items-center justify-center transition",
-                showNotif ? "bg-slate-100 text-slate-700" : "text-slate-500 hover:bg-slate-100"
+                "relative w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
+                showNotif
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
               onClick={() => setShowNotif(!showNotif)}
             >
               <Bell size={16} />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900" />
               )}
             </button>
 
             {showNotif && (
-              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-slate-200 overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <span className="text-sm font-semibold text-slate-800">
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-card/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl border border-border overflow-hidden z-50">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50/50 dark:bg-slate-950/50">
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     {t(lang, "Notifications")}
                   </span>
                   {notifications.length > 0 && (
                     <button
                       onClick={() => setNotifications([])}
-                      className="text-xs font-medium text-slate-500 hover:text-slate-700 transition"
+                      className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
                     >
                       {t(lang, "Clear all")}
                     </button>
@@ -790,7 +792,7 @@ export default function App() {
                 </div>
                 <div className="max-h-[300px] overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                    <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
                       <Bell size={24} className="mb-2 opacity-50" />
                       <span className="text-xs text-center">
                         {t(lang, "No new notifications.")}
@@ -802,8 +804,8 @@ export default function App() {
                         <div
                           key={n.id}
                           className={cn(
-                            "px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition cursor-default",
-                            n.unread ? "bg-indigo-50/30" : ""
+                            "px-4 py-3 border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/40 transition cursor-default",
+                            n.unread ? "bg-indigo-50/30 dark:bg-indigo-950/10" : ""
                           )}
                           onClick={() =>
                             setNotifications((prev) =>
@@ -823,14 +825,16 @@ export default function App() {
                                 className={cn(
                                   "text-sm mb-0.5 transition-colors",
                                   n.unread
-                                    ? "font-semibold text-indigo-900"
-                                    : "font-medium text-slate-800"
+                                    ? "font-semibold text-indigo-900 dark:text-indigo-300"
+                                    : "font-medium text-slate-800 dark:text-slate-200"
                                 )}
                               >
                                 {n.title}
                               </div>
-                              <div className="text-xs text-slate-500 leading-snug">{n.desc}</div>
-                              <div className="text-[10px] text-slate-400 mt-1 font-medium">
+                              <div className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                                {n.desc}
+                              </div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
                                 {n.time}
                               </div>
                             </div>
@@ -846,10 +850,10 @@ export default function App() {
 
           <button
             className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition",
+              "w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
               tab === "settings"
-                ? "bg-slate-100 text-slate-700"
-                : "text-slate-500 hover:bg-slate-100"
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
             onClick={() => setTab("settings")}
           >
@@ -860,10 +864,7 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* sidebar */}
-        <aside
-          className="w-52 flex-shrink-0 border-r bg-white/70 backdrop-blur-sm flex flex-col py-4 px-3 gap-0.5"
-          style={{ borderColor: "#e2e8f0" }}
-        >
+        <aside className="w-52 flex-shrink-0 border-r bg-card/70 backdrop-blur-sm flex flex-col py-4 px-3 gap-0.5 border-border">
           {NAV.map((n) => {
             const active = tab === n.id;
 
@@ -882,26 +883,29 @@ export default function App() {
               <button
                 key={n.id}
                 onClick={() => setTab(n.id)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all relative text-left"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all relative text-left cursor-pointer"
                 style={
                   active
                     ? {
-                        background: "linear-gradient(135deg,#ede9fe,#ddd6fe)",
-                        color: C.indigo,
+                        background:
+                          "linear-gradient(135deg, var(--accent), var(--accent-foreground)/20%)",
+                        color: "var(--primary)",
                         fontWeight: 600,
                       }
-                    : { color: "#64748b" }
+                    : { color: "var(--muted-foreground)" }
                 }
               >
-                <span style={active ? { color: C.indigo } : { color: "#94a3b8" }}>{n.icon}</span>
+                <span style={active ? { color: "var(--primary)" } : { color: "#94a3b8" }}>
+                  {n.icon}
+                </span>
                 <span className="flex-1">{t(lang, n.label)}</span>
                 {badgeCount !== undefined && (
                   <span
                     className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={
                       active
-                        ? { background: C.indigo, color: "white" }
-                        : { background: "#f1f5f9", color: "#64748b" }
+                        ? { background: "var(--primary)", color: "var(--primary-foreground)" }
+                        : { background: "var(--secondary)", color: "var(--secondary-foreground)" }
                     }
                   >
                     {badgeCount}
@@ -937,10 +941,14 @@ export default function App() {
             </div>
 
             {/* last scan */}
-            <div className="rounded-xl p-3 border border-slate-100 bg-slate-50 text-xs">
-              <div className="text-slate-400 mb-1">Last cleaned</div>
-              <div className="font-semibold text-slate-700">Belum ada</div>
-              <div className="text-slate-400">0 GB freed</div>
+            <div className="rounded-xl p-3 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-xs transition-colors duration-300">
+              <div className="text-slate-400 dark:text-slate-500 mb-1">
+                {t(lang, "Last cleaned")}
+              </div>
+              <div className="font-semibold text-slate-700 dark:text-slate-200">
+                {t(lang, "Belum ada")}
+              </div>
+              <div className="text-slate-400 dark:text-slate-500">0 GB {t(lang, "freed")}</div>
             </div>
           </div>
         </aside>
@@ -948,11 +956,13 @@ export default function App() {
         {/* main */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-xl font-bold text-slate-800">
+            <div className="mb-6 animate-fade-in">
+              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-300">
                 {t(lang, NAV.find((n) => n.id === tab)?.label || "")}
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">{t(lang, TAB_DESC[tab])}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 transition-colors duration-300">
+                {t(lang, TAB_DESC[tab])}
+              </p>
             </div>
 
             {tab === "dashboard" && (

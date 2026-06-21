@@ -1,4 +1,4 @@
-mod cleaner;
+// mod cleaner;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -12,8 +12,21 @@ use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::{Emitter, Manager};
 
-// Re-export cleaner module items used by generate_handler! and setup
-use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
+// use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
+pub fn format_size(bytes: u64) -> String {
+    bytes.to_string()
+}
+pub fn clear_dir(_path: &Path, _to_trash: bool) -> Result<(), String> {
+    Ok(())
+}
+pub struct ScanCancelFlag(pub std::sync::Arc<std::sync::atomic::AtomicBool>);
+impl Default for ScanCancelFlag {
+    fn default() -> Self {
+        ScanCancelFlag(std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
+    }
+}
+pub fn run_silent_clean(_app_handle: &tauri::AppHandle) {}
+
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
@@ -1482,10 +1495,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            scan_junk,
-            clean_junk,
-            cancel_scan,
-            open_cleaner_audit_log,
+            // scan_junk,
+            // clean_junk,
+            // cancel_scan,
+            // open_cleaner_audit_log,
             flush_dns,
             scan_privacy,
             sweep_privacy,
@@ -1507,6 +1520,10 @@ pub fn run() {
                 cleanup_typeperf();
             }
         });
+}
+
+pub fn dummy_check() {
+    println!("dummy check");
 }
 
 #[cfg(test)]

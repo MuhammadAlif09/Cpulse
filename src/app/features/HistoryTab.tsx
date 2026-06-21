@@ -40,11 +40,11 @@ function GradientCard({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden",
+        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card text-card-foreground",
         className
       )}
       style={{
-        background: gradient ?? "#ffffff",
+        background: gradient,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
         ...style,
       }}
@@ -54,7 +54,10 @@ function GradientCard({
   );
 }
 
-const isTauri = typeof window !== "undefined" && ((window as any).__TAURI_IPC__ !== undefined || (window as any).process?.env?.NODE_ENV === "test");
+const isTauri =
+  typeof window !== "undefined" &&
+  ((window as any).__TAURI_IPC__ !== undefined ||
+    (window as any).process?.env?.NODE_ENV === "test");
 
 export function HistoryTab() {
   const { t } = useTranslation();
@@ -83,14 +86,20 @@ export function HistoryTab() {
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <div className="py-10 text-center text-slate-400 text-sm">{t("Loading history...")}</div>
+        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
+          {t("Loading history...")}
+        </div>
       ) : history.length === 0 ? (
         <GradientCard className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4 text-slate-300">
+          <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-center mb-4 text-slate-300 dark:text-slate-600 animate-pulse-subtle">
             <BarChart3 size={32} />
           </div>
-          <div className="text-slate-500 font-medium mb-1">{t("No cleaning history yet.")}</div>
-          <div className="text-sm text-slate-400">{t("Run your first scan!")}</div>
+          <div className="text-slate-500 dark:text-slate-300 font-medium mb-1">
+            {t("No cleaning history yet.")}
+          </div>
+          <div className="text-sm text-slate-400 dark:text-slate-500">
+            {t("Run your first scan!")}
+          </div>
         </GradientCard>
       ) : (
         <>
@@ -120,60 +129,72 @@ export function HistoryTab() {
             ].map((s) => (
               <GradientCard
                 key={s.label}
-                style={{ background: `${s.color}05`, borderColor: `${s.color}15` }}
+                style={{
+                  background: `linear-gradient(135deg, ${s.color}0c, ${s.color}02)`,
+                  borderColor: `${s.color}25`,
+                }}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: `${s.color}15`, color: s.color }}
+                    style={{ background: `${s.color}20`, color: s.color }}
                   >
                     {s.icon}
                   </div>
-                  <span className="text-xs font-medium text-slate-500">{t(s.label)}</span>
+                  <span className="text-xs font-medium text-slate-505 dark:text-slate-400">
+                    {t(s.label)}
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{t(s.sub)}</div>
+                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                  {s.value}
+                </div>
+                <div className="text-xs text-slate-400 dark:text-slate-550 mt-0.5">{t(s.sub)}</div>
               </GradientCard>
             ))}
           </div>
 
           <GradientCard>
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
               {t("Space Freed Per Month")}
             </h3>
-            <div className="py-10 text-center text-slate-400 text-sm">
+            <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
               {t("Chart data will appear after a few cleanings.")}
             </div>
           </GradientCard>
 
           <GradientCard>
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">{t("Session Log")}</h3>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
+              {t("Session Log")}
+            </h3>
             <div className="space-y-2">
               {history.map((h, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition"
+                  className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition duration-200"
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{
-                      background: h.type === "Deep Clean" ? `${C.indigo}10` : `${C.emerald}10`,
-                      color: h.type === "Deep Clean" ? C.indigo : C.emerald,
+                      background:
+                        h.type === "Deep Clean" ? "rgba(79,70,229,0.18)" : "rgba(16,185,129,0.18)",
+                      color: h.type === "Deep Clean" ? "var(--primary)" : "#10b981",
                     }}
                   >
                     {h.type === "Deep Clean" ? <Sparkles size={15} /> : <Zap size={15} />}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-slate-700">{h.date}</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {h.date}
+                    </div>
+                    <div className="text-xs text-slate-400 dark:text-slate-500">
                       {t(h.type)} · {h.duration} · {h.fixed} {t("issues fixed")}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold" style={{ color: C.indigo }}>
+                    <div className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
                       {h.freed}
                     </div>
-                    <div className="text-xs text-slate-400">{t("freed")}</div>
+                    <div className="text-xs text-slate-400 dark:text-slate-500">{t("freed")}</div>
                   </div>
                 </div>
               ))}

@@ -230,5 +230,11 @@
   "Total Junk": "Total Sampah",
   "Files Found": "File Ditemukan",
   "Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?": "Beberapa kategori yang dipilih mengandung cache sistem penting atau bendera penghapusan permanen. Apakah Anda yakin ingin membersihkannya?",
-  "Proceed with Cleanup": "Lanjutkan Pembersihan"
+  "Proceed with Cleanup": "Lanjutkan Pembersihan",
+  "Appearance": "Tampilan",
+  "Theme Mode": "Mode Tema",
+  "Select visual theme": "Pilih tema visual",
+  "light": "Terang",
+  "dark": "Gelap",
+  "system": "Sistem"
 }
