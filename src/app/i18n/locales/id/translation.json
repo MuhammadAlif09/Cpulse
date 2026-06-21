@@ -236,5 +236,16 @@
   "Select visual theme": "Pilih tema visual",
   "light": "Terang",
   "dark": "Gelap",
-  "system": "Sistem"
+  "system": "Sistem",
+  "Diagnostics": "Diagnostik",
+  "Booster Applied": "Peningkat Diterapkan",
+  "Booster Restored": "Peningkat Dikembalikan",
+  "Startup Toggled": "Awalan Dialihkan",
+  "Startup Optimizer": "Pengoptimal Awalan",
+  "Enabled {{name}}": "Mengaktifkan {{name}}",
+  "Disabled {{name}}": "Menonaktifkan {{name}}",
+  "Disabled {{count}} high impact startup items": "Menonaktifkan {{count}} item awalan berdampak tinggi",
+  "Applied {{name}}": "Menerapkan {{name}}",
+  "Restored {{name}}": "Mengembalikan {{name}}",
+  "Generated diagnostic report": "Laporan diagnostik dibuat"
 }

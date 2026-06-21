@@ -75,4 +75,27 @@ describe("history utility", () => {
     ]);
     expect(mockStore.save).toHaveBeenCalled();
   });
+
+  it("should save history log with details field", async () => {
+    const mockStore = await load("history.json");
+    (mockStore.get as any).mockResolvedValue([]);
+
+    await addHistoryLog({
+      type: "Booster Applied",
+      freed: "N/A",
+      fixed: 1,
+      duration: "0.0s",
+      details: "Applied CPU Priority Manager",
+    });
+
+    expect(mockStore.set).toHaveBeenCalledWith("logs", [
+      expect.objectContaining({
+        type: "Booster Applied",
+        freed: "N/A",
+        fixed: 1,
+        duration: "0.0s",
+        details: "Applied CPU Priority Manager",
+      }),
+    ]);
+  });
 });

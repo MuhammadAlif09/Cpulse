@@ -13,7 +13,9 @@ import {
   ServerCrash,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useTranslation } from "react-i18next";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
+import { addHistoryLog } from "../utils/history";
 
 const C = {
   indigo: "#4f46e5",
@@ -31,6 +33,7 @@ function cn(...classes: (string | undefined | false)[]) {
 }
 
 export function DiagnosticsTab() {
+  const { t } = useTranslation();
   const { metrics } = useSystemMetrics();
 
   // Local state to store telemetry charts history
@@ -79,9 +82,18 @@ export function DiagnosticsTab() {
     setGeneratingReport(true);
     setReportResult(null);
     setReportError(null);
+    const startTime = Date.now();
     try {
       const result = await invoke<string>("generate_diagnostics_report");
       setReportResult(result);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+      addHistoryLog({
+        type: "Diagnostics",
+        freed: "N/A",
+        fixed: 0,
+        duration,
+        details: t("Generated diagnostic report"),
+      });
     } catch (err: any) {
       console.error(err);
       setReportError(err?.toString() || "Failed to generate report");

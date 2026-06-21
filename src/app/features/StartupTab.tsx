@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { PackageX, Clock, TrendingUp, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { addHistoryLog } from "../utils/history";
 
 const C = {
   indigo: "#4f46e5",
@@ -148,9 +149,43 @@ export function StartupTab() {
       setItems((prev) =>
         prev.map((item) => (item.name === name ? { ...item, enabled: !item.enabled } : item))
       );
+      addHistoryLog({
+        type: "Startup Toggled",
+        freed: "N/A",
+        fixed: 1,
+        duration: "0.0s",
+        details: !current_enabled
+          ? t("Enabled {{name}}", { name })
+          : t("Disabled {{name}}", { name }),
+      });
     } catch (e) {
       console.error("Failed to toggle:", e);
       alert("Failed to toggle: " + e);
+    }
+  };
+
+  const handleDisableAllHighImpact = async () => {
+    const highImpactEnabled = items.filter((i) => i.impact === "High" && i.enabled);
+    if (highImpactEnabled.length === 0) return;
+    const startTime = Date.now();
+    try {
+      for (const item of highImpactEnabled) {
+        await invoke("toggle_startup_item", { name: item.name, isHkcu: item.is_hkcu, enable: false });
+      }
+      setItems((prev) =>
+        prev.map((item) => (item.impact === "High" ? { ...item, enabled: false } : item))
+      );
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+      addHistoryLog({
+        type: "Startup Optimizer",
+        freed: "N/A",
+        fixed: highImpactEnabled.length,
+        duration,
+        details: t("Disabled {{count}} high impact startup items", { count: highImpactEnabled.length }),
+      });
+    } catch (e) {
+      console.error("Failed to disable high impact:", e);
+      alert("Failed to disable high impact: " + e);
     }
   };
 
@@ -231,7 +266,7 @@ export function StartupTab() {
             />
           </div>
           <button
-            onClick={() => setItems((prev) => prev.map((i) => ({ ...i, enabled: false })))}
+            onClick={handleDisableAllHighImpact}
             className="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-850 text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-850 transition whitespace-nowrap cursor-pointer"
           >
             {t("Disable All High Impact")}

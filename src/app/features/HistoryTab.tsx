@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { load } from "@tauri-apps/plugin-store";
-import { HardDrive, BarChart3, Star, Sparkles, Zap } from "lucide-react";
+import { HardDrive, BarChart3, Star, Sparkles, Zap, Lock, FileText, Rocket, RotateCcw, Activity } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const C = {
@@ -20,6 +20,7 @@ interface SessionLog {
   fixed: number;
   duration: string;
   type: string;
+  details?: string;
 }
 
 function cn(...classes: (string | undefined | false)[]) {
@@ -58,6 +59,54 @@ const isTauri =
   typeof window !== "undefined" &&
   ((window as any).__TAURI_IPC__ !== undefined ||
     (window as any).process?.env?.NODE_ENV === "test");
+
+const getLogIcon = (type: string) => {
+  switch (type) {
+    case "Deep Clean":
+      return <Sparkles size={15} />;
+    case "Quick Clean":
+      return <Zap size={15} />;
+    case "RAM Boost":
+      return <Zap size={15} />;
+    case "Privacy Sweep":
+      return <Lock size={15} />;
+    case "Diagnostics":
+      return <FileText size={15} />;
+    case "Booster Applied":
+      return <Rocket size={15} />;
+    case "Booster Restored":
+      return <RotateCcw size={15} />;
+    case "Startup Toggled":
+    case "Startup Optimizer":
+      return <Activity size={15} />;
+    default:
+      return <Zap size={15} />;
+  }
+};
+
+const getLogColor = (type: string) => {
+  switch (type) {
+    case "Deep Clean":
+      return { bg: "rgba(79,70,229,0.18)", text: "var(--primary)" };
+    case "Quick Clean":
+      return { bg: "rgba(14,165,233,0.18)", text: "#0ea5e9" };
+    case "RAM Boost":
+      return { bg: "rgba(124,58,237,0.18)", text: "#7c3aed" };
+    case "Privacy Sweep":
+      return { bg: "rgba(244,63,94,0.18)", text: "#f43f5e" };
+    case "Diagnostics":
+      return { bg: "rgba(245,158,11,0.18)", text: "#f59e0b" };
+    case "Booster Applied":
+      return { bg: "rgba(16,185,129,0.18)", text: "#10b981" };
+    case "Booster Restored":
+      return { bg: "rgba(100,116,139,0.18)", text: "#64748b" };
+    case "Startup Toggled":
+    case "Startup Optimizer":
+      return { bg: "rgba(236,72,153,0.18)", text: "#ec4899" };
+    default:
+      return { bg: "rgba(79,70,229,0.18)", text: "var(--primary)" };
+  }
+};
 
 export function HistoryTab() {
   const { t } = useTranslation();
@@ -167,37 +216,49 @@ export function HistoryTab() {
               {t("Session Log")}
             </h3>
             <div className="space-y-2">
-              {history.map((h, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition duration-200"
-                >
+              {history.map((h, i) => {
+                const color = getLogColor(h.type);
+                const showFreed = h.freed && h.freed !== "N/A" && h.freed !== "" && 
+                  (h.type.includes("Clean") || h.type.includes("Boost") || (!h.freed.startsWith("0") && !h.freed.startsWith("N/A")));
+                
+                return (
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background:
-                        h.type === "Deep Clean" ? "rgba(79,70,229,0.18)" : "rgba(16,185,129,0.18)",
-                      color: h.type === "Deep Clean" ? "var(--primary)" : "#10b981",
-                    }}
+                    key={i}
+                    className="flex items-center gap-4 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition duration-200"
                   >
-                    {h.type === "Deep Clean" ? <Sparkles size={15} /> : <Zap size={15} />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      {h.date}
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: color.bg,
+                        color: color.text,
+                      }}
+                    >
+                      {getLogIcon(h.type)}
                     </div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500">
-                      {t(h.type)} · {h.duration} · {h.fixed} {t("issues fixed")}
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {t(h.type)}
+                        {h.details && (
+                          <span className="font-normal text-slate-500 dark:text-slate-400 ml-1.5">
+                            ({h.details})
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400 dark:text-slate-550 mt-0.5">
+                        {h.date} {h.duration && `· ${h.duration}`} {h.fixed > 0 && `· ${h.fixed} ${t(h.fixed === 1 ? "issue fixed" : "issues fixed")}`}
+                      </div>
                     </div>
+                    {showFreed && (
+                      <div className="text-right">
+                        <div className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+                          {h.freed}
+                        </div>
+                        <div className="text-xs text-slate-400 dark:text-slate-500">{t("freed")}</div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
-                      {h.freed}
-                    </div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500">{t("freed")}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </GradientCard>
         </>

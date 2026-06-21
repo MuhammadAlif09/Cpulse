@@ -6,6 +6,7 @@ export interface SessionLog {
   fixed: number;
   duration: string;
   type: string;
+  details?: string;
 }
 
 export async function addHistoryLog(log: Omit<SessionLog, "date">) {
