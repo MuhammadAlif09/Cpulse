@@ -1188,6 +1188,20 @@ fn cleanup_typeperf() {
 }
 
 #[tauri::command]
+fn get_system_info() -> Result<serde_json::Value, String> {
+    let os_name = System::name().unwrap_or_else(|| "Windows".to_string());
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
+    let kernel = System::kernel_version().unwrap_or_else(|| "Unknown".to_string());
+    let host = System::host_name().unwrap_or_else(|| "Unknown".to_string());
+    Ok(serde_json::json!({
+        "os_name": os_name,
+        "os_version": os_version,
+        "kernel": kernel,
+        "host_name": host
+    }))
+}
+
+#[tauri::command]
 async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, String> {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -1511,6 +1525,7 @@ pub fn run() {
             set_power_plan,
             toggle_context_menu,
             update_auto_clean,
+            get_system_info,
             generate_diagnostics_report
         ])
         .build(tauri::generate_context!())

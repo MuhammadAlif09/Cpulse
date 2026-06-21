@@ -11,6 +11,13 @@ import {
   Cpu,
   RefreshCw,
   ServerCrash,
+  Monitor,
+  MemoryStick,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  CheckCircle2,
+  Server,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useTranslation } from "react-i18next";
@@ -32,6 +39,14 @@ function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+// Interfaces for system info fetched from backend
+interface SystemInfo {
+  os_name: string;
+  os_version: string;
+  kernel: string;
+  host_name: string;
+}
+
 export function DiagnosticsTab() {
   const { t } = useTranslation();
   const { metrics } = useSystemMetrics();
@@ -48,6 +63,16 @@ export function DiagnosticsTab() {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportResult, setReportResult] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
+
+  // System info from backend (OS, kernel, hostname)
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+
+  // Fetch system info once on mount
+  useEffect(() => {
+    invoke<SystemInfo>("get_system_info")
+      .then(setSystemInfo)
+      .catch((err) => console.error("Failed to fetch system info:", err));
+  }, []);
 
   // Collect historical metrics whenever metrics update
   useEffect(() => {
@@ -118,6 +143,113 @@ export function DiagnosticsTab() {
     return parts.join(" ");
   };
 
+  // Health status calculation — interprets raw metrics into a meaningful indicator
+  const getHealthStatus = () => {
+    if (!metrics) return { label: t("Fetching..."), color: "slate", severity: 0 };
+    const issues: string[] = [];
+    if (metrics.ram_usage > 90) issues.push("RAM > 90%");
+    if (metrics.cpu_usage > 90) issues.push("CPU > 90%");
+    if (metrics.cpu_temp > 85) issues.push("Temp > 85°C");
+
+    const critDisk = metrics.disks.some(
+      (d: any) => d.total > 0 && (d.total - d.used) / d.total < 0.1
+    );
+    if (critDisk) issues.push("Disk < 10% free");
+
+    if (issues.length === 0) return { label: t("Healthy"), color: "emerald", severity: 0 };
+    if (issues.length <= 1) return { label: t("Warning"), color: "amber", severity: 1 };
+    return { label: t("Critical"), color: "rose", severity: 2 };
+  };
+
+  // Smart alert generation — contextual warnings based on current metrics
+  const getAlerts = () => {
+    if (!metrics) return [];
+    const alerts: { icon: React.ReactNode; message: string; severity: "warning" | "critical" }[] =
+      [];
+
+    if (metrics.ram_usage > 90) {
+      alerts.push({
+        icon: <AlertTriangle size={16} />,
+        message: t("RAM usage is critically high ({{pct}}%)", {
+          pct: Math.round(metrics.ram_usage),
+        }),
+        severity: "critical",
+      });
+    }
+
+    if (metrics.cpu_usage > 90) {
+      alerts.push({
+        icon: <Cpu size={16} />,
+        message: t("CPU usage is critically high ({{pct}}%)", {
+          pct: Math.round(metrics.cpu_usage),
+        }),
+        severity: "critical",
+      });
+    }
+
+    if (metrics.cpu_temp > 85) {
+      alerts.push({
+        icon: <AlertTriangle size={16} />,
+        message: t("CPU temperature is high ({{temp}}°C)", {
+          temp: Math.round(metrics.cpu_temp),
+        }),
+        severity: "warning",
+      });
+    }
+
+    for (const d of metrics.disks) {
+      if (d.total > 0) {
+        const usedPct = Math.round((d.used / d.total) * 100);
+        if (usedPct > 90) {
+          alerts.push({
+            icon: <HardDrive size={16} />,
+            message: t("Disk space on {{drive}} is critically low ({{pct}}% used)", {
+              drive: d.name,
+              pct: usedPct,
+            }),
+            severity: "critical",
+          });
+        }
+      }
+    }
+
+    return alerts;
+  };
+
+  const healthStatus = getHealthStatus();
+  const alerts = getAlerts();
+
+  // Color mappings for health badge — maps severity string to CSS-friendly theme tokens
+  const healthColors: Record<string, { bg: string; text: string; pulse: boolean }> = {
+    emerald: {
+      bg: "bg-emerald-50 dark:bg-emerald-950/30",
+      text: "text-emerald-600 dark:text-emerald-400",
+      pulse: true,
+    },
+    amber: {
+      bg: "bg-amber-50 dark:bg-amber-950/30",
+      text: "text-amber-600 dark:text-amber-400",
+      pulse: false,
+    },
+    rose: {
+      bg: "bg-rose-50 dark:bg-rose-950/30",
+      text: "text-rose-600 dark:text-rose-400",
+      pulse: false,
+    },
+    slate: {
+      bg: "bg-slate-50 dark:bg-slate-800",
+      text: "text-slate-500 dark:text-slate-400",
+      pulse: false,
+    },
+  };
+  const hc = healthColors[healthStatus.color] || healthColors.slate;
+
+  // Average CPU load for the cores grid header
+  const avgCpuLoad =
+    metrics && metrics.cpu_cores.length > 0
+      ? Math.round(metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length)
+      : 0;
+
   // Fallback state if metrics is null (e.g. initial load or typeperf missing)
   const isTypeperfActive =
     metrics &&
@@ -130,13 +262,39 @@ export function DiagnosticsTab() {
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Activity className="text-indigo-650 dark:text-indigo-400 animate-pulse" size={24} />
-            System Diagnostics & Telemetry
+            {t("System Diagnostics & Telemetry")}
           </h2>
           <p className="text-slate-505 dark:text-slate-400 text-sm mt-1">
-            Real-time logical core loads, disk throughput speeds, and automated health reports.
+            {t(
+              "Real-time logical core loads, disk throughput speeds, and automated health reports."
+            )}
           </p>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          {/* Health Status Badge */}
+          <div
+            className={cn(
+              "px-3.5 py-2 rounded-xl flex items-center gap-2 text-sm font-semibold border transition-all",
+              hc.bg,
+              hc.text,
+              healthStatus.color === "emerald"
+                ? "border-emerald-200 dark:border-emerald-900/40"
+                : healthStatus.color === "amber"
+                  ? "border-amber-200 dark:border-amber-900/40"
+                  : healthStatus.color === "rose"
+                    ? "border-rose-200 dark:border-rose-900/40"
+                    : "border-slate-200 dark:border-slate-800"
+            )}
+          >
+            {healthStatus.severity === 0 ? (
+              <CheckCircle2 size={16} className={hc.pulse ? "animate-pulse" : ""} />
+            ) : (
+              <AlertTriangle size={16} />
+            )}
+            {healthStatus.label}
+          </div>
+
+          {/* Generate Report Button */}
           <button
             onClick={handleGenerateReport}
             disabled={generatingReport}
@@ -152,12 +310,41 @@ export function DiagnosticsTab() {
             ) : (
               <FileText size={16} />
             )}
-            {generatingReport ? "Generating Report..." : "Generate Diagnostic Report"}
+            {generatingReport ? t("Generating Report...") : t("Generate Diagnostic Report")}
           </button>
         </div>
       </div>
 
-      {/* Report Alerts */}
+      {/* Smart Health Alerts — contextual warning banners */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert, idx) => (
+            <div
+              key={idx}
+              className={cn(
+                "p-3.5 rounded-2xl flex items-center gap-3 animate-fade-in text-sm border",
+                alert.severity === "critical"
+                  ? "bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300"
+                  : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex-shrink-0",
+                  alert.severity === "critical"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-amber-600 dark:text-amber-400"
+                )}
+              >
+                {alert.icon}
+              </span>
+              <span>{alert.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Report Generation Alerts */}
       {reportResult && (
         <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 rounded-2xl flex items-start gap-3 animate-fade-in text-sm">
           <ShieldAlert
@@ -165,7 +352,7 @@ export function DiagnosticsTab() {
             size={18}
           />
           <div>
-            <span className="font-semibold">Success:</span> {reportResult}
+            <span className="font-semibold">{t("Success")}:</span> {reportResult}
           </div>
         </div>
       )}
@@ -176,13 +363,86 @@ export function DiagnosticsTab() {
             size={18}
           />
           <div>
-            <span className="font-semibold">Error:</span> {reportError}
+            <span className="font-semibold">{t("Error")}:</span> {reportError}
           </div>
         </div>
       )}
 
-      {/* Main Status Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* System Information Card — at-a-glance hardware/OS details */}
+      <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+          <Server size={16} className="text-indigo-600 dark:text-indigo-400" />
+          {t("System Information")}
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* OS */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-violet-50 dark:bg-violet-950/30 rounded-xl text-violet-600 dark:text-violet-400">
+              <Monitor size={18} />
+            </div>
+            <div>
+              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                {t("Operating System")}
+              </div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                {systemInfo
+                  ? `${systemInfo.os_name} ${systemInfo.os_version}`
+                  : t("Fetching...")}
+              </div>
+            </div>
+          </div>
+
+          {/* CPU */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-cyan-50 dark:bg-cyan-950/30 rounded-xl text-cyan-600 dark:text-cyan-400">
+              <Cpu size={18} />
+            </div>
+            <div>
+              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                {t("CPU Model")}
+              </div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 truncate max-w-[180px]">
+                {metrics ? metrics.cpu_name : t("Fetching...")}
+              </div>
+            </div>
+          </div>
+
+          {/* RAM */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-pink-50 dark:bg-pink-950/30 rounded-xl text-pink-600 dark:text-pink-400">
+              <MemoryStick size={18} />
+            </div>
+            <div>
+              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                {t("Total Memory")}
+              </div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                {metrics
+                  ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB`
+                  : t("Fetching...")}
+              </div>
+            </div>
+          </div>
+
+          {/* Hostname */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <Server size={18} />
+            </div>
+            <div>
+              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                {t("Host Name")}
+              </div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                {systemInfo ? systemInfo.host_name : t("Fetching...")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Status Grid — 6 metric cards in 2 rows of 3 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* System Uptime */}
         <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl text-amber-600 dark:text-amber-400">
@@ -190,10 +450,10 @@ export function DiagnosticsTab() {
           </div>
           <div>
             <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              System Uptime
+              {t("System Uptime")}
             </div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? formatUptime(metrics.uptime) : "Fetching..."}
+              {metrics ? formatUptime(metrics.uptime) : t("Fetching...")}
             </div>
           </div>
         </div>
@@ -205,10 +465,10 @@ export function DiagnosticsTab() {
           </div>
           <div>
             <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              Active Processes
+              {t("Active Processes")}
             </div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.process_count} tasks` : "Fetching..."}
+              {metrics ? `${metrics.process_count} ${t("tasks")}` : t("Fetching...")}
             </div>
           </div>
         </div>
@@ -220,7 +480,7 @@ export function DiagnosticsTab() {
           </div>
           <div>
             <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              Disk Read Speed
+              {t("Disk Read Speed")}
             </div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
               {metrics ? `${metrics.disk_read_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
@@ -235,10 +495,40 @@ export function DiagnosticsTab() {
           </div>
           <div>
             <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              Disk Write Speed
+              {t("Disk Write Speed")}
             </div>
             <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
               {metrics ? `${metrics.disk_write_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
+            </div>
+          </div>
+        </div>
+
+        {/* Network Upload Speed */}
+        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-xl text-cyan-600 dark:text-cyan-400">
+            <Wifi size={20} />
+          </div>
+          <div>
+            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+              {t("Network Upload")}
+            </div>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+              {metrics ? `${metrics.network_up.toFixed(2)} MB/s` : "0.00 MB/s"}
+            </div>
+          </div>
+        </div>
+
+        {/* Network Download Speed */}
+        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-violet-50 dark:bg-violet-950/30 rounded-xl text-violet-600 dark:text-violet-400">
+            <ArrowDown size={20} />
+          </div>
+          <div>
+            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
+              {t("Network Download")}
+            </div>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+              {metrics ? `${metrics.network_down.toFixed(2)} MB/s` : "0.00 MB/s"}
             </div>
           </div>
         </div>
@@ -246,13 +536,20 @@ export function DiagnosticsTab() {
 
       {/* Logical Cores Load Grid */}
       <div className="bg-card p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
-          <Cpu size={16} className="text-slate-500" />
-          Logical CPU Cores Grid ({metrics ? metrics.cpu_cores.length : 0} Cores)
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+            <Cpu size={16} className="text-slate-500" />
+            {t("Logical CPU Cores Grid")} ({metrics ? metrics.cpu_cores.length : 0} {t("Cores")})
+          </h3>
+          {metrics && metrics.cpu_cores.length > 0 && (
+            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+              {t("Average Load")}: {avgCpuLoad}%
+            </span>
+          )}
+        </div>
         {metrics && metrics.cpu_cores.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-            {metrics.cpu_cores.map((usage, idx) => {
+            {metrics.cpu_cores.map((usage: number, idx: number) => {
               const hue = Math.max(0, 160 - usage * 1.5); // 160 (cyan/teal) down to 10 (orange/red)
               const displayVal = Math.round(usage);
               return (
@@ -271,12 +568,13 @@ export function DiagnosticsTab() {
                       {displayVal}%
                     </span>
                   </div>
-                  {/* Subtle load indicator strip at the bottom */}
+                  {/* Subtle load indicator strip — smooth transition for visual polish */}
                   <div
-                    className="absolute bottom-0 left-0 right-0 h-1 transition-all"
+                    className="absolute bottom-0 left-0 right-0 h-1"
                     style={{
                       backgroundColor: `hsl(${hue}, 85%, 45%)`,
                       width: `${displayVal}%`,
+                      transition: "width 0.5s ease, background-color 0.5s ease",
                     }}
                   />
                 </div>
@@ -285,7 +583,7 @@ export function DiagnosticsTab() {
           </div>
         ) : (
           <div className="text-slate-400 dark:text-slate-500 text-sm py-4 text-center">
-            Loading logical cores mapping...
+            {t("Loading logical cores mapping...")}
           </div>
         )}
       </div>
@@ -297,7 +595,7 @@ export function DiagnosticsTab() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
               <HardDrive size={16} className="text-indigo-600 dark:text-indigo-400" />
-              Disk I/O Throughput (MB/s)
+              {t("Disk I/O Throughput (MB/s)")}
             </h3>
             {!isTypeperfActive && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-505 dark:text-slate-400">
@@ -333,7 +631,7 @@ export function DiagnosticsTab() {
                 <Area
                   type="monotone"
                   dataKey="read"
-                  name="Read Speed"
+                  name={t("Read Speed")}
                   stroke={C.emerald}
                   fillOpacity={1}
                   fill="url(#readGrad)"
@@ -342,7 +640,7 @@ export function DiagnosticsTab() {
                 <Area
                   type="monotone"
                   dataKey="write"
-                  name="Write Speed"
+                  name={t("Write Speed")}
                   stroke={C.rose}
                   fillOpacity={1}
                   fill="url(#writeGrad)"
@@ -358,7 +656,7 @@ export function DiagnosticsTab() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
               <Activity size={16} className="text-cyan-500 rate" />
-              Network Traffic Rate (MB/s)
+              {t("Network Traffic Rate (MB/s)")}
             </h3>
           </div>
           <div className="flex-1 min-h-0">
@@ -392,7 +690,7 @@ export function DiagnosticsTab() {
                 <Area
                   type="monotone"
                   dataKey="up"
-                  name="Upload Speed"
+                  name={t("Upload Speed")}
                   stroke={C.cyan}
                   fillOpacity={1}
                   fill="url(#upGrad)"
@@ -401,7 +699,7 @@ export function DiagnosticsTab() {
                 <Area
                   type="monotone"
                   dataKey="down"
-                  name="Download Speed"
+                  name={t("Download Speed")}
                   stroke={C.indigo}
                   fillOpacity={1}
                   fill="url(#downGrad)"
