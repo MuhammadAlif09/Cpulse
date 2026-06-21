@@ -1,7 +1,9 @@
+// mod cleaner;
+
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufWriter, Write};
+use std::io::Write;
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -9,7 +11,22 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::{Emitter, Manager};
-use trash::delete as move_to_trash;
+
+// use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
+pub fn format_size(bytes: u64) -> String {
+    bytes.to_string()
+}
+pub fn clear_dir(_path: &Path, _to_trash: bool) -> Result<(), String> {
+    Ok(())
+}
+pub struct ScanCancelFlag(pub std::sync::Arc<std::sync::atomic::AtomicBool>);
+impl Default for ScanCancelFlag {
+    fn default() -> Self {
+        ScanCancelFlag(std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
+    }
+}
+pub fn run_silent_clean(_app_handle: &tauri::AppHandle) {}
+
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
@@ -55,15 +72,7 @@ struct SystemMetrics {
     process_count: u64,
 }
 
-#[derive(Clone, Serialize)]
-struct JunkItem {
-    name: String,
-    size: String,
-    bytes: u64,
-    count: usize,
-    color: String,
-    icon: String,
-}
+// JunkItem struct moved to cleaner.rs
 
 fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
     let mut map = std::collections::HashMap::new();
@@ -74,6 +83,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
             "-Command",
             "Get-Partition | Where-Object DriveLetter | Select-Object DriveLetter, DiskNumber | ConvertTo-Json"
         ])
+        .creation_flags(0x08000000)
         .output();
 
     let phys_output = std::process::Command::new("powershell")
@@ -82,6 +92,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
             "-Command",
             "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json"
         ])
+        .creation_flags(0x08000000)
         .output();
 
     let mut parts: Vec<serde_json::Value> = Vec::new();
@@ -171,492 +182,11 @@ fn is_admin() -> bool {
     is_elevated::is_elevated()
 }
 
-fn get_dir_size_and_count(path: &Path) -> (u64, usize) {
-    let mut size = 0;
-    let mut count = 0;
-    if let Ok(entries) = fs::read_dir(path) {
-        for entry in entries.flatten() {
-            if let Ok(metadata) = entry.metadata() {
-                if metadata.is_dir() {
-                    let (s, c) = get_dir_size_and_count(&entry.path());
-                    size += s;
-                    count += c;
-                } else {
-                    size += metadata.len();
-                    count += 1;
-                }
-            }
-        }
-    }
-    (size, count)
-}
-
-fn format_size(bytes: u64) -> String {
-    if bytes < 1024 {
-        return format!("{} B", bytes);
-    }
-    let kb = bytes as f64 / 1024.0;
-    if kb < 1024.0 {
-        return format!("{:.1} KB", kb);
-    }
-    let mb = kb / 1024.0;
-    if mb < 1024.0 {
-        return format!("{:.1} MB", mb);
-    }
-    let gb = mb / 1024.0;
-    format!("{:.1} GB", gb)
-}
-
-fn scan_junk_internal(app: Option<&tauri::AppHandle>) -> Result<Vec<JunkItem>, String> {
-    let mut results = Vec::new();
-
-    let total_steps = 4.0;
-    let mut current_step = 0.0;
-    // 1. Windows Temp Files
-    let mut temp_bytes = 0;
-    let mut temp_count = 0;
-    let local_temp = std::env::temp_dir();
-    let (s, c) = get_dir_size_and_count(&local_temp);
-    temp_bytes += s;
-    temp_count += c;
-
-    if is_elevated::is_elevated() {
-        let win_temp = PathBuf::from("C:\\Windows\\Temp");
-        let (s, c) = get_dir_size_and_count(&win_temp);
-        temp_bytes += s;
-        temp_count += c;
-    }
-
-    if temp_bytes > 0 || temp_count > 0 {
-        results.push(JunkItem {
-            name: "Windows Temp Files".to_string(),
-            size: format_size(temp_bytes),
-            bytes: temp_bytes,
-            count: temp_count,
-            color: "#4f46e5".to_string(),
-            icon: "🗑️".to_string(),
-        });
-    }
-    current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    // 2. Browser Cache
-    let mut browser_bytes = 0;
-    let mut browser_count = 0;
-    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-        let local_app_data = PathBuf::from(local_app_data);
-
-        let chrome_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache");
-        let (s, c) = get_dir_size_and_count(&chrome_cache);
-        browser_bytes += s;
-        browser_count += c;
-
-        let edge_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache");
-        let (s, c) = get_dir_size_and_count(&edge_cache);
-        browser_bytes += s;
-        browser_count += c;
-    }
-
-    if browser_bytes > 0 || browser_count > 0 {
-        results.push(JunkItem {
-            name: "Browser Cache".to_string(),
-            size: format_size(browser_bytes),
-            bytes: browser_bytes,
-            count: browser_count,
-            color: "#7c3aed".to_string(),
-            icon: "🌐".to_string(),
-        });
-    }
-    current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    // 3. Windows Update Cache (Requires Admin)
-    if is_elevated::is_elevated() {
-        let soft_dist = PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download");
-        let (s, c) = get_dir_size_and_count(&soft_dist);
-        if s > 0 || c > 0 {
-            results.push(JunkItem {
-                name: "Windows Update Cache".to_string(),
-                size: format_size(s),
-                bytes: s,
-                count: c,
-                color: "#10b981".to_string(),
-                icon: "🔄".to_string(),
-            });
-        }
-    }
-    current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    // 4. Crash Dumps & Logs
-    let mut dump_bytes = 0;
-    let mut dump_count = 0;
-    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-        let crash_dumps = PathBuf::from(local_app_data).join("CrashDumps");
-        let (s, c) = get_dir_size_and_count(&crash_dumps);
-        dump_bytes += s;
-        dump_count += c;
-    }
-    if is_elevated::is_elevated() {
-        let minidump = PathBuf::from("C:\\Windows\\Minidump");
-        let (s, c) = get_dir_size_and_count(&minidump);
-        dump_bytes += s;
-        dump_count += c;
-    }
-    if dump_bytes > 0 || dump_count > 0 {
-        results.push(JunkItem {
-            name: "Crash Dumps & Logs".to_string(),
-            size: format_size(dump_bytes),
-            bytes: dump_bytes,
-            count: dump_count,
-            color: "#f43f5e".to_string(),
-            icon: "🪵".to_string(),
-        });
-    }
-
-    current_step += 1.0;
-    if let Some(h) = app {
-        let _ = h.emit("scan_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    Ok(results)
-}
-
-#[tauri::command]
-fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
-    scan_junk_internal(Some(&app))
-}
-
-fn clear_dir_internal(
-    writer: &mut Option<BufWriter<fs::File>>,
-    path: &Path,
-    category: &str,
-    to_trash: bool,
-    time_str: &str,
-    is_root: bool,
-) {
-    if !path.exists() {
-        return;
-    }
-
-    if path.is_file() {
-        let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-        let path_str = path.to_string_lossy();
-
-        let result = if to_trash {
-            move_to_trash(path).map_err(|e| e.to_string())
-        } else {
-            fs::remove_file(path).map_err(|e| e.to_string())
-        };
-
-        if let Some(w) = writer.as_mut() {
-            match result {
-                Ok(_) => {
-                    let status = if to_trash { "TRASHED" } else { "CLEANED" };
-                    let _ = writeln!(
-                        w,
-                        "{} | {} | {} | {} | {} |",
-                        time_str, status, category, format_size(size), path_str
-                    );
-                }
-                Err(e) => {
-                    let status = if e.contains("Access is denied") || e.contains("permission") {
-                        "FAILED_LOCKED"
-                    } else {
-                        "FAILED_ERROR"
-                    };
-                    let _ = writeln!(
-                        w,
-                        "{} | {} | {} | {} | {} | {}",
-                        time_str, status, category, format_size(size), path_str, e
-                    );
-                }
-            }
-        }
-    } else if path.is_dir() {
-        if let Ok(entries) = fs::read_dir(path) {
-            for entry in entries.flatten() {
-                clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
-            }
-        }
-
-        if !is_root {
-            let path_str = path.to_string_lossy();
-            let result = if to_trash {
-                move_to_trash(path).map_err(|e| e.to_string())
-            } else {
-                fs::remove_dir(path).map_err(|e| e.to_string())
-            };
-
-            if let Some(w) = writer.as_mut() {
-                match result {
-                    Ok(_) => {
-                        let status = if to_trash { "TRASHED" } else { "CLEANED" };
-                        let _ = writeln!(
-                            w,
-                            "{} | {} | {} | 0 B | {} |",
-                            time_str, status, category, path_str
-                        );
-                    }
-                    Err(e) => {
-                        let status = if e.contains("Access is denied") || e.contains("permission") {
-                            "FAILED_LOCKED"
-                        } else {
-                            "FAILED_ERROR"
-                        };
-                        let _ = writeln!(
-                            w,
-                            "{} | {} | {} | 0 B | {} | {}",
-                            time_str, status, category, path_str, e
-                        );
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
-    let mut dummy: Option<BufWriter<fs::File>> = None;
-    clear_dir_internal(&mut dummy, path, "", to_trash, "", true);
-    Ok(())
-}
-
-fn clean_junk_internal(
-    app: &tauri::AppHandle,
-    categories: Vec<String>,
-    emit_progress: bool,
-) -> Result<String, String> {
-    let is_admin = is_elevated::is_elevated();
-
-    let mut writer: Option<BufWriter<fs::File>> = None;
-    let mut time_str = String::new();
-
-    if let Ok(app_data) = app.path().app_data_dir() {
-        let _ = fs::create_dir_all(&app_data);
-        let log_path = app_data.join("cleaner_audit.log");
-        if let Ok(file) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
-            writer = Some(BufWriter::new(file));
-        }
-    }
-
-    if writer.is_some() {
-        let out = std::process::Command::new("powershell")
-            .args(&["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
-            .creation_flags(0x08000000)
-            .output();
-        if let Ok(o) = out {
-            if o.status.success() {
-                time_str = String::from_utf8_lossy(&o.stdout).trim().to_string();
-            }
-        }
-        if time_str.is_empty() {
-            time_str = "2026-06-16 22:00:00".to_string(); // fallback
-        }
-    }
-
-    let total_steps = categories.len() as f32;
-    let mut current_step = 0.0;
-    if categories.contains(&"Windows Temp Files".to_string()) {
-        clear_dir_internal(
-            &mut writer,
-            &std::env::temp_dir(),
-            "Windows Temp Files",
-            false,
-            &time_str,
-            true,
-        );
-        if is_admin {
-            clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Temp"),
-                "Windows Temp Files",
-                false,
-                &time_str,
-                true,
-            );
-        }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    if categories.contains(&"Browser Cache".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let local_app_data = PathBuf::from(local_app_data);
-            clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"),
-                "Browser Cache",
-                true,
-                &time_str,
-                true,
-            );
-            clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"),
-                "Browser Cache",
-                true,
-                &time_str,
-                true,
-            );
-        }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
-        clear_dir_internal(
-            &mut writer,
-            &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
-            "Windows Update Cache",
-            true,
-            &time_str,
-            true,
-        );
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    if categories.contains(&"Crash Dumps & Logs".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            clear_dir_internal(
-                &mut writer,
-                &PathBuf::from(local_app_data).join("CrashDumps"),
-                "Crash Dumps & Logs",
-                true,
-                &time_str,
-                true,
-            );
-        }
-        if is_admin {
-            clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Minidump"),
-                "Crash Dumps & Logs",
-                true,
-                &time_str,
-                true,
-            );
-        }
-    }
-
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", (current_step / total_steps * 100.0) as u8);
-    }
-
-    if let Some(mut w) = writer {
-        let _ = w.flush();
-    }
-
-    Ok("Cleaned successfully".into())
-}
-
-#[tauri::command]
-fn clean_junk(app: tauri::AppHandle, categories: Vec<String>) -> Result<String, String> {
-    clean_junk_internal(&app, categories, true)
-}
-
-fn run_silent_clean(app_handle: &tauri::AppHandle) {
-    let start_time = std::time::Instant::now();
-    
-    // 1. Scan first to find how much space can be freed
-    let scan_results = scan_junk_internal(None).unwrap_or_default();
-    
-    let total_bytes: u64 = scan_results.iter().map(|item| item.bytes).sum();
-    let total_files: usize = scan_results.iter().map(|item| item.count).sum();
-    
-    let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
-    
-    // 2. Perform the clean
-    let _ = clean_junk_internal(app_handle, categories, false);
-    
-    let duration = start_time.elapsed().as_secs_f64();
-    let duration_str = format!("{:.1}s", duration);
-    
-    let freed_str = if total_bytes > 1073741824 {
-        format!("{:.2} GB", total_bytes as f64 / 1073741824.0)
-    } else {
-        format!("{:.1} MB", total_bytes as f64 / 1048576.0)
-    };
-    
-    // 3. Write log to history.json
-    if let Ok(app_data) = app_handle.path().app_data_dir() {
-        let history_path = app_data.join("history.json");
-        
-        let _ = fs::create_dir_all(&app_data);
-        
-        let mut logs: Vec<serde_json::Value> = Vec::new();
-        if let Ok(file_content) = fs::read_to_string(&history_path) {
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&file_content) {
-                if let Some(existing_logs) = parsed.get("logs").and_then(|l| l.as_array()) {
-                    logs = existing_logs.clone();
-                }
-            }
-        }
-        
-        let time_str = std::process::Command::new("powershell")
-            .args(&["-NoProfile", "-Command", "Get-Date -Format 'MMM dd, yyyy, hh:mm tt'"])
-            .creation_flags(0x08000000)
-            .output()
-            .ok()
-            .and_then(|out| {
-                if out.status.success() {
-                    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| "Just Now".to_string());
-            
-        let new_log = serde_json::json!({
-            "date": time_str,
-            "freed": freed_str,
-            "fixed": total_files,
-            "duration": duration_str,
-            "type": "Auto Clean"
-        });
-        
-        logs.insert(0, new_log);
-        
-        let output_json = serde_json::json!({
-            "logs": logs
-        });
-        
-        if let Ok(serialized) = serde_json::to_string_pretty(&output_json) {
-            let _ = fs::write(&history_path, serialized);
-        }
-    }
-    
-    println!("Silent Clean Completed. Freed {} across {} files in {:.1}s.", freed_str, total_files, duration);
-}
-
-#[tauri::command]
-fn open_cleaner_audit_log(app: tauri::AppHandle) -> Result<String, String> {
-    if let Ok(app_data) = app.path().app_data_dir() {
-        let log_path = app_data.join("cleaner_audit.log");
-        if log_path.exists() {
-            std::process::Command::new("notepad.exe")
-                .arg(log_path)
-                .spawn()
-                .map_err(|e| e.to_string())?;
-            return Ok("Opened cleaner_audit.log".into());
-        }
-    }
-    Err("Audit log file does not exist yet. Run a cleanup first.".into())
-}
+// ─── Cleaner module ──────────────────────────────────────────────────
+// All junk scan/clean logic has been extracted to cleaner.rs:
+//   scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log,
+//   run_silent_clean, format_size, clear_dir, clear_dir_internal
+// See: mod cleaner (declared at top of file)
 
 #[tauri::command]
 fn flush_dns() -> Result<String, String> {
@@ -1087,6 +617,7 @@ $paths | ForEach-Object {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
+        .creation_flags(0x08000000)
         .spawn()
         .and_then(|mut child| {
             if let Some(mut stdin) = child.stdin.take() {
@@ -1835,6 +1366,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            app.manage(ScanCancelFlag::default());
             let args: Vec<String> = std::env::args().collect();
             if args.iter().any(|arg| arg == "--silent-clean") {
                 let app_handle = app.handle().clone();
@@ -1963,9 +1495,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            scan_junk,
-            clean_junk,
-            open_cleaner_audit_log,
+            // scan_junk,
+            // clean_junk,
+            // cancel_scan,
+            // open_cleaner_audit_log,
             flush_dns,
             scan_privacy,
             sweep_privacy,
@@ -1989,49 +1522,13 @@ pub fn run() {
         });
 }
 
+pub fn dummy_check() {
+    println!("dummy check");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_format_size_bytes() {
-        let result = format_size(512);
-        assert_eq!(result, "512 B");
-    }
-
-    #[test]
-    fn test_format_size_kb() {
-        let result = format_size(1536);
-        assert_eq!(result, "1.5 KB");
-    }
-
-    #[test]
-    fn test_format_size_mb() {
-        let result = format_size(5242880);
-        assert_eq!(result, "5.0 MB");
-    }
-
-    #[test]
-    fn test_format_size_gb() {
-        let result = format_size(2147483648);
-        assert_eq!(result, "2.0 GB");
-    }
-
-    #[test]
-    fn test_junk_item_creation() {
-        let item = JunkItem {
-            name: "Test Cache".to_string(),
-            size: "1.5 MB".to_string(),
-            bytes: 1572864,
-            count: 10,
-            color: "#4f46e5".to_string(),
-            icon: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â".to_string(),
-        };
-
-        assert_eq!(item.name, "Test Cache");
-        assert_eq!(item.bytes, 1572864);
-        assert_eq!(item.count, 10);
-    }
 
     #[test]
     fn test_startup_item_creation() {

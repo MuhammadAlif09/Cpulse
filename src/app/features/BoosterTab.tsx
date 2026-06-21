@@ -45,11 +45,11 @@ function GradientCard({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 shadow-sm relative overflow-hidden",
+        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card text-card-foreground",
         className
       )}
       style={{
-        background: gradient ?? "#ffffff",
+        background: gradient,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
         ...style,
       }}
@@ -192,29 +192,28 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-5">
-      <GradientCard gradient="linear-gradient(135deg,#f8faff,#f0f4ff)">
+      <GradientCard className="bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-slate-900/40 dark:to-indigo-950/20">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="text-base font-semibold text-slate-800">{t("Optimization Profile")}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+              {t("Optimization Profile")}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {t("Choose how aggressively to optimize your system")}
             </p>
           </div>
-          <div className="flex gap-2 p-1 rounded-xl bg-slate-100">
+          <div className="flex gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80">
             {(["balanced", "performance", "gaming"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
-                style={
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize cursor-pointer",
                   mode === m
-                    ? {
-                        background: "white",
-                        color: C.indigo,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                      }
-                    : { color: "#64748b" }
-                }
+                    ? "bg-white dark:bg-card text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+                style={mode === m ? { boxShadow: "0 1px 4px rgba(0,0,0,0.1)" } : undefined}
               >
                 {m === "balanced"
                   ? `⚖️ ${t("Balanced")}`
@@ -227,7 +226,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
         </div>
 
         <div className="mt-4 flex items-center gap-4">
-          <div className="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden">
+          <div className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <div
               className="h-3 rounded-full transition-all duration-700"
               style={{
@@ -237,15 +236,15 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
             />
           </div>
           <div className="text-right flex-shrink-0">
-            <span className="text-sm font-bold text-slate-700">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
               {doneCount}/{BOOSTS.length}
             </span>
-            <span className="text-xs text-slate-400 ml-1">{t("applied")}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">{t("applied")}</span>
           </div>
           {doneCount < totalAvailable ? (
             <button
               onClick={applyAll}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
               style={{
                 background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
                 boxShadow: "0 4px 14px rgba(79,70,229,0.35)",
@@ -254,7 +253,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
               <Zap size={14} /> {t("Apply All")}
             </button>
           ) : (
-            <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold px-3">
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-sm font-semibold px-3">
               <CheckCircle2 size={16} /> +{scoreBoost} {t("pts")}
             </div>
           )}
@@ -273,20 +272,28 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
-                    background: locked ? `${C.rose}10` : done ? `${b.color}15` : "#f1f5f9",
-                    color: locked ? C.rose : done ? b.color : "#64748b",
+                    background: locked
+                      ? "rgba(244,63,94,0.12)"
+                      : done
+                        ? `${b.color}20`
+                        : "var(--border)",
+                    color: locked ? C.rose : done ? b.color : "var(--secondary-foreground)",
                   }}
                 >
                   {locked ? <Lock size={18} /> : done ? <CheckCircle2 size={20} /> : b.icon}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-slate-800">{t(b.title)}</h4>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wide">
+                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      {t(b.title)}
+                    </h4>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       {t(b.category)}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mb-3 leading-relaxed">{t(b.desc)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                    {t(b.desc)}
+                  </p>
                   <div className="flex items-center justify-between">
                     <span
                       className="text-xs font-semibold"
@@ -295,25 +302,18 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                       {locked ? t("Requires Admin Privileges") : t(b.gain)}
                     </span>
                     {locked ? (
-                      <div
-                        className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1"
-                        style={{
-                          background: "#fef2f2",
-                          color: C.rose,
-                          border: `1px solid #fee2e2`,
-                        }}
-                      >
+                      <div className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-red-50 dark:bg-red-950/20 text-rose-600 dark:text-rose-400 border border-red-100 dark:border-red-900/40">
                         <Lock size={12} /> {t("Locked")}
                       </div>
                     ) : !done ? (
                       <button
                         onClick={() => applyBoost(b.id)}
                         disabled={loading}
-                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50"
+                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 cursor-pointer"
                         style={{
-                          background: `${b.color}15`,
+                          background: `${b.color}20`,
                           color: b.color,
-                          border: `1px solid ${b.color}25`,
+                          border: `1px solid ${b.color}35`,
                         }}
                       >
                         {loading ? <RefreshCw size={12} className="animate-spin" /> : t("Apply")}
@@ -322,12 +322,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                       <button
                         onClick={() => restoreBoost(b.id)}
                         disabled={loading}
-                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 flex items-center gap-1"
-                        style={{
-                          background: "#ecfdf5",
-                          color: "#10b981",
-                          border: `1px solid #a7f3d0`,
-                        }}
+                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 cursor-pointer"
                       >
                         {loading ? (
                           <RefreshCw size={12} className="animate-spin" />

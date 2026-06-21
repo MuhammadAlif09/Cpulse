@@ -1,133 +1,123 @@
-# Cpulse — Project Guidelines
+# ⚡ CPulse — Project Guidelines & Standard Operating Procedures (SOP)
 
-File ini dibaca wajib di awal setiap task oleh semua AI agent (Cline, Codex, Antigravity, dll) tanpa perlu diperintah.
-
----
-
-## 1. Keamanan & Penanganan Error
-
-- **Dilarang panic:** Dilarang pakai `.unwrap()` atau `.expect()` pada operasi file, network, dan registry. Semua error wajib ditangani dengan `Result<T, E>` dan diteruskan ke layer di atasnya dengan pesan yang jelas.
-- **Validasi di backend:** Fitur yang butuh privilege admin wajib divalidasi di sisi Rust sebelum eksekusi. Proteksi visual (tombol disabled) di frontend tidak cukup.
-- **Sanitasi input Tauri command:** Semua parameter yang diterima dari frontend via `#[tauri::command]` wajib divalidasi di sisi Rust sebelum diproses — termasuk path traversal check (`..`, absolute path injection), panjang string, dan karakter ilegal. Jangan percaya data dari frontend secara buta.
-- **Recycle Bin:** Hapus file user wajib lewat Recycle Bin menggunakan crate `trash`, kecuali folder Temp yang boleh dihapus permanen.
-  - Standard Mode = mode default scan biasa → wajib Recycle Bin.
-  - Jika ke depan ada Deep/Aggressive Mode → wajib ada dialog konfirmasi eksplisit dari user, tidak boleh jadi default.
-- **Batas ukuran scan:** Tambahkan batas maksimum jumlah file yang di-scan per operasi (misal 100.000 file) dan batas ukuran path string (misal 4096 karakter). Ini mencegah OOM dan stack overflow pada direktori yang abnormal.
-- **Audit log:** Setiap operasi hapus/pindah file wajib dicatat (path, ukuran, timestamp, hasil sukses/gagal).
+Dokumen ini adalah acuan mutlak bagi seluruh pengembang dan AI agent (Antigravity, Cline, Codex, Cursor, dll.) yang bekerja pada repositori **CPulse**. Dokumen ini wajib dibaca di awal setiap sesi/task tanpa perlu diperintah.
 
 ---
 
-## 2. Arsitektur Komunikasi Tauri (Backend ↔ Frontend)
-
-- **Data realtime → Tauri Events (`emit`):** CPU dan RAM dikirim via event interval 1 detik. GPU dan Network cukup interval 3 detik (lebih jarang karena perubahan tidak se-volatile CPU).
-- **Aksi sekali jalan → Tauri Commands (`#[tauri::command]`):** `scan_garbage()`, `clean_garbage()`, `trigger_admin_restart()`, dll.
-- **Timeout untuk long-running commands:** Command seperti `scan_garbage()` dan `clean_garbage()` wajib punya timeout (misal 60 detik) dan dapat dibatalkan via command `cancel_scan()` terpisah. Jangan biarkan UI frozen tanpa batas.
-- **Cleanup listener:** Setiap komponen React yang `listen()` ke Tauri event wajib memanggil `unlisten` di `useEffect` return function untuk mencegah memory leak atau listener ganda.
-- **Error propagation:** Semua Tauri command wajib return `Result<T, String>` — bukan panic, bukan silent fail. Frontend wajib handle kedua case (`ok` dan `error`) dari setiap `invoke()`.
+## 1. Peran & Filosofi Pengembangan (Vibe Coding)
+- **Peran AI:** Bertindaklah sebagai Lead Engineer, Senior DevOps, sekaligus Eksekutor Utama. User bertindak sebagai Product Manager yang memberikan visi/instruksi tingkat tinggi.
+- **Proaktif & Mandiri:** Ambil inisiatif untuk menulis kode fungsional, arsitektur kokoh, unit testing, memperbarui dokumentasi, dan menyiapkan proses release ke GitHub tanpa menunggu instruksi detail per langkah.
+- **Mentoring Fundamental:** Berikan komentar singkat pada baris kode dengan logika kompleks atau berikan penjelasan ringkas pada `CHANGELOG.md` mengenai keputusan arsitektur yang diambil.
 
 ---
 
-## 3. Struktur Kode & UI
-
-- **Gunakan CSS variable:** Jangan hardcode warna atau font di komponen baru. Pakai variabel dari `src/styles/theme.css` dan `globals.css`.
-- **Cek komponen yang ada:** Sebelum buat komponen baru, cek dulu `src/app/components/ui/`. Gunakan shadcn/ui yang sudah tersedia.
-- **State management — Zustand:** Gunakan **Zustand** sebagai satu-satunya solusi state management global. Jangan pakai React Context untuk state yang dipakai lintas komponen, dan jangan campur pendekatan ad-hoc. Context hanya boleh untuk dependency injection statis (misal theme provider).
-- **Naming convention:**
-  - Komponen React: `PascalCase` (misal `CleanerTab.tsx`)
-  - Custom hooks: prefix `use` + `camelCase` (misal `useSystemStats.ts`)
-  - Tauri commands di Rust: `snake_case` (misal `scan_garbage`)
-  - Store Zustand: suffix `Store` (misal `useCleanerStore.ts`)
-- **Error boundaries:** Setiap tab utama (BoosterTab, CleanerTab, dll) wajib dibungkus `ErrorBoundary` untuk mencegah crash seluruh UI jika satu fitur gagal.
-- **Edukasi user:** Setiap opsi pembersihan wajib punya properti `description` dan `warning` untuk tooltip/penjelasan di UI.
-- **Accessibility (a11y):** Semua elemen interaktif (tombol, toggle, input) wajib punya `aria-label` atau teks yang deskriptif. Jangan andalkan warna saja sebagai satu-satunya indikator status.
-
----
-
-## 4. Testing
-
-- **Unit test fungsi kritis (Rust):** Fungsi yang berisiko menyebabkan kerusakan data (logika scan, path matching, path validation) wajib punya unit test di sisi Rust menggunakan `#[cfg(test)]`.
-- **Unit test frontend (Vitest):** Fungsi utility di `src/app/utils/` yang melakukan transformasi data (misal format byte size, parse path, filter list) wajib ditest dengan Vitest. Bukan komponen UI, cukup pure functions.
-- **Test tidak boleh menyentuh filesystem nyata:** Mock semua operasi file/registry dalam test. Gunakan path dummy atau temporary directory.
+## 2. Keamanan & Penanganan Error (Rust - Backend)
+- **Anti-Panic:** Dilarang menggunakan `.unwrap()`, `.expect()`, atau indeks array tidak aman yang bisa memicu panic di Rust. Semua error operasi file, registry, dan system call wajib ditangani dengan `Result<T, E>` dan diteruskan dengan pesan error yang deskriptif.
+- **Validasi Command Tauri (`#[tauri::command]`):**
+  - Semua parameter dari frontend wajib disanitasi dan divalidasi (panjang string, karakter ilegal, validasi path).
+  - Terapkan pemeriksaan Path Traversal untuk mencegah akses ke luar direktori kerja yang sah (mencegah absolute path injection atau penggunaan `..`).
+  - Fitur yang memerlukan hak administratif (Administrator/UAC) wajib divalidasi langsung di sisi Rust sebelum eksekusi dilakukan. Proteksi visual (tombol disabled) di frontend tidak cukup.
+- **Penghapusan File Aman (Recycle Bin):**
+  - **Standard Mode (Default):** Penghapusan file sampah wajib dikirim ke Recycle Bin menggunakan crate `trash` (kecuali folder Temp bawaan Windows yang aman dihapus permanen).
+  - **Aggressive/Deep Mode:** Penghapusan permanen file sistem sensitif wajib menampilkan dialog konfirmasi eksplisit kepada user di frontend sebelum eksekusi.
+- **Batas Ukuran Scan (Safeguard):**
+  - Batasi jumlah file maksimum yang dipindai per operasi (misal maks 100.000 file).
+  - Batasi panjang karakter path string (maks 4096 karakter) untuk mencegah stack overflow atau Out Of Memory (OOM) pada folder abnormal/rekursif.
+- **Audit Log:** Setiap operasi pembersihan (hapus/pindah) wajib mencatat path, ukuran file, status (sukses/gagal), dan timestamp dalam log internal aplikasi.
 
 ---
 
-## 5. Dependensi & Dokumentasi
-
-- **Cek build setelah tambah dependency:** Setelah tambah crate Rust atau package npm baru, jalankan `cargo check` atau `pnpm tauri dev` dulu sebelum lanjut nulis kode.
-- **Catat library besar:** Jika menggunakan library pihak ketiga yang signifikan, catat di `ATTRIBUTIONS.md`.
-- **Jangan tambah dependency untuk hal trivial:** Sebelum install package baru, tanya dulu apakah bisa diselesaikan dengan stdlib Rust atau utility yang sudah ada. Dependency baru = surface attack lebih luas dan binary lebih besar.
-
----
-
-## 6. Versioning (Semantic Versioning `MAJOR.MINOR.PATCH`)
-
-- **PATCH** (misal 0.1.0 → 0.1.1): bug fix kecil, typo, penyesuaian minor yang tidak mengubah fitur.
-- **MINOR** (misal 0.1.0 → 0.2.0): fitur baru yang stabil, perubahan UI/UX yang menambah fungsionalitas, selama tidak merusak yang sudah ada.
-- **MAJOR** (misal 0.x.x → 1.0.0): milestone rilis publik stabil. Syarat naik ke `1.0.0`: semua tab utama berfungsi penuh, tidak ada known critical bug, alur instalasi berjalan di clean machine.
-- Bump versi **hanya** setelah user konfirmasi build valid — tidak setiap commit.
-- `package.json` dan `src-tauri/tauri.conf.json` harus **selalu identik** angka versinya.
+## 3. Arsitektur Komunikasi Tauri (Backend ↔ Frontend)
+- **Data Realtime (Tauri Events):**
+  - Gunakan `emit` dari Rust untuk mengirim data telemetri secara berkala.
+  - Interval telemetri: CPU & RAM = 1 detik; GPU & Network = 3 detik (untuk menjaga performa).
+- **Aksi Sekali Jalan (Tauri Commands):**
+  - Gunakan `#[tauri::command]` untuk operasi sekali panggil seperti `scan_garbage()`, `clean_garbage()`, dll.
+  - Setiap command jangka panjang wajib memiliki mekanisme pembatalan (`cancel_scan()`) dan timeout otomatis (maks 60 detik) untuk mencegah UI membeku (frozen).
+- **Cleanup Listener:**
+  - Setiap komponen React yang mendengarkan event dari Tauri wajib memanggil fungsi `unlisten` pada fase cleanup/cleanup-return di `useEffect` untuk menghindari memory leak atau listener ganda.
+- **Error Propagation:**
+  - Semua command Tauri wajib mengembalikan tipe data `Result<T, String>`. Sisi frontend wajib menangani blok `then/catch` atau memeriksa respons error secara eksplisit.
 
 ---
 
-## 7. CHANGELOG.md — Sumber Kebenaran Versi
-
-- Setiap task/prompt yang menghasilkan perubahan kode wajib menambahkan entri di `CHANGELOG.md` di bawah `## [Unreleased]`, dikategorikan:
-  - `Added` → kandidat MINOR
-  - `Fixed` / `Changed` minor → kandidat PATCH
-  - `Breaking` / `Removed` besar → kandidat MAJOR
-- Saat versi di-bump, ubah `[Unreleased]` jadi `## [x.y.z] - YYYY-MM-DD`, lalu buat `[Unreleased]` baru yang kosong di atasnya.
-- Jenis bump ditentukan kategori tertinggi sejak rilis terakhir: Breaking > Added > Fixed.
-- Saat bump terjadi, sinkronkan ke:
-  1. `package.json`
-  2. `src-tauri/tauri.conf.json`
-  3. Tag Git `vX.Y.Z`
-  4. GitHub Release (deskripsi dari entri CHANGELOG, asset dari GitHub Actions)
-
----
-
-## 8. Git & Commit
-
-- **Format wajib Conventional Commits:** Semua commit pakai prefix `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `style:`, `build:`, `ci:`.
-- **Selalu pakai flag `-m`:** Jangan biarkan editor commit terbuka.
-- **Branch protection:** `main` hanya boleh diupdate via merge dari `dev`. Dilarang direct push ke `main`.
-- **Merge strategy:** Gunakan **squash merge** saat merge `dev` → `main` agar history `main` tetap bersih satu commit per fitur/rilis. Di branch `dev` sendiri boleh commit bebas.
-- **Jangan push ke `main` tanpa konfirmasi user.**
+## 4. Struktur State & UI (React & Zustand)
+- **Komponen UI:**
+  - Utamakan penggunaan komponen UI yang sudah ada di `src/app/components/ui/` (berbasis Radix UI & custom wrapper).
+  - Jangan menduplikasi komponen yang memiliki fungsi serupa.
+- **State Management (Zustand):**
+  - Gunakan **Zustand** secara konsisten sebagai satu-satunya solusi state management global.
+  - Dilarang mencampur state management global dengan React Context (kecuali untuk dependency injection statis seperti tema/i18n).
+  - Format penamaan store: `use[Feature]Store` (contoh: `useCleanerStore.ts`).
+- **Pencegahan UI Crash (Error Boundaries):**
+  - Bungkus setiap tab utama (CleanerTab, BoosterTab, dll.) dalam `ErrorBoundary` sehingga kegagalan satu modul tidak menghentikan seluruh aplikasi.
+- **Aksesibilitas (a11y) & UX:**
+  - Pastikan semua elemen interaktif memiliki properti `aria-label` yang jelas.
+  - Status/error jangan hanya direpresentasikan oleh perubahan warna; gunakan ikon, teks deskriptif, atau tooltip pendukung.
+  - Setiap opsi pembersihan wajib memiliki properti `description` dan `warning` untuk mengedukasi user sebelum melakukan tindakan.
 
 ---
 
-## 9. Alur Rilis (Wajib Diikuti Urut)
-
-> User tidak bisa build lokal. Build dilakukan otomatis via GitHub Actions setelah push.
-
-1. Setelah kode selesai, push ke branch `dev` (bukan `main`). Versi belum di-bump.
-2. GitHub Actions otomatis build artifact dari branch `dev`.
-3. Beritahu user: apa yang berubah + daftar langkah testing setelah download artifact dari Actions.
-4. Tunggu konfirmasi user: **valid** atau **error**.
-5. Jika **valid** → bump version, update CHANGELOG, squash merge ke `main`, buat tag `vX.Y.Z`, buat GitHub Release.
-6. Jika **error** → perbaiki di branch `dev` yang sama (versi belum berubah), ulangi dari langkah 1.
-
-**Rollback procedure:** Jika GitHub Release yang sudah publish ternyata bermasalah setelah distribusi, langkah wajib:
-1. Mark release sebagai `pre-release` di GitHub untuk menandainya tidak stabil.
-2. Buat hotfix branch dari tag yang bermasalah: `git checkout -b hotfix/vX.Y.Z vX.Y.Z`.
-3. Perbaiki, push hotfix ke `dev`, ikuti alur rilis normal dari langkah 2.
-4. Bump PATCH version untuk hotfix release.
-
-`main` hanya berisi versi yang sudah terbukti bisa dijalankan oleh user.
+## 5. Styling System (Tailwind CSS v4 & CSS Variables)
+- **Tailwind CSS v4 Integration:** Proyek menggunakan `@tailwindcss/vite` v4. Ikuti standar konfigurasi deklaratif v4.
+- **Variabel CSS Global:**
+  - Dilarang melakukan hardcode nilai warna, border-radius, font, atau spacing pada komponen baru.
+  - Gunakan variabel CSS terdaftar dari `src/styles/theme.css` dan `src/styles/globals.css` (seperti `var(--primary)`, `var(--background)`, dll.) agar integrasi Light/Dark mode sinkron secara otomatis.
+- **Aestetika Premium:**
+  - Desain harus terlihat modern, clean, dan profesional. Gunakan glassmorphism, gradien halus, bayangan (shadow) yang soft, serta micro-animations pada interaksi hover/click.
+  - Jangan gunakan warna solid mentah (seperti `#ff0000` atau `#00ff00`). Gunakan palette harmonis sesuai tema.
 
 ---
 
-## 10. Performance Budget
-
-- **Idle CPU usage:** Aplikasi saat idle (tidak ada operasi aktif) tidak boleh mengonsumsi lebih dari **1% CPU** secara sustained.
-- **Idle RAM usage:** Target di bawah **80 MB** RAM saat idle. Di atas 150 MB perlu investigasi.
-- **Startup time:** Waktu dari launch hingga UI siap interaktif tidak boleh lebih dari **3 detik** pada hardware mid-range.
-- **Scan duration:** Operasi `scan_garbage()` pada direktori standar Windows wajib selesai dalam **30 detik**. Jika lebih, tampilkan progress indicator.
-- Jika ada regresi performa signifikan pada suatu PR, wajib dicatat di CHANGELOG sebagai `Changed`.
+## 6. Strategi Testing & Anti-Regresi
+- **Testing Rust (Backend):**
+  - Semua fungsi kritis seperti pembacaan registry, pemindaian folder, validasi path, dan penghapusan file wajib memiliki unit test di bawah modul `#[cfg(test)]`.
+  - Mock semua operasi I/O nyata. Gunakan path dummy atau folder temporer agar unit test tidak merusak sistem pengembang atau build agent.
+- **Testing Frontend (Vitest):**
+  - Fungsi utility transformatif di `src/app/utils/` (formatting bytes, parsing paths, string manipulation) wajib memiliki test file pendukung menggunakan Vitest.
+- **Build Verification:** Jalankan `pnpm build` atau `cargo check` sebelum melakukan commit untuk memastikan tidak ada kesalahan tipe data (TypeScript) atau kompilasi (Rust).
 
 ---
 
-## 11. Aturan Tambahan
+## 7. Standar Dokumentasi & ADR
+- **Up-to-Date Documentation:** Perbarui file `README.md`, `ATTRIBUTIONS.md`, dan `CHANGELOG.md` secara berkala jika ada penambahan fitur atau dependensi baru.
+- **Architecture Decision Records (ADR):** Catat setiap keputusan desain arsitektur besar di bawah folder `docs/ADR/` (misal keputusan migrasi state, penambahan pustaka native baru, dll.).
+- **Tanpa Placeholder:** Tulis kode secara utuh 100%. Hindari komentar malas seperti `// TODO: implementasikan nanti` atau `// kode lainnya di sini`.
 
-- Setiap kali menggunakan `git-cliff` untuk generate CHANGELOG, jalankan `git cliff --unreleased --prepend CHANGELOG.md` terlebih dahulu agar entri dari commit history otomatis masuk.
-- `cliff.toml` ada di root repo — gunakan konfigurasi yang sudah ada, jangan overwrite tanpa alasan.
-- File ini (`guidelines/Guidelines.md`) adalah pengganti `.clinerules`. Jangan hapus atau pindahkan.
+---
+
+## 8. Manajemen Dependensi (Lockdown Policy)
+- **Dependency Lockdown:** Jangan pernah menaikkan/meng-upgrade versi library di `package.json` atau `Cargo.toml` secara sepihak untuk lari dari error kompilasi. Selesaikan bug pada versi berjalan saat ini untuk menjaga kompatibilitas API.
+- **Evaluasi Dependensi Baru:** Tanyakan pada diri sendiri atau diskusikan dengan user sebelum menginstal package/crate baru. Utamakan penggunaan stdlib atau utility yang sudah ada demi menjaga ukuran build biner tetap ringan.
+
+---
+
+## 9. Git Workflow & Rilis Otomatis (Auto-Pilot)
+- **Format Commit:** Wajib menggunakan format **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `style:`, `build:`, `ci:`). Gunakan flag `-m` untuk commit langsung dari terminal.
+- **Alur Kerja Branch:**
+  - Pengerjaan fitur dilakukan di branch `dev`.
+  - Branch `main` hanya berisi kode produksi stabil dan tidak menerima push langsung. Perubahan masuk ke `main` melalui **squash merge** dari `dev`.
+- **Siklus Rilis Otomatis (Auto-Pilot):**
+  Setelah pengerjaan kode selesai, jalankan urutan berikut secara otomatis di terminal:
+  1. **Push to dev:** Push perubahan ke branch `dev`. Versi aplikasi belum di-bump.
+  2. **CI Verification:** GitHub Actions akan otomatis memvalidasi build. Berikan instruksi pengujian artifact kepada user.
+  3. **Tunggu Konfirmasi:** Tunggu konfirmasi keberhasilan dari user.
+  4. **Bump Version:** Jika dikonfirmasi sukses, lakukan bump version secara semantik (`MAJOR.MINOR.PATCH`) di `package.json`, lalu jalankan `npm run version` (mengeksekusi `node scripts/bump-version.js` untuk menyelaraskan versi di `tauri.conf.json` dan `App.tsx`).
+  5. **Auto-Changelog:** Perbarui `CHANGELOG.md` menggunakan `git cliff` atau pembaruan manual di bawah tag rilis yang baru.
+  6. **Merge & Tag:** Lakukan squash merge ke branch `main`, lalu buat Git Tag sesuai versi baru (contoh: `v0.13.3`).
+  7. **Auto-Release:** Jalankan perintah GitHub CLI (`gh release create v0.13.3 --notes-file temp_notes.md`) untuk mempublikasikan rilis resmi.
+
+---
+
+## 10. Performance Budget & Optimasi
+- **Idle CPU:** Penggunaan CPU saat aplikasi berjalan di background/idle tidak boleh melebihi **1%** secara berkelanjutan.
+- **Idle Memory:** Penggunaan RAM saat idle ditargetkan di bawah **80 MB** (maksimum toleransi **150 MB**).
+- **Startup Time:** Aplikasi harus siap interaktif kurang dari **3 detik** sejak dijalankan pada spesifikasi komputer menengah (mid-range).
+- **Scan Speed:** Operasi `scan_garbage()` pada direktori standar Windows wajib selesai dalam waktu kurang dari **30 detik**. Tampilkan progress indicator jika memakan waktu lebih lama.
+- Catat setiap degradasi performa yang signifikan di `CHANGELOG.md` sebagai `Changed`.
+
+---
+
+## 11. Sinkronisasi File Aturan
+- File `guidelines/Guidelines.md` adalah **satu-satunya sumber kebenaran**.
+- File `.clinerules` dan `.cursorrules` di root direktori wajib disinkronkan secara otomatis untuk mengarah ke dokumen ini atau mereplikasi isinya secara penuh agar dapat dibaca langsung oleh masing-masing AI Agent.
