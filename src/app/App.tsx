@@ -562,7 +562,7 @@ export default function App() {
   const junkItems = useCleanerStore((state) => state.junkCats);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.13.2");
+  const [appVersion, setAppVersion] = useState("0.14.0");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
