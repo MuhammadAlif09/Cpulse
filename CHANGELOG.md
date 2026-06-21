@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.15.0] - 2026-06-22
+
+### Added
+
+- **Expanded History Logs**: Extended session history to log diagnostic report generation, booster optimizations (apply/restore), and startup program toggles.
+- **Dynamic History Tab UI**: Enhanced the Session Log list in `HistoryTab.tsx` to render custom icons and colors for each activity type, along with dynamic action details and conditional space-freed displays.
+- **Startup Optimizer Fix**: Fully implemented the "Disable All High Impact" function in `StartupTab.tsx` using backend Tauri IPC to disable programs and log the bulk action to the history database.
+- **Dynamic Localization (EN/ID)**: Mapped dynamic English and Indonesian translation keys for booster titles, program names, and bulk operations using standard i18next options.
+
 ## [0.14.0] - 2026-06-22
 
 ### Added
