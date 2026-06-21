@@ -230,5 +230,16 @@
   "Total Junk": "Total Junk",
   "Files Found": "Files Found",
   "Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?": "Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?",
-  "Proceed with Cleanup": "Proceed with Cleanup"
+  "Proceed with Cleanup": "Proceed with Cleanup",
+  "Diagnostics": "Diagnostics",
+  "Booster Applied": "Booster Applied",
+  "Booster Restored": "Booster Restored",
+  "Startup Toggled": "Startup Toggled",
+  "Startup Optimizer": "Startup Optimizer",
+  "Enabled {{name}}": "Enabled {{name}}",
+  "Disabled {{name}}": "Disabled {{name}}",
+  "Disabled {{count}} high impact startup items": "Disabled {{count}} high impact startup items",
+  "Applied {{name}}": "Applied {{name}}",
+  "Restored {{name}}": "Restored {{name}}",
+  "Generated diagnostic report": "Generated diagnostic report"
 }
