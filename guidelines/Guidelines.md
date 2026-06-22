@@ -24,6 +24,13 @@ Dokumen ini adalah acuan mutlak bagi seluruh pengembang dan AI agent (Antigravit
   - Batasi jumlah file maksimum yang dipindai per operasi (misal maks 100.000 file).
   - Batasi panjang karakter path string (maks 4096 karakter) untuk mencegah stack overflow atau Out Of Memory (OOM) pada folder abnormal/rekursif.
 - **Audit Log:** Setiap operasi pembersihan (hapus/pindah) wajib mencatat path, ukuran file, status (sukses/gagal), dan timestamp dalam log internal aplikasi.
+- **Modularisasi Backend & Thread-Safety:**
+  - Setiap fitur baru wajib dipisahkan ke dalam modul tersendiri di bawah folder `src-tauri/src/modules/[nama_fitur].rs` untuk menjaga struktur tetap bersih. Dilarang menumpuk kode di `main.rs` atau `lib.rs`.
+  - Operasi pemindaian intensif wajib memanfaatkan asinkronus atau multithreading menggunakan `tokio::task::spawn` atau `rayon`. Jangan memblokir main thread runtime Tauri agar UI tidak membeku.
+- **Windows OS Path Handling (Karakter & Symlink):**
+  - Gunakan `std::path::PathBuf` secara konsisten untuk manipulasi lokasi berkas. Jangan pernah mengubah `Path` menjadi `String` kecuali untuk penampilan di UI atau pengiriman via Tauri command.
+  - Semua path di Windows wajib mendukung karakter non-ASCII dengan menggunakan `.to_string_lossy()` saat konversi.
+  - Wajib memeriksa apakah suatu berkas/folder merupakan *symlink* atau *junction* sebelum dihapus untuk mencegah hilangnya data asli di luar direktori sampah.
 
 ---
 
@@ -38,6 +45,9 @@ Dokumen ini adalah acuan mutlak bagi seluruh pengembang dan AI agent (Antigravit
   - Setiap komponen React yang mendengarkan event dari Tauri wajib memanggil fungsi `unlisten` pada fase cleanup/cleanup-return di `useEffect` untuk menghindari memory leak atau listener ganda.
 - **Error Propagation:**
   - Semua command Tauri wajib mengembalikan tipe data `Result<T, String>`. Sisi frontend wajib menangani blok `then/catch` atau memeriksa respons error secara eksplisit.
+- **State Alignment (Single Source of Truth):**
+  - Status siklus hidup operasi backend (seperti `Idle`, `Scanning`, `Cleaning`, `Aborted`) wajib didefinisikan sebagai `enum` yang jelas di sisi Rust, lalu didefinisikan kembali satu-ke-satu dengan tipe TypeScript di frontend agar tidak terjadi perbedaan antara frontend dan backend.
+  - Store Zustand hanya boleh mengubah status atau menyimpan data berdasarkan data riil yang dikirim oleh backend melalui Tauri Event atau return value Command, bukan berasumsi sendiri di frontend.
 
 ---
 
@@ -119,5 +129,6 @@ Dokumen ini adalah acuan mutlak bagi seluruh pengembang dan AI agent (Antigravit
 ---
 
 ## 11. Sinkronisasi File Aturan
+- Untuk mencegah Context Drift pada sesi diskusi yang panjang (karena proyek CPulse sudah besar), agent diwajibkan menulis ringkasan status kerja ke dalam berkas log lokal bernama .agent_session_state sebelum token diskusi habis atau saat sesi akan ditutup. Berkas ini bertindak sebagai memori jangka pendek persisten yang akan dibaca oleh agent pada sesi berikutnya.
 - File `guidelines/Guidelines.md` adalah **satu-satunya sumber kebenaran**.
 - File `.clinerules` dan `.cursorrules` di root direktori wajib disinkronkan secara otomatis untuk mengarah ke dokumen ini atau mereplikasi isinya secara penuh agar dapat dibaca langsung oleh masing-masing AI Agent.
