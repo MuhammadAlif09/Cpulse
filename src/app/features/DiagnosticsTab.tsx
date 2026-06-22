@@ -775,9 +775,7 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#readGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={true}
-                  animationDuration={1000}
-                  animationEasing="linear"
+                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -788,9 +786,7 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#writeGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={true}
-                  animationDuration={1000}
-                  animationEasing="linear"
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -887,9 +883,7 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#upGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={true}
-                  animationDuration={1000}
-                  animationEasing="linear"
+                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -900,9 +894,7 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#downGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={true}
-                  animationDuration={1000}
-                  animationEasing="linear"
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
