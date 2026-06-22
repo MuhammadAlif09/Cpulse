@@ -155,9 +155,7 @@ export function StartupTab() {
         freed: "N/A",
         fixed: 1,
         duration: "0.0s",
-        details: !current_enabled
-          ? t("Enabled {{name}}", { name })
-          : t("Disabled {{name}}", { name }),
+        details: !current_enabled ? `Enabled:${name}` : `Disabled:${name}`,
       });
     } catch (e) {
       console.error("Failed to toggle:", e);
@@ -171,7 +169,11 @@ export function StartupTab() {
     const startTime = Date.now();
     try {
       for (const item of highImpactEnabled) {
-        await invoke("toggle_startup_item", { name: item.name, isHkcu: item.is_hkcu, enable: false });
+        await invoke("toggle_startup_item", {
+          name: item.name,
+          isHkcu: item.is_hkcu,
+          enable: false,
+        });
       }
       setItems((prev) =>
         prev.map((item) => (item.impact === "High" ? { ...item, enabled: false } : item))
@@ -182,7 +184,7 @@ export function StartupTab() {
         freed: "N/A",
         fixed: highImpactEnabled.length,
         duration,
-        details: t("Disabled {{count}} high impact startup items", { count: highImpactEnabled.length }),
+        details: `DisabledHighImpact:${highImpactEnabled.length}`,
       });
     } catch (e) {
       console.error("Failed to disable high impact:", e);

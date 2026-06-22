@@ -67,7 +67,11 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   const [mode, setMode] = useState<"balanced" | "performance" | "gaming">("balanced");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && ((window as any).__TAURI_INTERNALS__ !== undefined || (window as any).__TAURI_IPC__ !== undefined)) {
+    if (
+      typeof window !== "undefined" &&
+      ((window as any).__TAURI_INTERNALS__ !== undefined ||
+        (window as any).__TAURI_IPC__ !== undefined)
+    ) {
       invoke("set_power_plan", { plan: mode }).catch(console.error);
     }
   }, [mode]);
@@ -168,7 +172,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           freed: booster.gain,
           fixed: 1,
           duration: "0.0s",
-          details: t("Applied {{name}}", { name: t(booster.title) }),
+          details: `Applied:${booster.title}`,
         });
       }
     } catch (e: any) {
@@ -191,7 +195,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           freed: "N/A",
           fixed: 1,
           duration: "0.0s",
-          details: t("Restored {{name}}", { name: t(booster.title) }),
+          details: `Restored:${booster.title}`,
         });
       }
     } catch (e: any) {

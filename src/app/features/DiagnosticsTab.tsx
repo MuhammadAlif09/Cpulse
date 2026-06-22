@@ -63,7 +63,11 @@ const ChartTooltip = ({ active, payload, label, unit }: any) => {
       }}
     >
       {payload.map((entry: any, idx: number) => (
-        <div key={idx} className="flex items-center gap-2 text-xs" style={{ color: "var(--card-foreground)" }}>
+        <div
+          key={idx}
+          className="flex items-center gap-2 text-xs"
+          style={{ color: "var(--card-foreground)" }}
+        >
           <span
             className="w-2 h-2 rounded-full inline-block"
             style={{ backgroundColor: entry.stroke }}
@@ -210,31 +214,37 @@ export function DiagnosticsTab() {
       [];
 
     if (metrics.ram_usage > 90) {
+      const msg = t("RAM usage is critically high ({{pct}}%)", {
+        pct: Math.round(metrics.ram_usage),
+      }).replace("{{pct}}", Math.round(metrics.ram_usage).toString());
+
       alerts.push({
         icon: <AlertTriangle size={16} />,
-        message: t("RAM usage is critically high ({{pct}}%)", {
-          pct: Math.round(metrics.ram_usage),
-        }),
+        message: msg,
         severity: "critical",
       });
     }
 
     if (metrics.cpu_usage > 90) {
+      const msg = t("CPU usage is critically high ({{pct}}%)", {
+        pct: Math.round(metrics.cpu_usage),
+      }).replace("{{pct}}", Math.round(metrics.cpu_usage).toString());
+
       alerts.push({
         icon: <Cpu size={16} />,
-        message: t("CPU usage is critically high ({{pct}}%)", {
-          pct: Math.round(metrics.cpu_usage),
-        }),
+        message: msg,
         severity: "critical",
       });
     }
 
     if (metrics.cpu_temp > 85) {
+      const msg = t("CPU temperature is high ({{temp}}°C)", {
+        temp: Math.round(metrics.cpu_temp),
+      }).replace("{{temp}}", Math.round(metrics.cpu_temp).toString());
+
       alerts.push({
         icon: <AlertTriangle size={16} />,
-        message: t("CPU temperature is high ({{temp}}°C)", {
-          temp: Math.round(metrics.cpu_temp),
-        }),
+        message: msg,
         severity: "warning",
       });
     }
@@ -243,12 +253,16 @@ export function DiagnosticsTab() {
       if (d.total > 0) {
         const usedPct = Math.round((d.used / d.total) * 100);
         if (usedPct > 90) {
+          const msg = t("Disk space on {{drive}} is critically low ({{pct}}% used)", {
+            drive: d.name,
+            pct: usedPct,
+          })
+            .replace("{{drive}}", d.name)
+            .replace("{{pct}}", usedPct.toString());
+
           alerts.push({
             icon: <HardDrive size={16} />,
-            message: t("Disk space on {{drive}} is critically low ({{pct}}% used)", {
-              drive: d.name,
-              pct: usedPct,
-            }),
+            message: msg,
             severity: "critical",
           });
         }
@@ -289,7 +303,9 @@ export function DiagnosticsTab() {
   // Average CPU load for the cores grid header
   const avgCpuLoad =
     metrics && metrics.cpu_cores.length > 0
-      ? Math.round(metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length)
+      ? Math.round(
+          metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length
+        )
       : 0;
 
   // Fallback state if metrics is null (e.g. initial load or typeperf missing)
@@ -410,224 +426,285 @@ export function DiagnosticsTab() {
         </div>
       )}
 
-      {/* System Information Card — at-a-glance hardware/OS details */}
-      <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
-          <Server size={16} className="text-indigo-600 dark:text-indigo-400" />
-          {t("System Information")}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* OS */}
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-violet-50 dark:bg-violet-950/30 rounded-xl text-violet-600 dark:text-violet-400">
-              <Monitor size={18} />
-            </div>
-            <div>
-              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                {t("Operating System")}
-              </div>
-              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                {systemInfo
-                  ? `${systemInfo.os_name} ${systemInfo.os_version}`
-                  : t("Fetching...")}
-              </div>
-            </div>
-          </div>
-
-          {/* CPU */}
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-cyan-50 dark:bg-cyan-950/30 rounded-xl text-cyan-600 dark:text-cyan-400">
-              <Cpu size={18} />
-            </div>
-            <div>
-              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                {t("CPU Model")}
-              </div>
-              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 truncate max-w-[180px]">
-                {metrics ? metrics.cpu_name : t("Fetching...")}
-              </div>
-            </div>
-          </div>
-
-          {/* RAM */}
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-pink-50 dark:bg-pink-950/30 rounded-xl text-pink-600 dark:text-pink-400">
-              <MemoryStick size={18} />
-            </div>
-            <div>
-              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                {t("Total Memory")}
-              </div>
-              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                {metrics
-                  ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB`
-                  : t("Fetching...")}
-              </div>
-            </div>
-          </div>
-
-          {/* Hostname */}
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-emerald-600 dark:text-emerald-400">
-              <Server size={18} />
-            </div>
-            <div>
-              <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                {t("Host Name")}
-              </div>
-              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                {systemInfo ? systemInfo.host_name : t("Fetching...")}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Status Grid — 6 metric cards in 2 rows of 3 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* System Uptime */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl text-amber-600 dark:text-amber-400">
-            <Clock size={20} />
-          </div>
+      {/* Bento Grid layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Card 1: Processor & Cores Topology (2/3 width) */}
+        <div className="lg:col-span-2 bg-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("System Uptime")}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                <Cpu size={16} className="text-cyan-500" />
+                {t("Processor & Cores Topology")}
+              </h3>
+              {metrics && metrics.cpu_cores.length > 0 && (
+                <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+                  {t("Average Load")}: {avgCpuLoad}%
+                </span>
+              )}
             </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? formatUptime(metrics.uptime) : t("Fetching...")}
-            </div>
-          </div>
-        </div>
 
-        {/* Process Count */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl text-indigo-600 dark:text-indigo-400">
-            <Activity size={20} />
-          </div>
-          <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("Active Processes")}
+            {/* CPU Model Name with responsive text size & wrap handling */}
+            <div className="mb-5 p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-850/30 border border-slate-100 dark:border-slate-800/40 flex items-center gap-3">
+              <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-xl flex-shrink-0">
+                <Cpu size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                  {t("CPU Model")}
+                </div>
+                <div className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5 whitespace-normal break-words leading-tight">
+                  {metrics ? metrics.cpu_name : t("Fetching...")}
+                </div>
+              </div>
             </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.process_count} ${t("tasks")}` : t("Fetching...")}
-            </div>
           </div>
-        </div>
 
-        {/* Disk Read Speed */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-emerald-600 dark:text-emerald-400">
-            <ArrowDown size={20} />
-          </div>
-          <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("Disk Read Speed")}
+          {/* Logical Cores load cells */}
+          {metrics && metrics.cpu_cores.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+              {metrics.cpu_cores.map((usage: number, idx: number) => {
+                const hue = Math.max(0, 160 - usage * 1.5);
+                const displayVal = Math.round(usage);
+                return (
+                  <div
+                    key={idx}
+                    className="p-2 border border-slate-100 dark:border-slate-800/60 rounded-xl flex flex-col justify-between h-14 transition-all hover:border-slate-350 dark:hover:border-slate-700 hover:shadow-xs relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(180deg, var(--card) 60%, hsla(${hue}, 85%, 40%, 0.06) 100%)`,
+                    }}
+                  >
+                    <div className="text-[10px] text-slate-450 dark:text-slate-500 font-semibold">
+                      Core {idx + 1}
+                    </div>
+                    <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                      {displayVal}%
+                    </div>
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-[2px]"
+                      style={{
+                        backgroundColor: `hsl(${hue}, 85%, 45%)`,
+                        width: `${displayVal}%`,
+                        transition: "width 0.4s ease, background-color 0.4s ease",
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.disk_read_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
+          ) : (
+            <div className="text-slate-400 dark:text-slate-550 text-xs py-6 text-center">
+              {t("Loading logical cores mapping...")}
             </div>
-          </div>
-        </div>
-
-        {/* Disk Write Speed */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 rounded-xl text-rose-600 dark:text-rose-455">
-            <ArrowUp size={20} />
-          </div>
-          <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("Disk Write Speed")}
-            </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.disk_write_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
-            </div>
-          </div>
-        </div>
-
-        {/* Network Upload Speed */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-xl text-cyan-600 dark:text-cyan-400">
-            <Wifi size={20} />
-          </div>
-          <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("Network Upload")}
-            </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.network_up.toFixed(2)} MB/s` : "0.00 MB/s"}
-            </div>
-          </div>
-        </div>
-
-        {/* Network Download Speed */}
-        <div className="bg-card p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-violet-50 dark:bg-violet-950/30 rounded-xl text-violet-600 dark:text-violet-400">
-            <ArrowDown size={20} />
-          </div>
-          <div>
-            <div className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">
-              {t("Network Download")}
-            </div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-              {metrics ? `${metrics.network_down.toFixed(2)} MB/s` : "0.00 MB/s"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Logical Cores Load Grid */}
-      <div className="bg-card p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-            <Cpu size={16} className="text-slate-500" />
-            {t("Logical CPU Cores Grid")} ({metrics ? metrics.cpu_cores.length : 0} {t("Cores")})
-          </h3>
-          {metrics && metrics.cpu_cores.length > 0 && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
-              {t("Average Load")}: {avgCpuLoad}%
-            </span>
           )}
         </div>
-        {metrics && metrics.cpu_cores.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-            {metrics.cpu_cores.map((usage: number, idx: number) => {
-              const hue = Math.max(0, 160 - usage * 1.5); // 160 (cyan/teal) down to 10 (orange/red)
-              const displayVal = Math.round(usage);
-              return (
-                <div
-                  key={idx}
-                  className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col justify-between h-20 transition-all hover:border-slate-350 dark:hover:border-slate-700 hover:shadow-xs relative overflow-hidden"
-                  style={{
-                    background: `linear-gradient(180deg, var(--card) 60%, hsla(${hue}, 85%, 40%, 0.08) 100%)`,
-                  }}
-                >
-                  <div className="text-slate-400 dark:text-slate-550 text-xs font-semibold">
-                    Core {idx + 1}
-                  </div>
-                  <div className="flex items-baseline justify-between mt-auto">
-                    <span className="text-md font-bold text-slate-700 dark:text-slate-200">
-                      {displayVal}%
-                    </span>
-                  </div>
-                  {/* Subtle load indicator strip — smooth transition for visual polish */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 h-1"
-                    style={{
-                      backgroundColor: `hsl(${hue}, 85%, 45%)`,
-                      width: `${displayVal}%`,
-                      transition: "width 0.5s ease, background-color 0.5s ease",
-                    }}
-                  />
+
+        {/* Card 2: Memory Allocation (1/3 width) */}
+        <div className="lg:col-span-1 bg-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+              <MemoryStick size={16} className="text-pink-500" />
+              {t("Memory Allocation")}
+            </h3>
+
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
+                {metrics ? `${metrics.used_ram.toFixed(1)} GB` : "0.0 GB"}
+              </span>
+              <span className="text-xs text-slate-400 font-medium">
+                {t("of")} {metrics ? `${metrics.total_ram.toFixed(1)} GB` : "0.0 GB"}
+              </span>
+            </div>
+
+            {/* Linear Progress Bar */}
+            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-6 relative">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: metrics ? `${metrics.ram_usage}%` : "0%",
+                  background: `linear-gradient(90deg, ${C.pink} 0%, ${C.violet} 100%)`,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3.5 border-t border-slate-100 dark:border-slate-800/60 pt-4">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-450 dark:text-slate-400 font-medium">
+                {t("Active Memory")}
+              </span>
+              <span className="font-bold text-slate-700 dark:text-slate-200">
+                {metrics ? `${metrics.used_ram.toFixed(2)} GB` : "0.00 GB"} (
+                {metrics ? Math.round(metrics.ram_usage) : 0}%)
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-450 dark:text-slate-400 font-medium">
+                {t("Available Memory")}
+              </span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-405">
+                {metrics ? `${(metrics.total_ram - metrics.used_ram).toFixed(2)} GB` : "0.00 GB"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Host & Environment (1/3 width) */}
+        <div className="lg:col-span-1 bg-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+              <Monitor size={16} className="text-violet-500" />
+              {t("System Environment")}
+            </h3>
+
+            <div className="space-y-4">
+              {/* OS */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-violet-50 dark:bg-violet-950/30 rounded-xl text-violet-600 dark:text-violet-400 flex-shrink-0">
+                  <Monitor size={16} />
                 </div>
-              );
-            })}
+                <div className="min-w-0">
+                  <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    {t("Operating System")}
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                    {systemInfo
+                      ? `${systemInfo.os_name} ${systemInfo.os_version}`
+                      : t("Fetching...")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Hostname */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                  <Server size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    {t("Host Name")}
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                    {systemInfo ? systemInfo.host_name : t("Fetching...")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Uptime */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl text-amber-600 dark:text-amber-400 flex-shrink-0">
+                  <Clock size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-slate-400 dark:text-slate-550 text-[10px] font-bold uppercase tracking-wider">
+                    {t("System Uptime")}
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                    {metrics ? formatUptime(metrics.uptime) : t("Fetching...")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Tasks */}
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                  <Activity size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-slate-400 dark:text-slate-550 text-[10px] font-bold uppercase tracking-wider">
+                    {t("Active Processes")}
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                    {metrics ? `${metrics.process_count} ${t("tasks")}` : t("Fetching...")}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="text-slate-400 dark:text-slate-500 text-sm py-4 text-center">
-            {t("Loading logical cores mapping...")}
+        </div>
+
+        {/* Card 4: Real-time Throughput (2/3 width) */}
+        <div className="lg:col-span-2 bg-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-4">
+              <Activity size={16} className="text-indigo-505" />
+              {t("Real-time Network & Storage Throughput")}
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* Disk Read */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
+                    {t("Disk Read")}
+                  </span>
+                  <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450 rounded-lg">
+                    <ArrowDown size={14} />
+                  </div>
+                </div>
+                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
+                  {metrics ? `${metrics.disk_read_speed.toFixed(2)}` : "0.00"}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-sans font-normal">
+                    MB/s
+                  </span>
+                </div>
+              </div>
+
+              {/* Disk Write */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
+                    {t("Disk Write")}
+                  </span>
+                  <div className="p-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-455 rounded-lg">
+                    <ArrowUp size={14} />
+                  </div>
+                </div>
+                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
+                  {metrics ? `${metrics.disk_write_speed.toFixed(2)}` : "0.00"}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-sans font-normal">
+                    MB/s
+                  </span>
+                </div>
+              </div>
+
+              {/* Net Up */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
+                    {t("Upload")}
+                  </span>
+                  <div className="p-1.5 bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                    <Wifi size={14} />
+                  </div>
+                </div>
+                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
+                  {metrics ? `${metrics.network_up.toFixed(2)}` : "0.00"}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-550 ml-1 font-sans font-normal">
+                    MB/s
+                  </span>
+                </div>
+              </div>
+
+              {/* Net Down */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
+                    {t("Download")}
+                  </span>
+                  <div className="p-1.5 bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 rounded-lg">
+                    <ArrowDown size={14} />
+                  </div>
+                </div>
+                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
+                  {metrics ? `${metrics.network_down.toFixed(2)}` : "0.00"}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-550 ml-1 font-sans font-normal">
+                    MB/s
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Telemetry Visualizations Section */}
@@ -698,7 +775,9 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#readGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={false}
+                  isAnimationActive={true}
+                  animationDuration={1000}
+                  animationEasing="linear"
                 />
                 <Area
                   type="monotone"
@@ -709,7 +788,9 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#writeGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={false}
+                  isAnimationActive={true}
+                  animationDuration={1000}
+                  animationEasing="linear"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -720,14 +801,20 @@ export function DiagnosticsTab() {
             <div className="flex items-center gap-1.5 text-xs">
               <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.emerald }} />
               <span className="text-slate-500 dark:text-slate-400">{t("Read Speed")}</span>
-              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span
+                className="font-bold text-slate-700 dark:text-slate-200"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {metrics ? `${metrics.disk_read_speed.toFixed(2)}` : "0.00"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
               <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.rose }} />
               <span className="text-slate-500 dark:text-slate-400">{t("Write Speed")}</span>
-              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span
+                className="font-bold text-slate-700 dark:text-slate-200"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {metrics ? `${metrics.disk_write_speed.toFixed(2)}` : "0.00"}
               </span>
             </div>
@@ -800,7 +887,9 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#upGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={false}
+                  isAnimationActive={true}
+                  animationDuration={1000}
+                  animationEasing="linear"
                 />
                 <Area
                   type="monotone"
@@ -811,7 +900,9 @@ export function DiagnosticsTab() {
                   fillOpacity={1}
                   fill="url(#downGradPremium)"
                   activeDot={<PulsingDot />}
-                  isAnimationActive={false}
+                  isAnimationActive={true}
+                  animationDuration={1000}
+                  animationEasing="linear"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -822,14 +913,20 @@ export function DiagnosticsTab() {
             <div className="flex items-center gap-1.5 text-xs">
               <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.cyan }} />
               <span className="text-slate-500 dark:text-slate-400">{t("Upload Speed")}</span>
-              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span
+                className="font-bold text-slate-700 dark:text-slate-200"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {metrics ? `${metrics.network_up.toFixed(2)}` : "0.00"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
               <span className="w-2.5 h-[3px] rounded-full" style={{ backgroundColor: C.indigo }} />
               <span className="text-slate-500 dark:text-slate-400">{t("Download Speed")}</span>
-              <span className="font-bold text-slate-700 dark:text-slate-200" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span
+                className="font-bold text-slate-700 dark:text-slate-200"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {metrics ? `${metrics.network_down.toFixed(2)}` : "0.00"}
               </span>
             </div>
