@@ -121,7 +121,8 @@ function getIconForApp(name: string, publisher: string): string {
 
 const isTauri =
   typeof window !== "undefined" &&
-  ((window as any).__TAURI_IPC__ !== undefined ||
+  ((window as any).__TAURI_INTERNALS__ !== undefined ||
+    (window as any).__TAURI_IPC__ !== undefined ||
     (window as any).process?.env?.NODE_ENV === "test");
 
 export function StartupTab() {

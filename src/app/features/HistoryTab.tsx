@@ -57,7 +57,8 @@ function GradientCard({
 
 const isTauri =
   typeof window !== "undefined" &&
-  ((window as any).__TAURI_IPC__ !== undefined ||
+  ((window as any).__TAURI_INTERNALS__ !== undefined ||
+    (window as any).__TAURI_IPC__ !== undefined ||
     (window as any).process?.env?.NODE_ENV === "test");
 
 const getLogIcon = (type: string) => {

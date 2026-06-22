@@ -67,7 +67,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   const [mode, setMode] = useState<"balanced" | "performance" | "gaming">("balanced");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).__TAURI_IPC__) {
+    if (typeof window !== "undefined" && ((window as any).__TAURI_INTERNALS__ !== undefined || (window as any).__TAURI_IPC__ !== undefined)) {
       invoke("set_power_plan", { plan: mode }).catch(console.error);
     }
   }, [mode]);
