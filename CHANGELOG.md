@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.2] - 2026-06-22
+
+### Fixed
+
+- **Application Bundling Issue**: Removed dummy test binaries `test_deps` and `test_dummy` from `src-tauri/src/bin/` which caused the Tauri CLI bundler to package a CLI dummy binary instead of the main `app.exe` GUI binary, resulting in abnormal 250KB setup installers that failed to launch.
+
 ## [0.16.1] - 2026-06-22
 
 ### Changed
