@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.6] - 2026-06-26
+
+### Added
+- **Export Diagnostics**: Added report export capability to `DiagnosticsTab` via native Save File Dialog powered by PowerShell.
+- **Advanced Windows Booster**: Integrated new options under `BoosterTab`—"DNS Cache Flusher" (`dns`) and "Startup Delay Speedup" (`startup_delay`), running registry-level adjustments natively and providing safe rollbacks.
+
+
 ## [0.16.5] - 2026-06-26
 
 ### Refactored

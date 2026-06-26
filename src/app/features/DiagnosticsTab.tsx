@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   ArrowUp,
   ArrowDown,
+  Download,
   Cpu,
   RefreshCw,
   ServerCrash,
@@ -24,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { addHistoryLog } from "../utils/history";
 import { StatCard } from "../components/ui/StatCard";
+import { toast } from "sonner";
 
 const C = {
   indigo: "#4f46e5",
@@ -171,6 +173,19 @@ export function DiagnosticsTab() {
       setReportError(err?.toString() || "Failed to generate report");
     } finally {
       setGeneratingReport(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    if (!reportResult) return;
+    try {
+      const msg = await invoke<string>("export_diagnostics_report", { reportContent: reportResult });
+      toast.success(t(msg));
+    } catch (err: any) {
+      if (err !== "Cancelled by user") {
+        console.error(err);
+        toast.error(t(err?.toString() || "Failed to export report"));
+      }
     }
   };
 
@@ -352,6 +367,17 @@ export function DiagnosticsTab() {
             )}
             {healthStatus.label}
           </div>
+
+          {/* Export Report Button */}
+          {reportResult && (
+            <button
+              onClick={handleExportReport}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all shadow-sm bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white hover:shadow-emerald-950/20 hover:scale-[1.02] cursor-pointer"
+            >
+              <Download size={16} />
+              {t("Export Report")}
+            </button>
+          )}
 
           {/* Generate Report Button */}
           <button
