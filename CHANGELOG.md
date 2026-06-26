@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.5] - 2026-06-26
+
+### Refactored
+- **UI Primitive Migration**: Applied `<StatCard />` to both `CleanerTab` and `DiagnosticsTab` for displaying Total Junk, Files Found, Scan Duration, and real-time Disk/Network throughput metrics.
+- **Radix UI Cleanup**: Deleted 29 unused Radix UI/shadcn component files in `src/app/components/ui/` and removed 15 unused package dependencies from `package.json` to optimize dev experience and compile times.
+- **Backend Cleanups**: Removed unused `sentry` dependency from `src-tauri/Cargo.toml`.
+
+
 ## [0.16.4] - 2026-06-26
 
 ### Added
