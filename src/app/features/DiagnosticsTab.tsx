@@ -23,6 +23,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } f
 import { useTranslation } from "react-i18next";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { addHistoryLog } from "../utils/history";
+import { StatCard } from "../components/ui/StatCard";
 
 const C = {
   indigo: "#4f46e5",
@@ -631,77 +632,33 @@ export function DiagnosticsTab() {
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {/* Disk Read */}
-              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
-                    {t("Disk Read")}
-                  </span>
-                  <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450 rounded-lg">
-                    <ArrowDown size={14} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
-                  {metrics ? `${metrics.disk_read_speed.toFixed(2)}` : "0.00"}
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-sans font-normal">
-                    MB/s
-                  </span>
-                </div>
-              </div>
+              <StatCard
+                icon={<ArrowDown size={16} />}
+                label={t("Disk Read")}
+                value={metrics ? `${metrics.disk_read_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
+                color={C.emerald}
+              />
 
-              {/* Disk Write */}
-              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
-                    {t("Disk Write")}
-                  </span>
-                  <div className="p-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-455 rounded-lg">
-                    <ArrowUp size={14} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
-                  {metrics ? `${metrics.disk_write_speed.toFixed(2)}` : "0.00"}
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-sans font-normal">
-                    MB/s
-                  </span>
-                </div>
-              </div>
+              <StatCard
+                icon={<ArrowUp size={16} />}
+                label={t("Disk Write")}
+                value={metrics ? `${metrics.disk_write_speed.toFixed(2)} MB/s` : "0.00 MB/s"}
+                color={C.rose}
+              />
 
-              {/* Net Up */}
-              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
-                    {t("Upload")}
-                  </span>
-                  <div className="p-1.5 bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 rounded-lg">
-                    <Wifi size={14} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
-                  {metrics ? `${metrics.network_up.toFixed(2)}` : "0.00"}
-                  <span className="text-[10px] text-slate-400 dark:text-slate-550 ml-1 font-sans font-normal">
-                    MB/s
-                  </span>
-                </div>
-              </div>
+              <StatCard
+                icon={<Wifi size={16} />}
+                label={t("Upload")}
+                value={metrics ? `${metrics.network_up.toFixed(2)} MB/s` : "0.00 MB/s"}
+                color={C.cyan}
+              />
 
-              {/* Net Down */}
-              <div className="p-3.5 rounded-2xl bg-slate-50/40 dark:bg-slate-850/20 border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-24">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-450 dark:text-slate-450 uppercase font-bold tracking-wider">
-                    {t("Download")}
-                  </span>
-                  <div className="p-1.5 bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 rounded-lg">
-                    <ArrowDown size={14} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-slate-800 dark:text-slate-100 mt-2 font-mono">
-                  {metrics ? `${metrics.network_down.toFixed(2)}` : "0.00"}
-                  <span className="text-[10px] text-slate-400 dark:text-slate-550 ml-1 font-sans font-normal">
-                    MB/s
-                  </span>
-                </div>
-              </div>
+              <StatCard
+                icon={<ArrowDown size={16} />}
+                label={t("Download")}
+                value={metrics ? `${metrics.network_down.toFixed(2)} MB/s` : "0.00 MB/s"}
+                color={C.violet}
+              />
             </div>
           </div>
         </div>
