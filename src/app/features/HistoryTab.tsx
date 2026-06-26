@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { load } from "@tauri-apps/plugin-store";
-import { HardDrive, BarChart3, Star, Sparkles, Zap, Lock, FileText, Rocket, RotateCcw, Activity } from "lucide-react";
+import {
+  HardDrive,
+  BarChart3,
+  Star,
+  Sparkles,
+  Zap,
+  Lock,
+  FileText,
+  Rocket,
+  RotateCcw,
+  Activity,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const C = {
   indigo: "#4f46e5",
@@ -57,7 +69,8 @@ function GradientCard({
 
 const isTauri =
   typeof window !== "undefined" &&
-  ((window as any).__TAURI_IPC__ !== undefined ||
+  ((window as any).__TAURI_INTERNALS__ !== undefined ||
+    (window as any).__TAURI_IPC__ !== undefined ||
     (window as any).process?.env?.NODE_ENV === "test");
 
 const getLogIcon = (type: string) => {
@@ -108,6 +121,123 @@ const getLogColor = (type: string) => {
   }
 };
 
+const parseFreedToGB = (freedStr: string): number => {
+  if (!freedStr || freedStr === "N/A") return 0;
+  const num = parseFloat(freedStr);
+  if (isNaN(num)) return 0;
+
+  const lower = freedStr.toLowerCase();
+  if (lower.includes("gb")) {
+    return num;
+  } else if (lower.includes("mb")) {
+    return num / 1024;
+  } else if (lower.includes("kb")) {
+    return num / (1024 * 1024);
+  } else if (lower.includes("bytes") || lower.includes("b")) {
+    return num / (1024 * 1024 * 1024);
+  }
+  return num / 1024; // Default assume MB
+};
+
+const formatMonthYearShort = (date: Date) => {
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const m = months[date.getMonth()];
+  const yr = String(date.getFullYear()).slice(-2);
+  return `${m} '${yr}`;
+};
+
+const getMonthYear = (dateStr: string) => {
+  if (!dateStr) return "Other";
+  // Replace dot time separator with colon for browser compatibility (e.g. 08.36 -> 08:36)
+  const cleanDateStr = dateStr.replace(/(\d{1,2})\.(\d{2})/g, "$1:$2");
+  const d = new Date(cleanDateStr);
+  if (!isNaN(d.getTime())) {
+    return formatMonthYearShort(d);
+  }
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  for (const m of months) {
+    if (dateStr.includes(m)) {
+      const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
+      const yr = yrMatch ? yrMatch[2] : "26";
+      return `${m} '${yr}`;
+    }
+  }
+  const idMonths: Record<string, string> = {
+    Jan: "Jan",
+    Peb: "Feb",
+    Mar: "Mar",
+    Apr: "Apr",
+    Mei: "May",
+    Jun: "Jun",
+    Jul: "Jul",
+    Agu: "Aug",
+    Sep: "Sep",
+    Okt: "Oct",
+    Nov: "Nov",
+    Des: "Dec",
+  };
+  for (const [idM, enM] of Object.entries(idMonths)) {
+    if (dateStr.toLowerCase().includes(idM.toLowerCase())) {
+      const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
+      const yr = yrMatch ? yrMatch[2] : "26";
+      return `${enM} '${yr}`;
+    }
+  }
+  return "Other";
+};
+
+const getMonthlyFreedData = (logs: SessionLog[]) => {
+  const groups: Record<string, number> = {};
+
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = formatMonthYearShort(d);
+    groups[label] = 0;
+  }
+
+  logs.forEach((log) => {
+    const val = parseFreedToGB(log.freed);
+    if (val > 0) {
+      const label = getMonthYear(log.date);
+      if (groups[label] !== undefined) {
+        groups[label] += val;
+      }
+    }
+  });
+
+  return Object.entries(groups).map(([name, value]) => ({
+    name,
+    value: parseFloat(value.toFixed(2)),
+  }));
+};
+
 export function HistoryTab() {
   const { t } = useTranslation();
   const [history, setHistory] = useState<SessionLog[]>([]);
@@ -132,10 +262,90 @@ export function HistoryTab() {
     loadHistory();
   }, []);
 
+  const totalFreedGB = history.reduce((acc, curr) => acc + parseFreedToGB(curr.freed), 0);
+  const monthlyData = getMonthlyFreedData(history);
+  const hasFreedData = monthlyData.some((d) => d.value > 0);
+
+  const ChartTooltip = ({ active, payload, label, unit }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div
+        style={{
+          background: "var(--card)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid var(--border)",
+          borderRadius: "14px",
+          padding: "10px 14px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        <div className="text-xs font-semibold text-slate-500 mb-1">{label}</div>
+        {payload.map((entry: any, idx: number) => (
+          <div
+            key={idx}
+            className="flex items-center gap-2 text-xs"
+            style={{ color: "var(--card-foreground)" }}
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block"
+              style={{ backgroundColor: entry.color || C.indigo }}
+            />
+            <span className="text-slate-500 dark:text-slate-400">{t("Freed")}:</span>
+            <span className="font-bold text-indigo-650 dark:text-indigo-400">
+              {entry.value?.toFixed(2)} {unit || "GB"}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderDetails = (details: string) => {
+    if (!details) return "";
+
+    if (details.includes(":")) {
+      const parts = details.split(":");
+      const key = parts[0];
+      const val = parts.slice(1).join(":");
+      const translatedVal = t(val);
+
+      if (key === "Enabled") {
+        return t("Enabled {{name}}", { name: translatedVal }).replace("{{name}}", translatedVal);
+      }
+      if (key === "Disabled") {
+        return t("Disabled {{name}}", { name: translatedVal }).replace("{{name}}", translatedVal);
+      }
+      if (key === "Applied") {
+        return t("Applied {{name}}", { name: translatedVal }).replace("{{name}}", translatedVal);
+      }
+      if (key === "Restored") {
+        return t("Restored {{name}}", { name: translatedVal }).replace("{{name}}", translatedVal);
+      }
+      if (key === "DisabledHighImpact") {
+        return t("Disabled {{count}} high impact startup items", { count: val }).replace(
+          "{{count}}",
+          val
+        );
+      }
+    }
+
+    if (details.includes("{{name}}")) {
+      const fallbackName = t("program");
+      return t(details, { name: fallbackName }).replace("{{name}}", fallbackName);
+    }
+
+    if (details.includes("{{count}}")) {
+      return t(details, { count: 1 }).replace("{{count}}", "1");
+    }
+
+    return t(details);
+  };
+
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
+        <div className="py-10 text-center text-slate-400 dark:text-slate-550 text-sm">
           {t("Loading history...")}
         </div>
       ) : history.length === 0 ? (
@@ -157,7 +367,7 @@ export function HistoryTab() {
               {
                 icon: <HardDrive size={18} />,
                 label: "Total Freed",
-                value: `${history.reduce((acc, curr) => acc + parseFloat(curr.freed), 0).toFixed(1)} GB`,
+                value: `${totalFreedGB.toFixed(1)} GB`,
                 sub: "All time",
                 color: C.indigo,
               },
@@ -206,9 +416,58 @@ export function HistoryTab() {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
               {t("Space Freed Per Month")}
             </h3>
-            <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
-              {t("Chart data will appear after a few cleanings.")}
-            </div>
+            {hasFreedData ? (
+              <div className="h-[220px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={monthlyData}
+                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--slate-500)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="var(--slate-500)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      unit="GB"
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                      content={<ChartTooltip unit="GB" />}
+                    />
+                    <Bar
+                      dataKey="value"
+                      fill="url(#historyFreedGrad)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={32}
+                    >
+                      {monthlyData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.value > 0 ? "url(#historyFreedGrad)" : "var(--border)"}
+                        />
+                      ))}
+                    </Bar>
+                    <defs>
+                      <linearGradient id="historyFreedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.indigo} stopOpacity={0.8} />
+                        <stop offset="100%" stopColor={C.indigo} stopOpacity={0.15} />
+                      </linearGradient>
+                    </defs>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="py-10 text-center text-slate-400 dark:text-slate-550 text-sm">
+                {t("Chart data will appear after a few cleanings.")}
+              </div>
+            )}
           </GradientCard>
 
           <GradientCard>
@@ -218,9 +477,14 @@ export function HistoryTab() {
             <div className="space-y-2">
               {history.map((h, i) => {
                 const color = getLogColor(h.type);
-                const showFreed = h.freed && h.freed !== "N/A" && h.freed !== "" && 
-                  (h.type.includes("Clean") || h.type.includes("Boost") || (!h.freed.startsWith("0") && !h.freed.startsWith("N/A")));
-                
+                const showFreed =
+                  h.freed &&
+                  h.freed !== "N/A" &&
+                  h.freed !== "" &&
+                  (h.type.includes("Clean") ||
+                    h.type.includes("Boost") ||
+                    (!h.freed.startsWith("0") && !h.freed.startsWith("N/A")));
+
                 return (
                   <div
                     key={i}
@@ -235,25 +499,29 @@ export function HistoryTab() {
                     >
                       {getLogIcon(h.type)}
                     </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">
                         {t(h.type)}
                         {h.details && (
                           <span className="font-normal text-slate-500 dark:text-slate-400 ml-1.5">
-                            ({h.details})
+                            ({renderDetails(h.details)})
                           </span>
                         )}
                       </div>
                       <div className="text-xs text-slate-400 dark:text-slate-550 mt-0.5">
-                        {h.date} {h.duration && `· ${h.duration}`} {h.fixed > 0 && `· ${h.fixed} ${t(h.fixed === 1 ? "issue fixed" : "issues fixed")}`}
+                        {h.date} {h.duration && `· ${h.duration}`}{" "}
+                        {h.fixed > 0 &&
+                          `· ${h.fixed} ${t(h.fixed === 1 ? "issue fixed" : "issues fixed")}`}
                       </div>
                     </div>
                     {showFreed && (
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <div className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
                           {h.freed}
                         </div>
-                        <div className="text-xs text-slate-400 dark:text-slate-500">{t("freed")}</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-550">
+                          {t("freed")}
+                        </div>
                       </div>
                     )}
                   </div>

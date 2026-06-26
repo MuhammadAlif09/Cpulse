@@ -488,7 +488,8 @@ let store: any = null;
 
 const isTauri =
   typeof window !== "undefined" &&
-  ((window as any).__TAURI_IPC__ !== undefined ||
+  ((window as any).__TAURI_INTERNALS__ !== undefined ||
+    (window as any).__TAURI_IPC__ !== undefined ||
     (window as any).process?.env?.NODE_ENV === "test");
 
 interface DiskInfo {
@@ -562,7 +563,7 @@ export default function App() {
   const junkItems = useCleanerStore((state) => state.junkCats);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.15.0");
+  const [appVersion, setAppVersion] = useState("0.16.2");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {

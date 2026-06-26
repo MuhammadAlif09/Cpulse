@@ -14,6 +14,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.3] - 2026-06-26
+
+### Fixed
+
+- **Rust Backend Compiler Warnings (Clippy)**: Fixed all Clippy warnings in `src-tauri/src/lib.rs` and `src-tauri/src/cleaner.rs` including needless borrows, collapsible `if` blocks, unnecessary `map_or` calls (simplified using `is_some_and`), and infinite `flatten()` warning on `std::io::Lines` iterator (refactored to `map_while(Result::ok)`).
+- **UI Responsiveness & Performance**: Ensured privacy sweep and scanning functions (`sweep_privacy`, `scan_privacy`) run in an asynchronous blocking thread pool (`tauri::async_runtime::spawn_blocking`) to keep the Tauri main thread free from synchronous filesystem and registry disk I/O blocks.
+- **Workflow & Rules Cleanups**: Cleaned up the project by deleting `.clinerules` and `.cursorrules` in favor of centralized `.agents/rules/rules.md`.
+
+
+## [0.16.2] - 2026-06-22
+
+### Fixed
+
+- **Application Bundling Issue**: Removed dummy test binaries `test_deps` and `test_dummy` from `src-tauri/src/bin/` which caused the Tauri CLI bundler to package a CLI dummy binary instead of the main `app.exe` GUI binary, resulting in abnormal 250KB setup installers that failed to launch.
+
+## [0.16.1] - 2026-06-22
+
+### Changed
+
+- **Telemetry Visualizations Redesign**: Redesigned Disk I/O and Network Traffic telemetry charts in the Diagnostics tab with premium custom styling, 3-stop gradient fills, custom glassmorphism tooltips, pulsing active dots at latest data points, live legend displays, and big ghost current-value indicators.
+
+## [0.16.0] - 2026-06-22
+
+### Added
+
+- **Full Diagnostics i18n**: Localized all ~25 hardcoded English strings in `DiagnosticsTab.tsx` with complete English and Indonesian translations using `t()` wrappers.
+- **System Information Card**: New at-a-glance card displaying OS name/version, CPU model, RAM usage, and hostname — powered by a new `get_system_info` Rust backend command that avoids the heavy full-report generation.
+- **Real-Time Health Status Badge**: Dynamic health indicator in the Diagnostics header showing "Healthy" (green pulse), "Warning" (amber), or "Critical" (rose) based on live CPU, RAM, temperature, and disk space thresholds.
+- **Smart Health Alerts**: Auto-generated contextual warning banners that appear when system metrics exceed safe thresholds (RAM > 90%, CPU > 90%, Temp > 85°C, Disk < 10% free). Each alert shows a relevant icon and localized message.
+- **Network Metric Cards**: Dedicated Upload and Download speed cards in the diagnostics status grid, complementing the existing Disk Read/Write cards.
+- **CPU Cores Grid Polish**: Added smooth CSS transitions (`0.5s ease`) to core load indicator strips and an "Average Load: XX%" summary badge in the grid header.
+
+### Changed
+
+- **Diagnostics Grid Layout**: Expanded from 4-column to 3-column (2-row) layout accommodating 6 metric cards: Uptime, Processes, Disk Read, Disk Write, Network Upload, Network Download.
+
 ## [0.15.0] - 2026-06-22
 
 ### Added

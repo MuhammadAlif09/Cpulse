@@ -1,4 +1,4 @@
-// mod cleaner;
+mod cleaner;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -12,20 +12,7 @@ use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::{Emitter, Manager};
 
-// use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
-pub fn format_size(bytes: u64) -> String {
-    bytes.to_string()
-}
-pub fn clear_dir(_path: &Path, _to_trash: bool) -> Result<(), String> {
-    Ok(())
-}
-pub struct ScanCancelFlag(pub std::sync::Arc<std::sync::atomic::AtomicBool>);
-impl Default for ScanCancelFlag {
-    fn default() -> Self {
-        ScanCancelFlag(std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
-    }
-}
-pub fn run_silent_clean(_app_handle: &tauri::AppHandle) {}
+use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
 
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::CloseHandle;
@@ -78,7 +65,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
     let mut map = std::collections::HashMap::new();
 
     let part_output = std::process::Command::new("powershell")
-        .args(&[
+        .args([
             "-NoProfile",
             "-Command",
             "Get-Partition | Where-Object DriveLetter | Select-Object DriveLetter, DiskNumber | ConvertTo-Json"
@@ -87,7 +74,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
         .output();
 
     let phys_output = std::process::Command::new("powershell")
-        .args(&[
+        .args([
             "-NoProfile",
             "-Command",
             "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json"
@@ -234,7 +221,7 @@ fn get_wifi_profiles_count() -> usize {
                 if let Ok(sub_entries) = fs::read_dir(entry.path()) {
                     count += sub_entries
                         .flatten()
-                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "xml"))
+                        .filter(|e| e.path().extension().is_some_and(|ext| ext == "xml"))
                         .count();
                 }
             }
@@ -284,247 +271,253 @@ fn get_file_size(path: &Path) -> u64 {
     }
 }
 
+// Offloaded to async so filesystem/registry I/O doesn't block the WebView main thread
 #[tauri::command]
-fn scan_privacy() -> Result<PrivacyScanResult, String> {
-    let recent_count = get_recent_files_count();
-    let run_count = get_run_mru_count();
-    let search_count = get_search_history_count();
-    let wifi_count = get_wifi_profiles_count();
+async fn scan_privacy() -> Result<PrivacyScanResult, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let recent_count = get_recent_files_count();
+        let run_count = get_run_mru_count();
+        let search_count = get_search_history_count();
+        let wifi_count = get_wifi_profiles_count();
 
-    let local_app_data = std::env::var_os("LOCALAPPDATA")
-        .map(PathBuf::from)
-        .unwrap_or_default();
+        let local_app_data = std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_default();
 
-    let chrome_dir = local_app_data.join("Google\\Chrome\\User Data\\Default");
-    let chrome_hist_path = chrome_dir.join("History");
-    let chrome_cookies_path = chrome_dir.join("Network\\Cookies");
-    let chrome_hist_size = get_file_size(&chrome_hist_path);
-    let chrome_cookies_size = get_file_size(&chrome_cookies_path);
+        let chrome_dir = local_app_data.join("Google\\Chrome\\User Data\\Default");
+        let chrome_hist_path = chrome_dir.join("History");
+        let chrome_cookies_path = chrome_dir.join("Network\\Cookies");
+        let chrome_hist_size = get_file_size(&chrome_hist_path);
+        let chrome_cookies_size = get_file_size(&chrome_cookies_path);
 
-    let edge_dir = local_app_data.join("Microsoft\\Edge\\User Data\\Default");
-    let edge_hist_path = edge_dir.join("History");
-    let edge_cookies_path = edge_dir.join("Network\\Cookies");
-    let edge_hist_size = get_file_size(&edge_hist_path);
-    let edge_cookies_size = get_file_size(&edge_cookies_path);
+        let edge_dir = local_app_data.join("Microsoft\\Edge\\User Data\\Default");
+        let edge_hist_path = edge_dir.join("History");
+        let edge_cookies_path = edge_dir.join("Network\\Cookies");
+        let edge_hist_size = get_file_size(&edge_hist_path);
+        let edge_cookies_size = get_file_size(&edge_cookies_path);
 
-    Ok(PrivacyScanResult {
-        chrome_hist: PrivacyCategoryInfo {
-            found: chrome_hist_size > 0,
-            desc: if chrome_hist_size > 0 {
-                format!("{} of history traces", format_size(chrome_hist_size))
-            } else {
-                "No Chrome history found".to_string()
+        Ok(PrivacyScanResult {
+            chrome_hist: PrivacyCategoryInfo {
+                found: chrome_hist_size > 0,
+                desc: if chrome_hist_size > 0 {
+                    format!("{} of history traces", format_size(chrome_hist_size))
+                } else {
+                    "No Chrome history found".to_string()
+                },
+                count: if chrome_hist_size > 0 { 1 } else { 0 },
             },
-            count: if chrome_hist_size > 0 { 1 } else { 0 },
-        },
-        edge_hist: PrivacyCategoryInfo {
-            found: edge_hist_size > 0,
-            desc: if edge_hist_size > 0 {
-                format!("{} of history traces", format_size(edge_hist_size))
-            } else {
-                "No Edge history found".to_string()
+            edge_hist: PrivacyCategoryInfo {
+                found: edge_hist_size > 0,
+                desc: if edge_hist_size > 0 {
+                    format!("{} of history traces", format_size(edge_hist_size))
+                } else {
+                    "No Edge history found".to_string()
+                },
+                count: if edge_hist_size > 0 { 1 } else { 0 },
             },
-            count: if edge_hist_size > 0 { 1 } else { 0 },
-        },
-        recent_files: PrivacyCategoryInfo {
-            found: recent_count > 0,
-            desc: if recent_count > 0 {
-                format!("{} recent entries found", recent_count)
-            } else {
-                "No recent entries".to_string()
+            recent_files: PrivacyCategoryInfo {
+                found: recent_count > 0,
+                desc: if recent_count > 0 {
+                    format!("{} recent entries found", recent_count)
+                } else {
+                    "No recent entries".to_string()
+                },
+                count: recent_count,
             },
-            count: recent_count,
-        },
-        clipboard: PrivacyCategoryInfo {
-            found: true,
-            desc: "Clipboard history and current content".to_string(),
-            count: 1,
-        },
-        search_hist: PrivacyCategoryInfo {
-            found: search_count > 0,
-            desc: if search_count > 0 {
-                format!("{} search terms indexed", search_count)
-            } else {
-                "No search terms found".to_string()
+            clipboard: PrivacyCategoryInfo {
+                found: true,
+                desc: "Clipboard history and current content".to_string(),
+                count: 1,
             },
-            count: search_count,
-        },
-        wifi_pass: PrivacyCategoryInfo {
-            found: wifi_count > 0,
-            desc: if wifi_count > 0 {
-                format!("{} stored profiles", wifi_count)
-            } else {
-                "No stored Wi-Fi profiles".to_string()
+            search_hist: PrivacyCategoryInfo {
+                found: search_count > 0,
+                desc: if search_count > 0 {
+                    format!("{} search terms indexed", search_count)
+                } else {
+                    "No search terms found".to_string()
+                },
+                count: search_count,
             },
-            count: wifi_count,
-        },
-        cookies: PrivacyCategoryInfo {
-            found: (chrome_cookies_size + edge_cookies_size) > 0,
-            desc: if (chrome_cookies_size + edge_cookies_size) > 0 {
-                format!(
-                    "Chrome: {}, Edge: {}",
-                    format_size(chrome_cookies_size),
-                    format_size(edge_cookies_size)
-                )
-            } else {
-                "No tracking cookies found".to_string()
+            wifi_pass: PrivacyCategoryInfo {
+                found: wifi_count > 0,
+                desc: if wifi_count > 0 {
+                    format!("{} stored profiles", wifi_count)
+                } else {
+                    "No stored Wi-Fi profiles".to_string()
+                },
+                count: wifi_count,
             },
-            count: if (chrome_cookies_size + edge_cookies_size) > 0 {
-                1
-            } else {
-                0
+            cookies: PrivacyCategoryInfo {
+                found: (chrome_cookies_size + edge_cookies_size) > 0,
+                desc: if (chrome_cookies_size + edge_cookies_size) > 0 {
+                    format!(
+                        "Chrome: {}, Edge: {}",
+                        format_size(chrome_cookies_size),
+                        format_size(edge_cookies_size)
+                    )
+                } else {
+                    "No tracking cookies found".to_string()
+                },
+                count: if (chrome_cookies_size + edge_cookies_size) > 0 {
+                    1
+                } else {
+                    0
+                },
             },
-        },
-        run_hist: PrivacyCategoryInfo {
-            found: run_count > 0,
-            desc: if run_count > 0 {
-                format!("{} run command entries", run_count)
-            } else {
-                "No run command entries".to_string()
+            run_hist: PrivacyCategoryInfo {
+                found: run_count > 0,
+                desc: if run_count > 0 {
+                    format!("{} run command entries", run_count)
+                } else {
+                    "No run command entries".to_string()
+                },
+                count: run_count,
             },
-            count: run_count,
-        },
+        })
     })
+    .await
+    .map_err(|e| format!("Privacy scan thread panicked: {}", e))?
 }
 
+// Offloaded to async — sweep involves shell calls (powershell, netsh) and file deletions
 #[tauri::command]
-fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let local_app_data = std::env::var_os("LOCALAPPDATA")
-        .map(PathBuf::from)
-        .unwrap_or_default();
+async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let local_app_data = std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_default();
 
-    let mut success_msgs = Vec::new();
-    let mut fail_msgs = Vec::new();
+        let mut success_msgs = Vec::new();
+        let mut fail_msgs = Vec::new();
 
-    for item in items {
-        match item.as_str() {
-            "recent_files" => {
-                let _ = hkcu.delete_subkey_all(
-                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
-                );
-                if let Some(app_data) = std::env::var_os("APPDATA") {
-                    let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
-                    let _ = clear_dir(&recent_dir, false);
+        for item in items {
+            match item.as_str() {
+                "recent_files" => {
+                    let _ = hkcu.delete_subkey_all(
+                        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
+                    );
+                    if let Some(app_data) = std::env::var_os("APPDATA") {
+                        let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
+                        let _ = clear_dir(&recent_dir, false);
+                    }
+                    success_msgs.push("Recent files cleared.");
                 }
-                success_msgs.push("Recent files cleared.");
-            }
-            "run_hist" => {
-                let _ = hkcu.delete_subkey_all(
-                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
-                );
-                success_msgs.push("Run history cleared.");
-            }
-            "search_hist" => {
-                let _ = hkcu.delete_subkey_all(
-                    "Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches",
-                );
-                success_msgs.push("Windows search history cleared.");
-            }
-            "clipboard" => {
-                let output = std::process::Command::new("powershell")
-                    .args([
-                        "-NoProfile",
-                        "-WindowStyle",
-                        "Hidden",
-                        "-Command",
-                        "Clear-Clipboard",
-                    ])
-                    .creation_flags(0x08000000)
-                    .output();
-                match output {
-                    Ok(out) if out.status.success() => {
-                        success_msgs.push("Clipboard cleared successfully.");
-                    }
-                    _ => {
-                        fail_msgs.push("Failed to clear clipboard.");
-                    }
+                "run_hist" => {
+                    let _ = hkcu.delete_subkey_all(
+                        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
+                    );
+                    success_msgs.push("Run history cleared.");
                 }
-            }
-            "wifi_pass" => {
-                let output = std::process::Command::new("netsh")
-                    .args(["wlan", "delete", "profile", "name=*"])
-                    .creation_flags(0x08000000)
-                    .output();
-                match output {
-                    Ok(out) if out.status.success() => {
-                        success_msgs.push("Wi-Fi profiles cleared.");
-                    }
-                    _ => {
-                        fail_msgs.push("Failed to clear Wi-Fi profiles.");
+                "search_hist" => {
+                    let _ = hkcu.delete_subkey_all(
+                        "Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches",
+                    );
+                    success_msgs.push("Windows search history cleared.");
+                }
+                "clipboard" => {
+                    let output = std::process::Command::new("powershell")
+                        .args([
+                            "-NoProfile",
+                            "-WindowStyle",
+                            "Hidden",
+                            "-Command",
+                            "Clear-Clipboard",
+                        ])
+                        .creation_flags(0x08000000)
+                        .output();
+                    match output {
+                        Ok(out) if out.status.success() => {
+                            success_msgs.push("Clipboard cleared successfully.");
+                        }
+                        _ => {
+                            fail_msgs.push("Failed to clear clipboard.");
+                        }
                     }
                 }
-            }
-            "chrome_hist" => {
-                let chrome_hist_path =
-                    local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
-                if chrome_hist_path.exists() {
-                    if fs::remove_file(&chrome_hist_path).is_ok() {
-                        success_msgs.push("Chrome history cleared.");
-                    } else {
-                        fail_msgs.push("Could not clear Chrome history. Close Chrome first.");
+                "wifi_pass" => {
+                    let output = std::process::Command::new("netsh")
+                        .args(["wlan", "delete", "profile", "name=*"])
+                        .creation_flags(0x08000000)
+                        .output();
+                    match output {
+                        Ok(out) if out.status.success() => {
+                            success_msgs.push("Wi-Fi profiles cleared.");
+                        }
+                        _ => {
+                            fail_msgs.push("Failed to clear Wi-Fi profiles.");
+                        }
                     }
                 }
-            }
-            "edge_hist" => {
-                let edge_hist_path =
-                    local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
-                if edge_hist_path.exists() {
-                    if fs::remove_file(&edge_hist_path).is_ok() {
-                        success_msgs.push("Edge history cleared.");
-                    } else {
-                        fail_msgs.push("Could not clear Edge history. Close Edge first.");
+                "chrome_hist" => {
+                    let chrome_hist_path =
+                        local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
+                    if chrome_hist_path.exists() {
+                        if fs::remove_file(&chrome_hist_path).is_ok() {
+                            success_msgs.push("Chrome history cleared.");
+                        } else {
+                            fail_msgs.push("Could not clear Chrome history. Close Chrome first.");
+                        }
                     }
                 }
-            }
-            "cookies" => {
-                let chrome_cookies_path =
-                    local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
-                let edge_cookies_path =
-                    local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
+                "edge_hist" => {
+                    let edge_hist_path =
+                        local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
+                    if edge_hist_path.exists() {
+                        if fs::remove_file(&edge_hist_path).is_ok() {
+                            success_msgs.push("Edge history cleared.");
+                        } else {
+                            fail_msgs.push("Could not clear Edge history. Close Edge first.");
+                        }
+                    }
+                }
+                "cookies" => {
+                    let chrome_cookies_path =
+                        local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
+                    let edge_cookies_path =
+                        local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
 
-                let mut chrome_ok = true;
-                let mut edge_ok = true;
+                    let mut chrome_ok = true;
+                    let mut edge_ok = true;
 
-                if chrome_cookies_path.exists() {
-                    if fs::remove_file(&chrome_cookies_path).is_err() {
+                    if chrome_cookies_path.exists() && fs::remove_file(&chrome_cookies_path).is_err() {
                         chrome_ok = false;
                     }
-                }
-                if edge_cookies_path.exists() {
-                    if fs::remove_file(&edge_cookies_path).is_err() {
+                    if edge_cookies_path.exists() && fs::remove_file(&edge_cookies_path).is_err() {
                         edge_ok = false;
                     }
-                }
 
-                if chrome_ok && edge_ok {
-                    success_msgs.push("Chrome & Edge cookies cleared.");
-                } else if !chrome_ok && !edge_ok {
-                    fail_msgs.push("Could not clear Chrome & Edge cookies. Close browsers first.");
-                } else if !chrome_ok {
-                    success_msgs.push("Edge cookies cleared.");
-                    fail_msgs.push("Could not clear Chrome cookies. Close Chrome first.");
-                } else {
-                    success_msgs.push("Chrome cookies cleared.");
-                    fail_msgs.push("Could not clear Edge cookies. Close Edge first.");
+                    if chrome_ok && edge_ok {
+                        success_msgs.push("Chrome & Edge cookies cleared.");
+                    } else if !chrome_ok && !edge_ok {
+                        fail_msgs.push("Could not clear Chrome & Edge cookies. Close browsers first.");
+                    } else if !chrome_ok {
+                        success_msgs.push("Edge cookies cleared.");
+                        fail_msgs.push("Could not clear Chrome cookies. Close Chrome first.");
+                    } else {
+                        success_msgs.push("Chrome cookies cleared.");
+                        fail_msgs.push("Could not clear Edge cookies. Close Edge first.");
+                    }
                 }
+                _ => {}
             }
-            _ => {}
         }
-    }
 
-    if fail_msgs.is_empty() {
-        Ok(format!(
-            "Privacy sweep completed successfully: {}",
-            success_msgs.join(" ")
-        ))
-    } else {
-        Err(format!(
-            "Sweep finished with warnings: {}. Successes: {}",
-            fail_msgs.join(" "),
-            success_msgs.join(" ")
-        ))
-    }
+        if fail_msgs.is_empty() {
+            Ok(format!(
+                "Privacy sweep completed successfully: {}",
+                success_msgs.join(" ")
+            ))
+        } else {
+            Err(format!(
+                "Sweep finished with warnings: {}. Successes: {}",
+                fail_msgs.join(" "),
+                success_msgs.join(" ")
+            ))
+        }
+    })
+    .await
+    .map_err(|e| format!("Privacy sweep thread panicked: {}", e))?
 }
 
 #[derive(Clone, Serialize)]
@@ -545,8 +538,8 @@ fn parse_exe_path(command: &str) -> Option<String> {
         return None;
     }
 
-    let exe_path_str = if trimmed.starts_with('"') {
-        let parts: Vec<&str> = trimmed[1..].split('"').collect();
+    let exe_path_str = if let Some(stripped) = trimmed.strip_prefix('"') {
+        let parts: Vec<&str> = stripped.split('"').collect();
         parts.first().map(|s| s.to_string())
     } else {
         let parts: Vec<&str> = trimmed.split(' ').collect();
@@ -558,7 +551,7 @@ fn parse_exe_path(command: &str) -> Option<String> {
             }
             path_acc.push_str(part);
             let p = Path::new(&path_acc);
-            if p.is_file() && p.extension().map_or(false, |ext| ext.to_ascii_lowercase() == "exe") {
+            if p.is_file() && p.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe")) {
                 found_path = Some(path_acc.clone());
                 break;
             }
@@ -613,7 +606,7 @@ $paths | ForEach-Object {
 "#);
 
     let output = std::process::Command::new("powershell")
-        .args(&["-NoProfile", "-Command", "-"])
+        .args(["-NoProfile", "-Command", "-"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -857,7 +850,7 @@ fn clean_ram() -> Result<u64, String> {
         // we'll simulate a realistic GB-range return based on successful process empties.
         // E.g. freeing 5-20MB per successful process on average.
         let actual_freed_bytes = (freed_mb as u64 * 12 * 1024 * 1024) + 250_000_000;
-        return Ok(actual_freed_bytes);
+        Ok(actual_freed_bytes)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -1134,7 +1127,7 @@ fn spawn_typeperf_listener() {
     std::thread::spawn(|| {
         loop {
             let mut cmd = std::process::Command::new("typeperf");
-            cmd.args(&[
+            cmd.args([
                 r#"\PhysicalDisk(_Total)\Disk Read Bytes/sec"#,
                 r#"\PhysicalDisk(_Total)\Disk Write Bytes/sec"#,
                 "-si",
@@ -1153,12 +1146,10 @@ fn spawn_typeperf_listener() {
                     if let Some(stdout) = child.stdout.take() {
                         let reader = std::io::BufReader::new(stdout);
                         use std::io::BufRead;
-                        for line_result in reader.lines() {
-                            if let Ok(line) = line_result {
-                                if let Some((read, write)) = parse_typeperf_line(&line) {
-                                    DISK_READ_BYTES.store(read, Ordering::SeqCst);
-                                    DISK_WRITE_BYTES.store(write, Ordering::SeqCst);
-                                }
+                        for line in reader.lines().map_while(Result::ok) {
+                            if let Some((read, write)) = parse_typeperf_line(&line) {
+                                DISK_READ_BYTES.store(read, Ordering::SeqCst);
+                                DISK_WRITE_BYTES.store(write, Ordering::SeqCst);
                             }
                         }
                     }
@@ -1181,10 +1172,24 @@ fn cleanup_typeperf() {
     let pid = TYPEPERF_CHILD_PID.swap(0, Ordering::SeqCst);
     if pid != 0 {
         let _ = std::process::Command::new("taskkill")
-            .args(&["/F", "/PID", &pid.to_string()])
+            .args(["/F", "/PID", &pid.to_string()])
             .creation_flags(0x08000000)
             .status();
     }
+}
+
+#[tauri::command]
+fn get_system_info() -> Result<serde_json::Value, String> {
+    let os_name = System::name().unwrap_or_else(|| "Windows".to_string());
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
+    let kernel = System::kernel_version().unwrap_or_else(|| "Unknown".to_string());
+    let host = System::host_name().unwrap_or_else(|| "Unknown".to_string());
+    Ok(serde_json::json!({
+        "os_name": os_name,
+        "os_version": os_version,
+        "kernel": kernel,
+        "host_name": host
+    }))
 }
 
 #[tauri::command]
@@ -1229,13 +1234,13 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
         format!("| {} | {} | {:.1}% | {} |", p.pid(), p.name().to_string_lossy(), p.cpu_usage(), format_size(p.memory()))
     }).collect();
     
-    processes.sort_by(|a, b| b.memory().cmp(&a.memory()));
+    processes.sort_by_key(|b| std::cmp::Reverse(b.memory()));
     let top_mem: Vec<_> = processes.iter().take(10).map(|p| {
         format!("| {} | {} | {} | {:.1}% |", p.pid(), p.name().to_string_lossy(), format_size(p.memory()), p.cpu_usage())
     }).collect();
     
     let date_output = std::process::Command::new("powershell")
-        .args(&["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
+        .args(["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
         .creation_flags(0x08000000)
         .output();
     let date_str = date_output.ok().and_then(|o| {
@@ -1495,10 +1500,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // scan_junk,
-            // clean_junk,
-            // cancel_scan,
-            // open_cleaner_audit_log,
+            scan_junk,
+            clean_junk,
+            cancel_scan,
+            open_cleaner_audit_log,
             flush_dns,
             scan_privacy,
             sweep_privacy,
@@ -1511,6 +1516,7 @@ pub fn run() {
             set_power_plan,
             toggle_context_menu,
             update_auto_clean,
+            get_system_info,
             generate_diagnostics_report
         ])
         .build(tauri::generate_context!())
