@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.8] - 2026-06-26
+
+### Fixed
+- **CI/CD Build**: Upgraded pnpm version setup in GitHub Actions workflow to v11 to align with repository lockfile format and resolve `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`.
+
+
 ## [0.16.7] - 2026-06-26
 
 ### Removed
