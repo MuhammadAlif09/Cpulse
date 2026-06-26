@@ -41,3 +41,14 @@ opencode.json
 # AI Editor
 .claude/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+startup_skills.py
+
+
