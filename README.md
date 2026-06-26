@@ -67,6 +67,8 @@ CPulse adalah aplikasi desktop Windows yang cepat, ringan, dan cantik untuk memb
 
 ### Installation
 
+### Installation
+
 ```bash
 git clone https://github.com/MuhammadAlif09/Cpulse.git
 cd Cpulse
@@ -78,35 +80,42 @@ pnpm install
 
 # Run development
 npm run tauri dev
-Build Production
-Bashnpm run tauri build
-File hasil build akan ada di src-tauri/target/release/bundle/
 ```
 
-📌 Roadmap
+### Build Production
 
+```bash
+npm run tauri build
+```
+File hasil build akan ada di `src-tauri/target/release/bundle/`.
+
+---
+
+## 📌 Roadmap
+
+- [x] Dark/Light mode switcher
 - [ ] Auto-updater
 - [ ] More browser support (Firefox, Brave)
 - [ ] One-click Full Optimization
 - [ ] Portable version + Winget package
-- [ ] Dark/Light mode toggle
 - [ ] Export system report
 - [ ] Update to Flutter
 - [ ] Optimize UI
 - [ ] Add more features
 
 
-🤝 Contributing
+## 🤝 Contributing
+
 Kontribusi sangat dihargai!
+1. Fork project ini
+2. Buat branch fitur (`git checkout -b feature/awesome-feature`)
+3. Commit perubahan (`git commit -m "feat: add something"`)
+4. Push ke branch
+5. Buat Pull Request ke dev
 
-Fork project ini
-Buat branch fitur (git checkout -b feature/awesome-feature)
-Commit perubahan (git commit -m "feat: add something")
-Push ke branch
-Buat Pull Request ke dev
 
+## 📄 License
 
-📄 License
 Project ini dilisensikan di bawah MIT License. Lihat file LICENSE untuk detail.
 
 Made with ❤️ by Muhammad Alif
