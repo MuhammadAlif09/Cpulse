@@ -41,13 +41,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "licenseFile": "../LICENSE",
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico",
-        "uninstallIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
         "installMode": "both",
-        "license": "../LICENSE",
-        "languages": ["English", "Indonesian"],
+        "languages": [
+          "English",
+          "Indonesian"
+        ],
         "displayLanguageSelector": true
       }
     },

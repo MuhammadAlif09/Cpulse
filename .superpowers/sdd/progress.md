@@ -1,12 +1,8 @@
-# Design Refresh CPulse — SDD Progress
+# Setup Installer Upgrade — SDD Progress
 
-Base commit: 51cb2d6
+Base commit: 27e6efa8f2e07c895951f11dad82cd90fa590458
 
 ## Task Status
 
-- [x] Task 1: Scaffold Layout Shell (Header, Sidebar, App.tsx refactor)
-- [x] Task 2: Create StatCard UI Primitive
-- [x] Task 3: Refactor Dashboard Charts (remove big-number overlay)
-- [x] Task 4: Create DiskRow Primitive
-- [x] Task 5: Create QuickActionButton Primitive
-- [x] Task 6: Lint, Format, Final Verification
+- [x] Task 1: Configure Custom NSIS Installer in tauri.conf.json
+- [x] Task 2: Validate Build Configuration
