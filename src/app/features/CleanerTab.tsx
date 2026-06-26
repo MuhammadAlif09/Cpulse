@@ -29,6 +29,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../components/ui/alert-dialog";
+import { StatCard } from "../components/ui/StatCard";
+
+const C = {
+  indigo: "#4f46e5",
+  emerald: "#10b981",
+  purple: "#a855f7",
+};
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
@@ -278,53 +285,26 @@ export function CleanerTab() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* STATS OVERVIEW CARDS */}
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <GradientCard className="hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                  <HardDrive size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    {t("Total Junk")}
-                  </p>
-                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
-                    {totalSelectedGB} GB
-                  </p>
-                </div>
-              </div>
-            </GradientCard>
+            <StatCard
+              icon={<HardDrive size={18} />}
+              label={t("Total Junk")}
+              value={`${totalSelectedGB} GB`}
+              color={C.indigo}
+            />
 
-            <GradientCard className="hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                  <Files size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    {t("Files Found")}
-                  </p>
-                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
-                    {totalSelectedFiles.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </GradientCard>
+            <StatCard
+              icon={<Files size={18} />}
+              label={t("Files Found")}
+              value={totalSelectedFiles.toLocaleString()}
+              color={C.emerald}
+            />
 
-            <GradientCard className="hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 rounded-xl">
-                  <Clock size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                    {t("Scan Duration")}
-                  </p>
-                  <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
-                    {scanDuration}
-                  </p>
-                </div>
-              </div>
-            </GradientCard>
+            <StatCard
+              icon={<Clock size={18} />}
+              label={t("Scan Duration")}
+              value={scanDuration}
+              color={C.purple}
+            />
 
             <div className="col-span-1 sm:col-span-3">
               <GradientCard className="h-full flex flex-col justify-center">
