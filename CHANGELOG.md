@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.7] - 2026-06-26
+
+### Removed
+- **Unused Customizations**: Removed redundant and unrelated frontend visual design-taste skills (`brandkit`, `gpt-taste`, `minimalist-ui`, etc.) to reduce agent system prompt token consumption.
+
+
 ## [0.16.6] - 2026-06-26
 
 ### Added
