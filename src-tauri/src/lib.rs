@@ -922,6 +922,16 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         "ram" => {
             let _ = clean_ram();
         }
+        "dns" => {
+            let _ = flush_dns();
+        }
+        "startup_delay" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize")
+                .map_err(|e| format!("Registry error: {}", e))?;
+            key.set_value("StartupDelayInMSec", &0u32)
+                .map_err(|e| format!("Registry write failed: {}", e))?;
+        }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
             let (key, _) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
@@ -1000,6 +1010,18 @@ fn restore_boost(id: String) -> Result<String, String> {
     match id.as_str() {
         "ram" => {
             // RAM is cleared dynamically, no-op for restore
+        }
+        "dns" => {
+            // DNS cache flush is a one-way operation, nothing to restore
+        }
+        "startup_delay" => {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+            if let Ok(key) = hkcu.open_subkey_with_flags(
+                "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
+                KEY_WRITE,
+            ) {
+                let _ = key.delete_value("StartupDelayInMSec");
+            }
         }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
@@ -1358,6 +1380,43 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     }
 }
 
+#[tauri::command]
+async fn export_diagnostics_report(report_content: String) -> Result<String, String> {
+    let script = r#"
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object System.Windows.Forms.SaveFileDialog
+    $dialog.Filter = "Markdown Files (*.md)|*.md|Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+    $dialog.Title = "Save Diagnostics Report"
+    $dialog.FileName = "CPulse-Diagnostics-Report"
+    $res = $dialog.ShowDialog()
+    if ($res -eq [System.Windows.Forms.DialogResult]::OK) {
+        Write-Output $dialog.FileName
+    } else {
+        Write-Output "CANCELLED"
+    }
+    "#;
+    
+    let output = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-Command", script])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| e.to_string())?;
+        
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+    
+    let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if path_str == "CANCELLED" || path_str.is_empty() {
+        return Err("Cancelled by user".to_string());
+    }
+    
+    std::fs::write(&path_str, report_content)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+        
+    Ok(format!("Report saved successfully to {}", path_str))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1517,7 +1576,8 @@ pub fn run() {
             toggle_context_menu,
             update_auto_clean,
             get_system_info,
-            generate_diagnostics_report
+            generate_diagnostics_report,
+            export_diagnostics_report
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

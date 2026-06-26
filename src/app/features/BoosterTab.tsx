@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   RefreshCw,
   Lock,
+  Clock,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -108,6 +109,16 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       adminRequired: true,
     },
     {
+      id: "dns",
+      icon: <Globe size={18} />,
+      title: "DNS Cache Flusher",
+      desc: "Flush DNS resolver cache to optimize network connection and reduce latency",
+      gain: "Cleared cache",
+      color: C.cyan,
+      category: "Network",
+      adminRequired: false,
+    },
+    {
       id: "visual",
       icon: <Monitor size={18} />,
       title: "Visual Effects Trim",
@@ -155,6 +166,16 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       gain: "−4°C average",
       color: C.amber,
       category: "Cooling",
+      adminRequired: false,
+    },
+    {
+      id: "startup_delay",
+      icon: <Clock size={18} />,
+      title: "Startup Delay Speedup",
+      desc: "Disable Windows startup app launch delay for faster booting",
+      gain: "−2s boot wait",
+      color: C.amber,
+      category: "Boot",
       adminRequired: false,
     },
   ];
