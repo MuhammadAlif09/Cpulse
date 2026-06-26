@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion, getName } from "@tauri-apps/api/app";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
+import { MainLayout } from "./layouts/MainLayout";
 import {
   Shield,
   Trash2,
@@ -25,7 +26,6 @@ import {
   Clock,
   Lock,
   Globe,
-  Bell,
   Eye,
   EyeOff,
   RefreshCw,
@@ -40,8 +40,6 @@ import {
   Battery,
   Search,
 } from "lucide-react";
-// @ts-ignore
-import AppLogo from "../assets/app-icon.png";
 import {
   AreaChart,
   Area,
@@ -563,7 +561,7 @@ export default function App() {
   const junkItems = useCleanerStore((state) => state.junkCats);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.16.2");
+  const [appVersion, setAppVersion] = useState("0.16.4");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {
@@ -724,281 +722,76 @@ export default function App() {
   }, []);
 
   return (
-    <div
-      className="h-screen w-full flex flex-col overflow-hidden bg-background text-foreground transition-colors duration-300"
-      style={{
-        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+    <MainLayout
+      headerProps={{
+        appName,
+        appVersion,
+        isAdmin,
+        time,
+        lang,
+        t,
+        tab,
+        setTab,
+        unreadCount,
+        showNotif,
+        setShowNotif,
+        notifications,
+        setNotifications,
+      }}
+      sidebarProps={{
+        nav: NAV,
+        tab,
+        setTab,
+        junkItems,
+        startupItems,
+        privacyItems: PRIVACY_ITEMS,
+        privacySwept,
+        score,
+        healthText,
+        issues,
+        lang,
+        t,
       }}
     >
-      {/* topbar */}
-      <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-card/85 dark:bg-slate-900/85 backdrop-blur-md flex-shrink-0 border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-800">
-            <img src={AppLogo} alt="Logo" className="w-8 h-8 object-contain" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{appName}</span>
-            <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300">
-              v{appVersion}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isAdmin ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              {t(lang, "Administrator Mode")}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {t(lang, "Standard Mode")}
-            </div>
-          )}
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
-            {time.toLocaleTimeString()}
-          </span>
-
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button
-              className={cn(
-                "relative w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
-                showNotif
-                  ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-              )}
-              onClick={() => setShowNotif(!showNotif)}
-            >
-              <Bell size={16} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900" />
-              )}
-            </button>
-
-            {showNotif && (
-              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-card/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl border border-border overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50/50 dark:bg-slate-950/50">
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {t(lang, "Notifications")}
-                  </span>
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={() => setNotifications([])}
-                      className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition cursor-pointer"
-                    >
-                      {t(lang, "Clear all")}
-                    </button>
-                  )}
-                </div>
-                <div className="max-h-[300px] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
-                      <Bell size={24} className="mb-2 opacity-50" />
-                      <span className="text-xs text-center">
-                        {t(lang, "No new notifications.")}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      {notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={cn(
-                            "px-4 py-3 border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/40 transition cursor-default",
-                            n.unread ? "bg-indigo-50/30 dark:bg-indigo-950/10" : ""
-                          )}
-                          onClick={() =>
-                            setNotifications((prev) =>
-                              prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x))
-                            )
-                          }
-                        >
-                          <div className="flex gap-3">
-                            <div
-                              className={cn(
-                                "w-2 h-2 rounded-full mt-1.5 flex-shrink-0 transition-all",
-                                n.unread ? "bg-indigo-500" : "bg-transparent"
-                              )}
-                            />
-                            <div>
-                              <div
-                                className={cn(
-                                  "text-sm mb-0.5 transition-colors",
-                                  n.unread
-                                    ? "font-semibold text-indigo-900 dark:text-indigo-300"
-                                    : "font-medium text-slate-800 dark:text-slate-200"
-                                )}
-                              >
-                                {n.title}
-                              </div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                                {n.desc}
-                              </div>
-                              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
-                                {n.time}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
-              tab === "settings"
-                ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-            onClick={() => setTab("settings")}
-          >
-            <Settings size={16} />
-          </button>
-        </div>
+      <div className="mb-6 animate-fade-in">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-300">
+          {t(lang, NAV.find((n) => n.id === tab)?.label || "")}
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 transition-colors duration-300">
+          {t(lang, TAB_DESC[tab])}
+        </p>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* sidebar */}
-        <aside className="w-52 flex-shrink-0 border-r bg-card/70 backdrop-blur-sm flex flex-col py-4 px-3 gap-0.5 border-border">
-          {NAV.map((n) => {
-            const active = tab === n.id;
-
-            let badgeCount: number | undefined = n.badge;
-            if (n.id === "cleaner") {
-              badgeCount = junkItems.length > 0 ? junkItems.length : undefined;
-            } else if (n.id === "startup") {
-              const activeCount = startupItems.filter((i) => i.enabled).length;
-              badgeCount = activeCount > 0 ? activeCount : undefined;
-            } else if (n.id === "privacy") {
-              const privacyCount = PRIVACY_ITEMS.filter((i) => i.found).length;
-              badgeCount = privacySwept ? undefined : privacyCount;
-            }
-
-            return (
-              <button
-                key={n.id}
-                onClick={() => setTab(n.id)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all relative text-left cursor-pointer"
-                style={
-                  active
-                    ? {
-                        background:
-                          "linear-gradient(135deg, var(--accent), var(--accent-foreground)/20%)",
-                        color: "var(--primary)",
-                        fontWeight: 600,
-                      }
-                    : { color: "var(--muted-foreground)" }
-                }
-              >
-                <span style={active ? { color: "var(--primary)" } : { color: "#94a3b8" }}>
-                  {n.icon}
-                </span>
-                <span className="flex-1">{t(lang, n.label)}</span>
-                {badgeCount !== undefined && (
-                  <span
-                    className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
-                    style={
-                      active
-                        ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                        : { background: "var(--secondary)", color: "var(--secondary-foreground)" }
-                    }
-                  >
-                    {badgeCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          <div className="mt-auto px-1 transition-all duration-500 ease-in-out">
-            {/* score card */}
-            <div
-              className="rounded-xl p-3.5 mb-2"
-              style={{
-                background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
-                boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={13} color="rgba(255,255,255,0.8)" />
-                <span className="text-xs text-indigo-100 font-medium">Health Score</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{score} / 100</div>
-              <div className="text-xs text-indigo-200 mt-0.5">
-                {healthText} — {issues.length} issue{issues.length !== 1 ? "s" : ""}
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-white/20 mt-2">
-                <div
-                  className="h-1.5 rounded-full bg-white/80 transition-all"
-                  style={{ width: `${score}%` }}
-                />
-              </div>
-            </div>
-
-            {/* last scan */}
-            <div className="rounded-xl p-3 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-xs transition-colors duration-300">
-              <div className="text-slate-400 dark:text-slate-500 mb-1">
-                {t(lang, "Last cleaned")}
-              </div>
-              <div className="font-semibold text-slate-700 dark:text-slate-200">
-                {t(lang, "Belum ada")}
-              </div>
-              <div className="text-slate-400 dark:text-slate-500">0 GB {t(lang, "freed")}</div>
-            </div>
-          </div>
-        </aside>
-
-        {/* main */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6 animate-fade-in">
-              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-300">
-                {t(lang, NAV.find((n) => n.id === tab)?.label || "")}
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 transition-colors duration-300">
-                {t(lang, TAB_DESC[tab])}
-              </p>
-            </div>
-
-            {tab === "dashboard" && (
-              <DashboardTab
-                lang={lang}
-                setTab={setTab}
-                metrics={metrics}
-                junkItems={junkItems}
-                startupItems={startupItems}
-                score={score}
-                issues={issues}
-                healthText={healthText}
-              />
-            )}
-            {tab === "cleaner" && <CleanerTab lang={lang} />}
-            {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
-            {tab === "startup" && <StartupTab />}
-            {tab === "privacy" && (
-              <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
-            )}
-            {tab === "history" && <HistoryTab />}
-            {tab === "diagnostics" && <DiagnosticsTab />}
-            {tab === "settings" && (
-              <SettingsTab
-                appName={appName}
-                appVersion={appVersion}
-                onLanguageChange={(l) => {
-                  setLang(l);
-                  setGlobalSettings((prev: any) => ({ ...prev, language: l }));
-                }}
-              />
-            )}
-          </div>
-        </main>
-      </div>
-    </div>
+      {tab === "dashboard" && (
+        <DashboardTab
+          lang={lang}
+          setTab={setTab}
+          metrics={metrics}
+          junkItems={junkItems}
+          startupItems={startupItems}
+          score={score}
+          issues={issues}
+          healthText={healthText}
+        />
+      )}
+      {tab === "cleaner" && <CleanerTab />}
+      {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
+      {tab === "startup" && <StartupTab />}
+      {tab === "privacy" && (
+        <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
+      )}
+      {tab === "history" && <HistoryTab />}
+      {tab === "diagnostics" && <DiagnosticsTab />}
+      {tab === "settings" && (
+        <SettingsTab
+          appName={appName}
+          appVersion={appVersion}
+          onLanguageChange={(l) => {
+            setLang(l);
+            setGlobalSettings((prev: any) => ({ ...prev, language: l }));
+          }}
+        />
+      )}
+    </MainLayout>
   );
 }

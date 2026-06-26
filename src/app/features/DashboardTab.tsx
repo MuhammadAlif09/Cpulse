@@ -30,6 +30,9 @@ import {
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { useJunkScanner } from "../hooks/useJunkScanner";
 import { addHistoryLog } from "../utils/history";
+import { StatCard } from "../components/ui/StatCard";
+import { DiskRow } from "../components/ui/DiskRow";
+import { QuickActionButton } from "../components/ui/QuickActionButton";
 
 const C = {
   indigo: "#4f46e5",
@@ -353,23 +356,14 @@ export function DashboardTab({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {STATS.map((s) => (
-          <GradientCard key={s.label}>
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: `${s.color}20`, color: s.color }}
-              >
-                {s.icon}
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{s.value}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-              {s.sub}
-            </div>
-            <div className="text-xs font-medium mt-2" style={{ color: s.color }}>
-              {t(s.label)}
-            </div>
-          </GradientCard>
+          <StatCard
+            key={s.label}
+            icon={s.icon}
+            label={t(s.label)}
+            value={s.value}
+            sub={s.sub}
+            color={s.color}
+          />
         ))}
       </div>
 
@@ -384,22 +378,6 @@ export function DashboardTab({
             <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
           </div>
           <div className="relative h-20">
-            {/* big bg number */}
-            <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
-              <span
-                className="font-black leading-none animate-pulse-subtle"
-                style={{
-                  fontSize: "4.5rem",
-                  background: `linear-gradient(180deg, ${C.indigo}18 0%, ${C.indigo}02 100%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                {metrics ? Math.round(metrics.cpu_usage) : 0}%
-              </span>
-            </div>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cpuData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
                 <defs>
@@ -444,22 +422,6 @@ export function DashboardTab({
             <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
           </div>
           <div className="relative h-20">
-            {/* big bg number */}
-            <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none select-none overflow-hidden">
-              <span
-                className="font-black leading-none animate-pulse-subtle"
-                style={{
-                  fontSize: "4.5rem",
-                  background: `linear-gradient(180deg, ${C.violet}18 0%, ${C.violet}02 100%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                {metrics ? Math.round(metrics.ram_usage) : 0}%
-              </span>
-            </div>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={ramData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
                 <defs>
@@ -507,51 +469,7 @@ export function DashboardTab({
           </div>
           <div className="space-y-3 max-h-[96px] overflow-y-auto pr-1">
             {metrics?.disks && metrics.disks.length > 0 ? (
-              metrics.disks.map((disk: any) => {
-                const usedPct = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
-                const barColor = usedPct > 85 ? C.rose : usedPct > 70 ? C.amber : C.indigo;
-                const barBg =
-                  usedPct > 85
-                    ? "rgba(244,63,94,0.15)"
-                    : usedPct > 70
-                      ? "rgba(245,158,11,0.15)"
-                      : "rgba(79,70,229,0.15)";
-                return (
-                  <div key={disk.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 min-w-0">
-                        <HardDrive
-                          size={13}
-                          className="text-slate-400 dark:text-slate-500 flex-shrink-0"
-                        />
-                        <span className="truncate">{disk.name}</span>
-                        <span className="text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-1 py-0.25 rounded flex-shrink-0">
-                          {disk.disk_type || "SSD"}
-                        </span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate hidden md:inline">
-                          {disk.model}
-                        </span>
-                      </div>
-                      <span className="font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
-                        {disk.used.toFixed(1)} / {disk.total.toFixed(1)} GB
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: barBg }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${usedPct}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
-                    </div>
-                    <div className="text-[9px] text-slate-400 dark:text-slate-500 flex md:hidden items-center justify-between font-medium">
-                      <span className="truncate max-w-[150px]">{disk.model}</span>
-                      <span>{usedPct}% used</span>
-                    </div>
-                  </div>
-                );
-              })
+              metrics.disks.map((disk: any) => <DiskRow key={disk.name} disk={disk} t={t} />)
             ) : (
               <div className="text-xs text-slate-400 py-6 text-center">{t("Loading disks...")}</div>
             )}
@@ -587,6 +505,7 @@ export function DashboardTab({
                       : junkSizeStr,
               color: C.indigo,
               onClick: handleCleanJunk,
+              isLoading: cleanActionState === "scanning" || cleanActionState === "cleaning",
             },
             {
               id: "booster",
@@ -605,6 +524,7 @@ export function DashboardTab({
                     : t("Optimize memory"),
               color: C.violet,
               onClick: handleRamBoost,
+              isLoading: boostActionState === "running",
             },
             {
               id: "startup",
@@ -613,6 +533,7 @@ export function DashboardTab({
               sub: startupCountStr,
               color: C.amber,
               onClick: () => setTab("startup"),
+              isLoading: false,
             },
             {
               id: "privacy",
@@ -621,34 +542,19 @@ export function DashboardTab({
               sub: t("Traces found"),
               color: C.rose,
               onClick: () => setTab("privacy"),
+              isLoading: false,
             },
           ].map((a) => (
-            <button
+            <QuickActionButton
               key={a.id}
+              id={a.id}
+              icon={a.icon}
+              label={a.label}
+              sub={a.sub}
+              color={a.color}
               onClick={a.onClick}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:scale-95 group text-left w-full cursor-pointer"
-              style={{ background: `linear-gradient(135deg, ${a.color}05, ${a.color}0f)` }}
-            >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                style={{ background: `${a.color}15`, color: a.color }}
-              >
-                {a.id === "cleaner" &&
-                (cleanActionState === "scanning" || cleanActionState === "cleaning") ? (
-                  <RefreshCw size={20} className="animate-spin" />
-                ) : a.id === "booster" && boostActionState === "running" ? (
-                  <RefreshCw size={20} className="animate-spin" />
-                ) : (
-                  a.icon
-                )}
-              </div>
-              <div className="text-center">
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {a.label}
-                </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{a.sub}</div>
-              </div>
-            </button>
+              isLoading={a.isLoading}
+            />
           ))}
         </div>
       </GradientCard>

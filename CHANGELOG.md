@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.4] - 2026-06-26
+
+### Added
+- **UI Primitives**: Added reusable `<StatCard />`, `<DiskRow />`, and `<QuickActionButton />` primitive components under `src/app/components/ui/` to enforce clean layout design, premium styling, and robust type contracts.
+- **Layout Shell Decomposition**: Scaffolded `<Header />`, `<Sidebar />` layout components, and a `<MainLayout />` container shell to decouple shell visual structure from `App.tsx` state logic.
+
+### Changed
+- **Dashboard Telemetry Refactor**: Updated `DashboardTab.tsx` to leverage the new UI primitives and removed big animating background overlay digits from CPU & RAM charts.
+
+### Fixed
+- **Test Suite Resolution**: Fixed component default/named import discrepancies and missing props definitions inside component tests to ensure 100% test coverage compliance.
+
+
 ## [0.16.3] - 2026-06-26
 
 ### Fixed
