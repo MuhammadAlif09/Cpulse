@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.10] - 2026-06-26
+
+### Fixed
+- **Cleaner Telemetry Discrepancy**: Updated the frontend Zustand store (`useCleanerStore`), `CleanerTab`, and `DashboardTab` to consume the actual `bytes_freed` and `files_cleaned` returned from the Tauri backend instead of using scanned estimates.
+- **Silent Cleaner Telemetry**: Fixed `run_silent_clean` in `cleaner.rs` to log actual cleaned metrics and replaced slow PowerShell process spawns with native `chrono` date/time formatting.
+- **Cargo Dependency**: Integrated `chrono` dependency under `src-tauri/Cargo.toml` to support fast local time calculations.
+
+## [0.16.9] - 2026-06-26
+
+### Fixed
+- **Cleaner Freezing**: Offloaded file scanning and deletion commands in `cleaner.rs` (`scan_junk`, `clean_junk`) to asynchronous worker threads using `spawn_blocking` to prevent UI freezing.
+- **Cleaner Progress**: Fixed junk cleanup progress bar calculation so that progress increments and is emitted only when user-selected categories are processed, preventing overflow (e.g. 255%).
 ## [0.16.8] - 2026-06-26
 
 ### Fixed

@@ -644,12 +644,19 @@ pub fn scan_junk_internal(
 // ─── Tauri Commands ───────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
+pub async fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
     // Reset the cancel flag before starting a new scan
     let cancel_state = app.state::<ScanCancelFlag>();
     cancel_state.0.store(false, Ordering::SeqCst);
 
-    scan_junk_internal(Some(&app), Some(&cancel_state.0))
+    let cancel_flag = cancel_state.0.clone();
+    let app_clone = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        scan_junk_internal(Some(&app_clone), Some(&cancel_flag))
+    })
+    .await
+    .map_err(|e| format!("Scan junk thread panicked: {}", e))?
 }
 
 #[tauri::command]
@@ -668,10 +675,13 @@ pub fn clear_dir_internal(
     to_trash: bool,
     time_str: &str,
     is_root: bool,
-) {
+) -> (u64, usize) {
     if !path.exists() {
-        return;
+        return (0, 0);
     }
+
+    let mut bytes_freed = 0u64;
+    let mut files_cleaned = 0usize;
 
     if path.is_file() {
         let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
@@ -682,6 +692,11 @@ pub fn clear_dir_internal(
         } else {
             fs::remove_file(path).map_err(|e| e.to_string())
         };
+
+        if result.is_ok() {
+            bytes_freed += size;
+            files_cleaned += 1;
+        }
 
         if let Some(w) = writer.as_mut() {
             match result {
@@ -710,7 +725,9 @@ pub fn clear_dir_internal(
     } else if path.is_dir() {
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries.flatten() {
-                clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
+                let (b, f) = clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
+                bytes_freed += b;
+                files_cleaned += f;
             }
         }
 
@@ -749,12 +766,14 @@ pub fn clear_dir_internal(
             }
         }
     }
+
+    (bytes_freed, files_cleaned)
 }
 
-pub fn clear_dir(path: &Path, to_trash: bool) -> Result<(), String> {
+pub fn clear_dir(path: &Path, to_trash: bool) -> Result<(u64, usize), String> {
     let mut dummy: Option<BufWriter<fs::File>> = None;
-    clear_dir_internal(&mut dummy, path, "", to_trash, "", true);
-    Ok(())
+    let res = clear_dir_internal(&mut dummy, path, "", to_trash, "", true);
+    Ok(res)
 }
 
 /// Clears all files matching a name pattern inside a parent directory.
@@ -766,14 +785,19 @@ fn clear_matching_children(
     category: &str,
     to_trash: bool,
     time_str: &str,
-) {
+) -> (u64, usize) {
+    let mut bytes_freed = 0u64;
+    let mut files_cleaned = 0usize;
+
     if let Ok(entries) = fs::read_dir(base) {
         for entry in entries.flatten() {
             let entry_name = entry.file_name().to_string_lossy().to_lowercase();
             if entry_name.contains(name_contains) {
                 let path = entry.path();
                 if path.is_dir() {
-                    clear_dir_internal(writer, &path, category, to_trash, time_str, true);
+                    let (b, f) = clear_dir_internal(writer, &path, category, to_trash, time_str, true);
+                    bytes_freed += b;
+                    files_cleaned += f;
                 } else if path.is_file() {
                     let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
                     let path_str = path.to_string_lossy();
@@ -783,6 +807,11 @@ fn clear_matching_children(
                     } else {
                         fs::remove_file(&path).map_err(|e| e.to_string())
                     };
+
+                    if result.is_ok() {
+                        bytes_freed += size;
+                        files_cleaned += 1;
+                    }
 
                     if let Some(w) = writer.as_mut() {
                         match result {
@@ -816,6 +845,7 @@ fn clear_matching_children(
             }
         }
     }
+    (bytes_freed, files_cleaned)
 }
 
 /// Empties the Recycle Bin across all drives using PowerShell.
@@ -823,7 +853,8 @@ fn clear_matching_children(
 fn empty_recycle_bin(
     writer: &mut Option<BufWriter<fs::File>>,
     time_str: &str,
-) {
+) -> (u64, usize) {
+    let (rb_bytes, rb_count) = get_recycle_bin_size();
     let output = std::process::Command::new("powershell")
         .args([
             "-NoProfile",
@@ -832,6 +863,11 @@ fn empty_recycle_bin(
         ])
         .creation_flags(0x08000000)
         .output();
+
+    let success = match &output {
+        Ok(out) => out.status.success(),
+        Err(_) => false,
+    };
 
     if let Some(w) = writer.as_mut() {
         match output {
@@ -859,25 +895,30 @@ fn empty_recycle_bin(
                 );
             }
         }
-    } else {
-        // Even without a writer, still execute the command
-        let _ = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                "Clear-RecycleBin -Force -ErrorAction SilentlyContinue",
-            ])
-            .creation_flags(0x08000000)
-            .output();
     }
+
+    if success {
+        (rb_bytes, rb_count)
+    } else {
+        (0, 0)
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct CleanResult {
+    pub bytes_freed: u64,
+    pub files_cleaned: usize,
 }
 
 pub fn clean_junk_internal(
     app: &tauri::AppHandle,
     categories: Vec<String>,
     emit_progress: bool,
-) -> Result<String, String> {
+) -> Result<CleanResult, String> {
     let is_admin = is_elevated::is_elevated();
+
+    let mut total_bytes_freed = 0u64;
+    let mut total_files_cleaned = 0usize;
 
     let mut writer: Option<BufWriter<fs::File>> = None;
     let mut time_str = String::new();
@@ -891,22 +932,18 @@ pub fn clean_junk_internal(
     }
 
     if writer.is_some() {
-        let out = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'",
-            ])
-            .creation_flags(0x08000000)
-            .output();
-        if let Ok(o) = out {
-            if o.status.success() {
-                time_str = String::from_utf8_lossy(&o.stdout).trim().to_string();
-            }
+        time_str = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    }
+
+    // Return early if there's nothing to clean
+    if categories.is_empty() {
+        if emit_progress {
+            let _ = app.emit("clean_progress", 100u8);
         }
-        if time_str.is_empty() {
-            time_str = "unknown".to_string();
-        }
+        return Ok(CleanResult {
+            bytes_freed: 0,
+            files_cleaned: 0,
+        });
     }
 
     let total_steps = categories.len() as f32;
@@ -914,8 +951,7 @@ pub fn clean_junk_internal(
 
     // ── Clean: Windows Temp Files ──────────────────────────────────────
     if categories.contains(&"Windows Temp Files".to_string()) {
-        // Temp files are safe to delete permanently (not sent to Recycle Bin)
-        clear_dir_internal(
+        let (b, f) = clear_dir_internal(
             &mut writer,
             &std::env::temp_dir(),
             "Windows Temp Files",
@@ -923,8 +959,11 @@ pub fn clean_junk_internal(
             &time_str,
             true,
         );
+        total_bytes_freed += b;
+        total_files_cleaned += f;
+
         if is_admin {
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &PathBuf::from("C:\\Windows\\Temp"),
                 "Windows Temp Files",
@@ -932,11 +971,13 @@ pub fn clean_junk_internal(
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Browser Cache ──────────────────────────────────────────
@@ -944,172 +985,209 @@ pub fn clean_junk_internal(
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let local_app_data = PathBuf::from(local_app_data);
             // Chrome
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
-            clear_dir_internal(
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("Google\\Chrome\\User Data\\Default\\Code Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
             // Edge
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
-            clear_dir_internal(
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Code Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
             // Brave
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
-            clear_dir_internal(
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache"),
                 "Browser Cache",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Windows Update Cache ───────────────────────────────────
-    if categories.contains(&"Windows Update Cache".to_string()) && is_admin {
-        clear_dir_internal(
-            &mut writer,
-            &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
-            "Windows Update Cache",
-            true,
-            &time_str,
-            true,
-        );
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+    if categories.contains(&"Windows Update Cache".to_string()) {
+        if is_admin {
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
+                "Windows Update Cache",
+                false,
+                &time_str,
+                true,
+            );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+        }
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Crash Dumps & Logs ─────────────────────────────────────
     if categories.contains(&"Crash Dumps & Logs".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &PathBuf::from(local_app_data).join("CrashDumps"),
                 "Crash Dumps & Logs",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
         if is_admin {
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &PathBuf::from("C:\\Windows\\Minidump"),
                 "Crash Dumps & Logs",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Recycle Bin ─────────────────────────────────────────────
     if categories.contains(&"Recycle Bin".to_string()) {
-        empty_recycle_bin(&mut writer, &time_str);
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        let (b, f) = empty_recycle_bin(&mut writer, &time_str);
+        total_bytes_freed += b;
+        total_files_cleaned += f;
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Windows Prefetch ───────────────────────────────────────
-    if categories.contains(&"Windows Prefetch".to_string()) && is_admin {
-        clear_dir_internal(
-            &mut writer,
-            &PathBuf::from("C:\\Windows\\Prefetch"),
-            "Windows Prefetch",
-            false, // Prefetch files don't need Recycle Bin
-            &time_str,
-            true,
-        );
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+    if categories.contains(&"Windows Prefetch".to_string()) {
+        if is_admin {
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\Prefetch"),
+                "Windows Prefetch",
+                false,
+                &time_str,
+                true,
+            );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+        }
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Thumbnail Cache ────────────────────────────────────────
     if categories.contains(&"Thumbnail Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let explorer_dir = PathBuf::from(&local_app_data).join("Microsoft\\Windows\\Explorer");
-            clear_matching_children(
+            let (b, f) = clear_matching_children(
                 &mut writer,
                 &explorer_dir,
                 "thumbcache",
                 "Thumbnail Cache",
-                false, // Delete permanently — they're regenerated
+                false,
                 &time_str,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Windows Log Files ──────────────────────────────────────
-    if categories.contains(&"Windows Log Files".to_string()) && is_admin {
-        clear_dir_internal(
-            &mut writer,
-            &PathBuf::from("C:\\Windows\\Logs"),
-            "Windows Log Files",
-            false,
-            &time_str,
-            true,
-        );
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+    if categories.contains(&"Windows Log Files".to_string()) {
+        if is_admin {
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\Logs"),
+                "Windows Log Files",
+                false,
+                &time_str,
+                true,
+            );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+        }
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Font Cache ─────────────────────────────────────────────
     if categories.contains(&"Font Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let font_cache_dir = PathBuf::from(&local_app_data);
-            clear_matching_children(
+            let (b, f) = clear_matching_children(
                 &mut writer,
                 &font_cache_dir,
                 "fontcache",
@@ -1117,17 +1195,19 @@ pub fn clean_junk_internal(
                 false,
                 &time_str,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: DirectX Shader Cache ───────────────────────────────────
     if categories.contains(&"DirectX Shader Cache".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &PathBuf::from(local_app_data).join("D3DSCache"),
                 "DirectX Shader Cache",
@@ -1135,82 +1215,116 @@ pub fn clean_junk_internal(
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Windows Error Reports ──────────────────────────────────
     if categories.contains(&"Windows Error Reports".to_string()) {
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            clear_dir_internal(
+            let (b, f) = clear_dir_internal(
                 &mut writer,
                 &PathBuf::from(local_app_data).join("Microsoft\\Windows\\WER"),
                 "Windows Error Reports",
-                true,
+                false,
                 &time_str,
                 true,
             );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Delivery Optimization ──────────────────────────────────
-    if categories.contains(&"Delivery Optimization".to_string()) && is_admin {
-        clear_dir_internal(
-            &mut writer,
-            &PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization"),
-            "Delivery Optimization",
-            true,
-            &time_str,
-            true,
-        );
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+    if categories.contains(&"Delivery Optimization".to_string()) {
+        if is_admin {
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization"),
+                "Delivery Optimization",
+                false,
+                &time_str,
+                true,
+            );
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+        }
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     // ── Clean: Application Cache ──────────────────────────────────────
     if categories.contains(&"Application Cache".to_string()) {
         if let Some(appdata) = std::env::var_os("APPDATA") {
             let appdata = PathBuf::from(appdata);
-            clear_dir_internal(&mut writer, &appdata.join("discord\\Cache"), "Application Cache", true, &time_str, true);
-            clear_dir_internal(&mut writer, &appdata.join("discord\\Code Cache"), "Application Cache", true, &time_str, true);
-            clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Cache"), "Application Cache", true, &time_str, true);
-            clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Code Cache"), "Application Cache", true, &time_str, true);
+            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("discord\\Cache"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("discord\\Code Cache"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Cache"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Code Cache"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let local_app_data = PathBuf::from(local_app_data);
-            clear_dir_internal(&mut writer, &local_app_data.join("Steam\\htmlcache"), "Application Cache", true, &time_str, true);
-            // Riot Games logs and data only
-            clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Logs"), "Application Cache", true, &time_str, true);
-            clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Data"), "Application Cache", true, &time_str, true);
+            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Steam\\htmlcache"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Logs"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
+
+            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Data"), "Application Cache", false, &time_str, true);
+            total_bytes_freed += b;
+            total_files_cleaned += f;
         }
-    }
-    current_step += 1.0;
-    if emit_progress {
-        let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        current_step += 1.0;
+        if emit_progress && total_steps > 0.0 {
+            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+        }
     }
 
     if let Some(mut w) = writer {
         let _ = w.flush();
     }
 
-    Ok("Cleaned successfully".into())
+    Ok(CleanResult {
+        bytes_freed: total_bytes_freed,
+        files_cleaned: total_files_cleaned,
+    })
 }
 
 #[tauri::command]
-pub fn clean_junk(
+pub async fn clean_junk(
     app: tauri::AppHandle,
     categories: Vec<String>,
-) -> Result<String, String> {
-    clean_junk_internal(&app, categories, true)
+) -> Result<CleanResult, String> {
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        clean_junk_internal(&app_clone, categories, true)
+    })
+    .await
+    .map_err(|e| format!("Clean junk thread panicked: {}", e))?
 }
 
 #[tauri::command]
@@ -1236,21 +1350,19 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
     // 1. Scan first to find how much space can be freed (no cancel for silent mode)
     let scan_results = scan_junk_internal(None, None).unwrap_or_default();
 
-    let total_bytes: u64 = scan_results.iter().map(|item| item.bytes).sum();
-    let total_files: usize = scan_results.iter().map(|item| item.count).sum();
-
     let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
 
     // 2. Perform the clean
-    let _ = clean_junk_internal(app_handle, categories, false);
+    let clean_res = clean_junk_internal(app_handle, categories, false)
+        .unwrap_or(CleanResult { bytes_freed: 0, files_cleaned: 0 });
 
     let duration = start_time.elapsed().as_secs_f64();
     let duration_str = format!("{:.1}s", duration);
 
-    let freed_str = if total_bytes > 1073741824 {
-        format!("{:.2} GB", total_bytes as f64 / 1073741824.0)
+    let freed_str = if clean_res.bytes_freed > 1073741824 {
+        format!("{:.2} GB", clean_res.bytes_freed as f64 / 1073741824.0)
     } else {
-        format!("{:.1} MB", total_bytes as f64 / 1048576.0)
+        format!("{:.1} MB", clean_res.bytes_freed as f64 / 1048576.0)
     };
 
     // 3. Write log to history.json
@@ -1268,28 +1380,12 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
             }
         }
 
-        let time_str = std::process::Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-Command",
-                "Get-Date -Format 'MMM dd, yyyy, hh:mm tt'",
-            ])
-            .creation_flags(0x08000000)
-            .output()
-            .ok()
-            .and_then(|out| {
-                if out.status.success() {
-                    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| "Just Now".to_string());
+        let time_str = chrono::Local::now().format("%b %d, %Y, %I:%M %p").to_string();
 
         let new_log = serde_json::json!({
             "date": time_str,
             "freed": freed_str,
-            "fixed": total_files,
+            "fixed": clean_res.files_cleaned,
             "duration": duration_str,
             "type": "Auto Clean"
         });
@@ -1307,7 +1403,7 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
 
     println!(
         "Silent Clean Completed. Freed {} across {} files in {:.1}s.",
-        freed_str, total_files, duration
+        freed_str, clean_res.files_cleaned, duration
     );
 }
 
