@@ -140,22 +140,25 @@ export function DashboardTab({
     try {
       const results: any[] = await invoke("scan_junk");
       const bytes = results.reduce((acc, c) => acc + c.bytes, 0);
-      const sizeStr = (bytes / 1048576).toFixed(1) + " MB";
-      setCleanedSize(sizeStr);
-
-      const filesCount = results.reduce((acc, c) => acc + c.count, 0);
 
       if (bytes > 0) {
         setCleanActionState("cleaning");
         const categories = results.map((r) => r.name);
-        await invoke("clean_junk", { categories });
+        const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", { categories });
+
+        const actualFreedStr =
+          cleanResult.bytes_freed > 1073741824
+            ? (cleanResult.bytes_freed / 1073741824).toFixed(2) + " GB"
+            : (cleanResult.bytes_freed / 1048576).toFixed(1) + " MB";
+
+        setCleanedSize(actualFreedStr);
         setCleanActionState("cleaned");
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
         addHistoryLog({
           type: "Quick Clean",
-          freed: sizeStr,
-          fixed: filesCount,
+          freed: actualFreedStr,
+          fixed: cleanResult.files_cleaned,
           duration,
         });
       } else {

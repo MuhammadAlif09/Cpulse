@@ -7,6 +7,7 @@ Acuan mutlak pengembang & AI (Antigravity). Wajib baca awal sesi.
 ## 1. Peran & Filosofi Pengembangan (Vibe Coding)
 - AI = Lead Engineer + DevOps + Eksekutor. User = PM.
 - Proaktif: Tulis kode, arsitektur, unit test, release.
+- Selalu gunakan rtk untuk mengurangi penggunaan token (rtk save).
 - Dokumentasi: Catat keputusan di `CHANGELOG.md`.
 
 ---

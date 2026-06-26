@@ -88,6 +88,8 @@ export function CleanerTab() {
     toggleSelectedCategory,
     selectAllCategories,
     deselectAllCategories,
+    cleanedBytes,
+    cleanedFiles,
   } = useCleanerStore();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -101,6 +103,16 @@ export function CleanerTab() {
   const totalSelectedFiles = junkCats
     .filter((c) => selected[c.name])
     .reduce((s, c) => s + c.count, 0);
+
+  const formatBytes = (b: number) => {
+    if (b > 1_073_741_824) return (b / 1_073_741_824).toFixed(2) + " GB";
+    if (b > 1_048_576) return (b / 1_048_576).toFixed(1) + " MB";
+    if (b > 1024) return (b / 1024).toFixed(1) + " KB";
+    return b + " B";
+  };
+
+  const displayBytesStr = cleaned ? formatBytes(cleanedBytes) : `${totalSelectedGB} GB`;
+  const displayFilesStr = cleaned ? cleanedFiles.toLocaleString() : totalSelectedFiles.toLocaleString();
 
   // Checks if any selected category contains a warning or requires administrator access
   const hasSensitiveSelected = junkCats.some(
@@ -287,15 +299,15 @@ export function CleanerTab() {
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               icon={<HardDrive size={18} />}
-              label={t("Total Junk")}
-              value={`${totalSelectedGB} GB`}
+              label={cleaned ? t("Total Freed") : t("Total Junk")}
+              value={displayBytesStr}
               color={C.indigo}
             />
 
             <StatCard
               icon={<Files size={18} />}
-              label={t("Files Found")}
-              value={totalSelectedFiles.toLocaleString()}
+              label={cleaned ? t("Files Cleaned") : t("Files Found")}
+              value={displayFilesStr}
               color={C.emerald}
             />
 
@@ -363,10 +375,10 @@ export function CleanerTab() {
                 </ResponsiveContainer>
                 <div className="absolute flex flex-col items-center justify-center">
                   <span className="text-slate-400 dark:text-slate-550 text-[10px] uppercase font-semibold">
-                    {t("Selected")}
+                    {cleaned ? t("Freed") : t("Selected")}
                   </span>
                   <span className="text-lg font-black text-slate-800 dark:text-slate-200">
-                    {totalSelectedGB} GB
+                    {displayBytesStr}
                   </span>
                 </div>
               </div>

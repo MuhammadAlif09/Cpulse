@@ -25,6 +25,8 @@ interface CleanerState {
   selected: Record<string, boolean>;
   scanDuration: string;
   error: string | null;
+  cleanedBytes: number;
+  cleanedFiles: number;
 
   // Actions
   startScan: () => Promise<void>;
@@ -65,6 +67,8 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
   selected: {},
   scanDuration: "0.0s",
   error: null,
+  cleanedBytes: 0,
+  cleanedFiles: 0,
 
   setSelected: (selected) => set({ selected }),
 
@@ -107,6 +111,8 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
       selected: {},
       scanDuration: "0.0s",
       error: null,
+      cleanedBytes: 0,
+      cleanedFiles: 0,
     });
   },
 
@@ -117,6 +123,8 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
       progress: 0,
       scanning: true,
       error: null,
+      cleanedBytes: 0,
+      cleanedFiles: 0,
     });
 
     const startTime = Date.now();
@@ -170,32 +178,43 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
     const startTime = Date.now();
 
     try {
-      await invoke("clean_junk", { categories: selectedCats });
+      const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", { categories: selectedCats });
       const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
 
-      // Calculate total bytes freed
-      const totalSelected = junkCats
-        .filter((c) => selected[c.name])
-        .reduce((sum, c) => sum + c.bytes, 0);
+      const formatBytes = (b: number) => {
+        if (b > 1073741824) return (b / 1073741824).toFixed(2) + " GB";
+        if (b > 1048576) return (b / 1048576).toFixed(1) + " MB";
+        if (b > 1024) return (b / 1024).toFixed(1) + " KB";
+        return b + " B";
+      };
 
-      const freedStr =
-        totalSelected > 1073741824
-          ? (totalSelected / 1073741824).toFixed(2) + " GB"
-          : (totalSelected / 1048576).toFixed(1) + " MB";
+      const freedStr = formatBytes(cleanResult.bytes_freed);
 
-      const totalFiles = junkCats
-        .filter((c) => selected[c.name])
-        .reduce((sum, c) => sum + c.count, 0);
+      // Update junkCats to mark selected categories as 0 size
+      const updatedJunkCats = junkCats.map((cat) => {
+        if (selected[cat.name]) {
+          return {
+            ...cat,
+            bytes: 0,
+            count: 0,
+            size: "0 B",
+          };
+        }
+        return cat;
+      });
 
       set({
         cleaned: true,
         progress: 100,
+        cleanedBytes: cleanResult.bytes_freed,
+        cleanedFiles: cleanResult.files_cleaned,
+        junkCats: updatedJunkCats,
       });
 
       addHistoryLog({
         type: "Deep Clean",
         freed: freedStr,
-        fixed: totalFiles,
+        fixed: cleanResult.files_cleaned,
         duration,
       });
     } catch (e: any) {

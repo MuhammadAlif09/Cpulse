@@ -11,7 +11,7 @@ trigger: always_on
 ## ROLE
 PM gives vibe → you execute: code + docs + tests + push. No hand-holding needed.
 Ambiguity → pick conservative approach + log reason in ADR.
-READ C:\Projek\Cpulse_package\.agents\rules\antigravity-rtk-rules.md
+USE RTK
 NEVER touch `.cursorrules` or `.clinerules`.
 
 ---
