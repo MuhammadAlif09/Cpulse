@@ -41,6 +41,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallIcon": "icons/icon.ico",
+        "installMode": "both",
+        "license": "../LICENSE",
+        "languages": ["English", "Indonesian"],
+        "displayLanguageSelector": true
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
