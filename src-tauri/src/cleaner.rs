@@ -189,7 +189,7 @@ fn scan_matching_children(
 /// Returns (bytes, approximate_item_count).
 fn get_recycle_bin_size() -> (u64, usize) {
     let output = std::process::Command::new("powershell")
-        .args(&[
+        .args([
             "-NoProfile",
             "-Command",
             "$shell = New-Object -ComObject Shell.Application; \
@@ -238,7 +238,7 @@ pub fn scan_junk_internal(
     };
 
     let is_cancelled = || -> bool {
-        cancel_flag.map_or(false, |f| f.load(Ordering::Relaxed))
+        cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed))
     };
 
     // ── 1. Windows Temp Files ─────────────────────────────────────────
@@ -825,7 +825,7 @@ fn empty_recycle_bin(
     time_str: &str,
 ) {
     let output = std::process::Command::new("powershell")
-        .args(&[
+        .args([
             "-NoProfile",
             "-Command",
             "Clear-RecycleBin -Force -ErrorAction SilentlyContinue",
@@ -862,7 +862,7 @@ fn empty_recycle_bin(
     } else {
         // Even without a writer, still execute the command
         let _ = std::process::Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 "Clear-RecycleBin -Force -ErrorAction SilentlyContinue",
@@ -892,7 +892,7 @@ pub fn clean_junk_internal(
 
     if writer.is_some() {
         let out = std::process::Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'",
@@ -1269,7 +1269,7 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
         }
 
         let time_str = std::process::Command::new("powershell")
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 "Get-Date -Format 'MMM dd, yyyy, hh:mm tt'",

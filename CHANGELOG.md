@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.16.3] - 2026-06-26
+
+### Fixed
+
+- **Rust Backend Compiler Warnings (Clippy)**: Fixed all Clippy warnings in `src-tauri/src/lib.rs` and `src-tauri/src/cleaner.rs` including needless borrows, collapsible `if` blocks, unnecessary `map_or` calls (simplified using `is_some_and`), and infinite `flatten()` warning on `std::io::Lines` iterator (refactored to `map_while(Result::ok)`).
+- **UI Responsiveness & Performance**: Ensured privacy sweep and scanning functions (`sweep_privacy`, `scan_privacy`) run in an asynchronous blocking thread pool (`tauri::async_runtime::spawn_blocking`) to keep the Tauri main thread free from synchronous filesystem and registry disk I/O blocks.
+- **Workflow & Rules Cleanups**: Cleaned up the project by deleting `.clinerules` and `.cursorrules` in favor of centralized `.agents/rules/rules.md`.
+
+
 ## [0.16.2] - 2026-06-22
 
 ### Fixed

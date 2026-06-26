@@ -37,3 +37,7 @@ src-tauri/target
 
 # AI editor configs
 opencode.json
+
+# AI Editor
+.claude/
+
