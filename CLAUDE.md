@@ -20,4 +20,3 @@
 ## Agent Behavior
 - Do NOT repeatedly remind about TodoWrite. Update todo list once per major task transition only.
 - Do NOT re-read large files multiple times in one session. Extract needed sections only.
-- Selalu gunakan rtk untuk mengurangi penggunaan token (rtk save).

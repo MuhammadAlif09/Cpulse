@@ -11,20 +11,8 @@ trigger: always_on
 ## ROLE
 PM gives vibe → you execute: code + docs + tests + push. No hand-holding needed.
 Ambiguity → pick conservative approach + log reason in ADR.
-USE RTK
-NEVER touch `.cursorrules` or `.clinerules`.
 
 ---
-
-## CORE SESSION & CHAT HOOKS
-At the start of every new session, conversation, or chat, you MUST automatically initialize (call `view_file` tool with `IsSkillFile: true`) and follow these skills/rules:
-1. **brainstorming**: [brainstorming/SKILL.md](file:///C:/Users/user/.gemini/config/plugins/superpowers/skills/brainstorming/SKILL.md)
-2. **cavecrew**: [cavecrew/SKILL.md](file:///c:/Projek/Cpulse_package/.agents/skills/cavecrew/SKILL.md)
-3. **caveman**: [caveman/SKILL.md](file:///c:/Projek/Cpulse_package/.agents/skills/caveman/SKILL.md)
-4. **ponytail**: [ponytail/SKILL.md](file:///c:/Projek/Cpulse_package/.agents/skills/ponytail/SKILL.md)
-5. **Rust Token Killer (RTK)**: [antigravity-rtk-rules.md](file:///c:/Projek/Cpulse_package/.agents/rules/antigravity-rtk-rules.md)
-
-Always keep these active throughout the conversation.
 
 ---
 
