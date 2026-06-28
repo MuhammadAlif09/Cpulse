@@ -24,7 +24,7 @@ describe("App Component", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/System Health Score/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     });
   });
 

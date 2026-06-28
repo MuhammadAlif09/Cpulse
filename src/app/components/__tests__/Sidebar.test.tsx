@@ -33,10 +33,10 @@ describe("Sidebar", () => {
     expect(screen.getByText("Cleaner")).toBeInTheDocument();
     expect(screen.getByText("Booster")).toBeInTheDocument();
   });
-
   it("renders Health Score widget", () => {
     render(<Sidebar {...defaultProps} />);
     expect(screen.getByText("Health Score")).toBeInTheDocument();
-    expect(screen.getByText("100 / 100")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("/100")).toBeInTheDocument();
   });
 });

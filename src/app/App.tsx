@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion, getName } from "@tauri-apps/api/app";
+import i18n from "./i18n/i18n";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
 import { MainLayout } from "./layouts/MainLayout";
@@ -637,7 +638,10 @@ export default function App() {
       const saved = (await store.get("user-settings")) as any;
       if (saved) {
         setGlobalSettings((prev: any) => ({ ...prev, ...saved }));
-        if (saved.language) setLang(saved.language);
+        if (saved.language) {
+          setLang(saved.language);
+          i18n.changeLanguage(saved.language).catch(console.error);
+        }
       } else {
         const defaults = {
           startWithWindows: false,
@@ -654,6 +658,7 @@ export default function App() {
         await store.save();
         setGlobalSettings(defaults);
         setLang("en");
+        i18n.changeLanguage("en").catch(console.error);
       }
     };
     loadGlobalSettings();
@@ -797,6 +802,7 @@ export default function App() {
               appVersion={appVersion}
               onLanguageChange={(l) => {
                 setLang(l);
+                i18n.changeLanguage(l).catch(console.error);
                 setGlobalSettings((prev: any) => ({ ...prev, language: l }));
               }}
             />

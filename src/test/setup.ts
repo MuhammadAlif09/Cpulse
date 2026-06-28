@@ -47,6 +47,20 @@ vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: vi.fn(),
 }));
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (str: string) => str,
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: "en",
+    },
+  }),
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => {},
+  },
+}));
+
 // Reset mocks before each test
 beforeEach(() => {
   vi.clearAllMocks();
