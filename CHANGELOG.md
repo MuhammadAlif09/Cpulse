@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
 
 ### Added
 
@@ -14,38 +14,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
-## [0.16.10] - 2026-06-26
+## 0.16.10 - 2026-06-26
 
 ### Fixed
 - **Cleaner Telemetry Discrepancy**: Updated the frontend Zustand store (`useCleanerStore`), `CleanerTab`, and `DashboardTab` to consume the actual `bytes_freed` and `files_cleaned` returned from the Tauri backend instead of using scanned estimates.
 - **Silent Cleaner Telemetry**: Fixed `run_silent_clean` in `cleaner.rs` to log actual cleaned metrics and replaced slow PowerShell process spawns with native `chrono` date/time formatting.
 - **Cargo Dependency**: Integrated `chrono` dependency under `src-tauri/Cargo.toml` to support fast local time calculations.
 
-## [0.16.9] - 2026-06-26
+## 0.16.9 - 2026-06-26
 
 ### Fixed
 - **Cleaner Freezing**: Offloaded file scanning and deletion commands in `cleaner.rs` (`scan_junk`, `clean_junk`) to asynchronous worker threads using `spawn_blocking` to prevent UI freezing.
 - **Cleaner Progress**: Fixed junk cleanup progress bar calculation so that progress increments and is emitted only when user-selected categories are processed, preventing overflow (e.g. 255%).
-## [0.16.8] - 2026-06-26
+## 0.16.8 - 2026-06-26
 
 ### Fixed
 - **CI/CD Build**: Upgraded pnpm version setup in GitHub Actions workflow to v11 to align with repository lockfile format and resolve `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`.
 
 
-## [0.16.7] - 2026-06-26
+## 0.16.7 - 2026-06-26
 
 ### Removed
 - **Unused Customizations**: Removed redundant and unrelated frontend visual design-taste skills (`brandkit`, `gpt-taste`, `minimalist-ui`, etc.) to reduce agent system prompt token consumption.
 
 
-## [0.16.6] - 2026-06-26
+## 0.16.6 - 2026-06-26
 
 ### Added
 - **Export Diagnostics**: Added report export capability to `DiagnosticsTab` via native Save File Dialog powered by PowerShell.
 - **Advanced Windows Booster**: Integrated new options under `BoosterTab`—"DNS Cache Flusher" (`dns`) and "Startup Delay Speedup" (`startup_delay`), running registry-level adjustments natively and providing safe rollbacks.
 
 
-## [0.16.5] - 2026-06-26
+## 0.16.5 - 2026-06-26
 
 ### Refactored
 - **UI Primitive Migration**: Applied `<StatCard />` to both `CleanerTab` and `DiagnosticsTab` for displaying Total Junk, Files Found, Scan Duration, and real-time Disk/Network throughput metrics.
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend Cleanups**: Removed unused `sentry` dependency from `src-tauri/Cargo.toml`.
 
 
-## [0.16.4] - 2026-06-26
+## 0.16.4 - 2026-06-26
 
 ### Added
 - **UI Primitives**: Added reusable `<StatCard />`, `<DiskRow />`, and `<QuickActionButton />` primitive components under `src/app/components/ui/` to enforce clean layout design, premium styling, and robust type contracts.
@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Suite Resolution**: Fixed component default/named import discrepancies and missing props definitions inside component tests to ensure 100% test coverage compliance.
 
 
-## [0.16.3] - 2026-06-26
+## 0.16.3 - 2026-06-26
 
 ### Fixed
 
@@ -75,19 +75,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workflow & Rules Cleanups**: Cleaned up the project by deleting `.clinerules` and `.cursorrules` in favor of centralized `.agents/rules/rules.md`.
 
 
-## [0.16.2] - 2026-06-22
+## 0.16.2 - 2026-06-22
 
 ### Fixed
 
 - **Application Bundling Issue**: Removed dummy test binaries `test_deps` and `test_dummy` from `src-tauri/src/bin/` which caused the Tauri CLI bundler to package a CLI dummy binary instead of the main `app.exe` GUI binary, resulting in abnormal 250KB setup installers that failed to launch.
 
-## [0.16.1] - 2026-06-22
+## 0.16.1 - 2026-06-22
 
 ### Changed
 
 - **Telemetry Visualizations Redesign**: Redesigned Disk I/O and Network Traffic telemetry charts in the Diagnostics tab with premium custom styling, 3-stop gradient fills, custom glassmorphism tooltips, pulsing active dots at latest data points, live legend displays, and big ghost current-value indicators.
 
-## [0.16.0] - 2026-06-22
+## 0.16.0 - 2026-06-22
 
 ### Added
 
@@ -102,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Diagnostics Grid Layout**: Expanded from 4-column to 3-column (2-row) layout accommodating 6 metric cards: Uptime, Processes, Disk Read, Disk Write, Network Upload, Network Download.
 
-## [0.15.0] - 2026-06-22
+## 0.15.0 - 2026-06-22
 
 ### Added
 
@@ -111,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Startup Optimizer Fix**: Fully implemented the "Disable All High Impact" function in `StartupTab.tsx` using backend Tauri IPC to disable programs and log the bulk action to the history database.
 - **Dynamic Localization (EN/ID)**: Mapped dynamic English and Indonesian translation keys for booster titles, program names, and bulk operations using standard i18next options.
 
-## [0.14.0] - 2026-06-22
+## 0.14.0 - 2026-06-22
 
 ### Added
 
@@ -139,7 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Silent Process Execution**: Applied the `CREATE_NO_WINDOW` (0x08000000) creation flag to all background PowerShell processes in the backend (`get_disk_details` and `get_startup_items`) to prevent console windows from popping up and flashing on user startup.
 
 
-## [0.13.2] - 2026-06-18
+## 0.13.2 - 2026-06-18
 
 ### Refactored
 
@@ -161,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ADR-001: Tauri v2 + Rust Backend decision documenting context, rationale, and trade-offs for the core technology stack.
 - Added `docs/shadcn-ui-audit.md` — comprehensive usage audit of all 48 shadcn/ui components finding 0 active imports across the entire codebase (~133KB of orphaned source code). No deletions performed; documented for future cleanup decision.
 
-## [0.13.1] - 2026-06-17
+## 0.13.1 - 2026-06-17
 
 ### Fixed
 
@@ -170,7 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Guarded all startup and mount-time Tauri API calls (e.g. `invoke`, `listen`, `getVersion`, `getName`, `load`) in `App.tsx`, `useSystemMetrics.ts`, `StartupTab.tsx`, `SettingsTab.tsx`, `BoosterTab.tsx`, `HistoryTab.tsx`, and `PrivacyTab.tsx`.
   - Allowed safe fallback states and mock data for UI design previewing in standard browsers while fully executing Tauri features in test and runtime environments.
 
-## [0.13.0] - 2026-06-17
+## 0.13.0 - 2026-06-17
 
 ### Added
 
@@ -185,7 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated `guidelines/Guidelines.md` with rules on input sanitization, scan limits, Rust/Vitest testing boundaries, Zustand state management, naming conventions, error propagation, and performance budgets.
 
-## [0.12.0] - 2026-06-16
+## 0.12.0 - 2026-06-16
 
 ### Added
 
@@ -197,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented the `open_cleaner_audit_log` Tauri command to launch Notepad for immediate audit viewing.
   - Added a responsive "View Audit Log" button to the Cleaner tab frontend UI, with interactive toast notices.
 
-## [0.11.9] - 2026-06-16
+## 0.11.9 - 2026-06-16
 
 ### Added
 
@@ -208,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Terminated the daemon process immediately with exit code `0` on completion.
   - Resolved PE/COFF dynamic library symbol export limit under MinGW toolchain by compiling the app library statically as a Rust library target (`rlib`).
 
-## [0.11.8] - 2026-06-16
+## 0.11.8 - 2026-06-16
 
 ### Added
 
@@ -219,7 +219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated React frontend `StartupTab` to use real startup metadata.
   - Added custom emoji app icons for recognized programs (Discord, Spotify, Steam, OneDrive, Teams, etc.).
 
-## [0.11.7] - 2026-06-16
+## 0.11.7 - 2026-06-16
 
 ### Added
 
@@ -228,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented binary registry writing (`REG_BINARY`) to toggle startup items between enabled (`0x02`) and disabled (`0x03`) states.
   - Added automatic administrator privilege validation for modifying HKLM entries.
 
-## [0.11.6] - 2026-06-16
+## 0.11.6 - 2026-06-16
 
 ### Added
 
@@ -238,14 +238,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated history logging for Privacy Sweep in the Privacy tab.
 - Added comprehensive unit tests for the history utility under `src/app/utils/__tests__/history.test.ts`.
 
-## [0.11.5] - 2026-06-16
+## 0.11.5 - 2026-06-16
 
 
 ### Documentation
 
 - Upgraded the project README.md with detailed feature descriptions, tech stack details, system prerequisites, and developer guidelines.
 
-## [0.11.4] - 2026-06-16
+## 0.11.4 - 2026-06-16
 
 ### Added
 
@@ -255,13 +255,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the Quick Actions panel at the bottom of the dashboard containing interactive, in-place RAM Boost and Junk Clean sequences with state feedback, alongside Fix Startup and Privacy Sweep links.
 - Integrated UAC status and system warnings banner at the bottom of the Health Score card.
 
-## [0.11.2] - 2026-06-16
+## 0.11.2 - 2026-06-16
 
 ### Fixed
 
 - Restored accidentally removed `NAV` and `TAB_DESC` constants during duplicate component cleanup which caused a `ReferenceError` resulting in a blank white screen upon application launch.
 
-## [0.11.1] - 2026-06-16
+## 0.11.1 - 2026-06-16
 
 ### Fixed
 
@@ -272,7 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected application logo import to properly render on the Sidebar and Settings menus.
 - Fixed "About WinCleaner" text to "About CPulse".
 
-## [0.11.0] - 2026-06-16
+## 0.11.0 - 2026-06-16
 
 ### Added
 
@@ -280,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement registry rollback/restore command handlers (`restore_boost`) in backend Rust to revert booster modifications to Windows defaults.
 - Enhance UI to display warning/lock badges, toggle Apply/Restore actions for individual items, and trigger Sonner toast notifications on boost success or error events.
 
-## [0.10.0] - 2026-06-16
+## 0.10.0 - 2026-06-16
 
 ### Added
 
@@ -289,7 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Connect React `PrivacyTab` component dynamically to Tauri's `scan_privacy` and `sweep_privacy` command handlers.
 - Update application version configuration to v0.10.0 across `package.json`, `tauri.conf.json`, and default state in `App.tsx`.
 
-## [0.9.1] - 2026-06-16
+## 0.9.1 - 2026-06-16
 
 ### Added
 
@@ -297,20 +297,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-enable Sentry in frontend safely, wrapping initialization with a check on the `VITE_SENTRY_DSN` environment variable to prevent blank screen crashes.
 - Exclude environment variables file from git by updating `.gitignore` and document the local updater key in `.env`.
 
-## [0.9.0] - 2026-06-16
+## 0.9.0 - 2026-06-16
 
 ### Added
 
 - Implement real booster functionality in Rust backend (RAM, CPU, Network, Visual, Power, Disk, Game, Temp)
 - Pass specific booster `id` from React frontend to Tauri backend
 
-## [0.8.2] - 2026-06-16
+## 0.8.2 - 2026-06-16
 
 ### Fixed
 
 - Fix TypeScript compile error `Parameter 'acc' implicitly has an 'any' type` by explicitly typing the Tauri `listen` callback event payload using the `SystemMetrics` interface in `App.tsx`.
 
-## [0.8.1] - 2026-06-16
+## 0.8.1 - 2026-06-16
 
 ### Added
 
@@ -353,7 +353,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Apply glassmorphism to dashboard ui
 
-## [0.8.0] - 2026-06-13
+## 0.8.0 - 2026-06-13
 
 ### Added
 
@@ -383,13 +383,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync version to 4.2.2 based on github releases to match project rules
 - Sync version to 0.8.0 based on github releases to match project rules
 
-## [0.1.1] - 2026-06-13
+## 0.1.1 - 2026-06-13
 
 ### Fixed
 
 - Fix Tauri script in package.json
 
-## [0.1.0] - 2026-06-13
+## 0.1.0 - 2026-06-13
 
 ### Added
 

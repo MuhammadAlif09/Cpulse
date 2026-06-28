@@ -112,7 +112,9 @@ export function CleanerTab() {
   };
 
   const displayBytesStr = cleaned ? formatBytes(cleanedBytes) : `${totalSelectedGB} GB`;
-  const displayFilesStr = cleaned ? cleanedFiles.toLocaleString() : totalSelectedFiles.toLocaleString();
+  const displayFilesStr = cleaned
+    ? cleanedFiles.toLocaleString()
+    : totalSelectedFiles.toLocaleString();
 
   // Checks if any selected category contains a warning or requires administrator access
   const hasSensitiveSelected = junkCats.some(

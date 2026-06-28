@@ -51,6 +51,8 @@ export function Sidebar({
             key={n.id}
             onClick={() => setTab(n.id)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all relative text-left cursor-pointer"
+            aria-current={active ? "page" : undefined}
+            aria-label={t(lang, n.label)}
             style={
               active
                 ? {

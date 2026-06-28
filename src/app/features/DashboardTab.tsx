@@ -144,7 +144,10 @@ export function DashboardTab({
       if (bytes > 0) {
         setCleanActionState("cleaning");
         const categories = results.map((r) => r.name);
-        const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", { categories });
+        const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>(
+          "clean_junk",
+          { categories }
+        );
 
         const actualFreedStr =
           cleanResult.bytes_freed > 1073741824

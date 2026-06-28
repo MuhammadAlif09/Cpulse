@@ -178,7 +178,10 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
     const startTime = Date.now();
 
     try {
-      const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", { categories: selectedCats });
+      const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>(
+        "clean_junk",
+        { categories: selectedCats }
+      );
       const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
 
       const formatBytes = (b: number) => {

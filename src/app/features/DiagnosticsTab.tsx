@@ -179,7 +179,9 @@ export function DiagnosticsTab() {
   const handleExportReport = async () => {
     if (!reportResult) return;
     try {
-      const msg = await invoke<string>("export_diagnostics_report", { reportContent: reportResult });
+      const msg = await invoke<string>("export_diagnostics_report", {
+        reportContent: reportResult,
+      });
       toast.success(t(msg));
     } catch (err: any) {
       if (err !== "Cancelled by user") {
