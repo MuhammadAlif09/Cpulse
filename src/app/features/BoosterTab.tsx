@@ -18,43 +18,40 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { addHistoryLog } from "../utils/history";
 
-const C = {
-  indigo: "#4f46e5",
-  violet: "#7c3aed",
-  cyan: "#0ea5e9",
-  emerald: "#10b981",
+// Teal-based palette
+const P = {
+  teal: "#0d9488",
   amber: "#f59e0b",
   rose: "#f43f5e",
-  pink: "#ec4899",
+  sky: "#0ea5e9",
+  violet: "#8b5cf6",
   slate: "#64748b",
+  good: "#10b981",
+  cyan: "#06b6d4",
+  pink: "#ec4899",
+  emerald: "#10b981",
 };
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-function GradientCard({
+function Card({
   children,
   className = "",
   style = {},
-  gradient,
 }: {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  gradient?: string;
 }) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card text-card-foreground",
+        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
         className
       )}
-      style={{
-        background: gradient,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-        ...style,
-      }}
+      style={style}
     >
       {children}
     </div>
@@ -78,106 +75,16 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   }, [mode]);
 
   const BOOSTS = [
-    {
-      id: "ram",
-      icon: <MemoryStick size={18} />,
-      title: "RAM Optimizer",
-      desc: "Flush standby list and free unused memory pages",
-      gain: "+1.4 GB freed",
-      color: C.violet,
-      category: "Memory",
-      adminRequired: false,
-    },
-    {
-      id: "cpu",
-      icon: <Cpu size={18} />,
-      title: "CPU Priority Manager",
-      desc: "Elevate priority for active foreground processes",
-      gain: "~12% snappier",
-      color: C.indigo,
-      category: "Processor",
-      adminRequired: true,
-    },
-    {
-      id: "net",
-      icon: <Globe size={18} />,
-      title: "Network Tweaker",
-      desc: "Optimize TCP/IP stack, DNS cache & buffer sizes",
-      gain: "−18ms latency",
-      color: C.cyan,
-      category: "Network",
-      adminRequired: true,
-    },
-    {
-      id: "dns",
-      icon: <Globe size={18} />,
-      title: "DNS Cache Flusher",
-      desc: "Flush DNS resolver cache to optimize network connection and reduce latency",
-      gain: "Cleared cache",
-      color: C.cyan,
-      category: "Network",
-      adminRequired: false,
-    },
-    {
-      id: "visual",
-      icon: <Monitor size={18} />,
-      title: "Visual Effects Trim",
-      desc: "Turn off non-essential animations and transparency",
-      gain: "+6% GPU free",
-      color: C.amber,
-      category: "Graphics",
-      adminRequired: false,
-    },
-    {
-      id: "power",
-      icon: <Zap size={18} />,
-      title: "High Performance Mode",
-      desc: "Switch Windows power plan to maximum performance",
-      gain: "Max clock speed",
-      color: C.rose,
-      category: "Power",
-      adminRequired: false,
-    },
-    {
-      id: "disk",
-      icon: <HardDrive size={18} />,
-      title: "Disk I/O Optimizer",
-      desc: "TRIM SSD, optimize prefetch and SuperFetch settings",
-      gain: "−22% I/O wait",
-      color: C.emerald,
-      category: "Storage",
-      adminRequired: true,
-    },
-    {
-      id: "game",
-      icon: <Activity size={18} />,
-      title: "Game Mode Enhancer",
-      desc: "Redirect resources to foreground game processes",
-      gain: "Smoother FPS",
-      color: C.pink,
-      category: "Gaming",
-      adminRequired: false,
-    },
-    {
-      id: "temp",
-      icon: <Thermometer size={18} />,
-      title: "Thermal Manager",
-      desc: "Optimize fan curves and thermal throttle limits",
-      gain: "−4°C average",
-      color: C.amber,
-      category: "Cooling",
-      adminRequired: false,
-    },
-    {
-      id: "startup_delay",
-      icon: <Clock size={18} />,
-      title: "Startup Delay Speedup",
-      desc: "Disable Windows startup app launch delay for faster booting",
-      gain: "−2s boot wait",
-      color: C.amber,
-      category: "Boot",
-      adminRequired: false,
-    },
+    { id: "ram", icon: <MemoryStick size={16} />, title: "RAM Optimizer", desc: "Flush standby list and free unused memory pages", gain: "+1.4 GB freed", color: P.violet, category: "Memory", adminRequired: false },
+    { id: "cpu", icon: <Cpu size={16} />, title: "CPU Priority Manager", desc: "Elevate priority for active foreground processes", gain: "~12% snappier", color: P.teal, category: "Processor", adminRequired: true },
+    { id: "net", icon: <Globe size={16} />, title: "Network Tweaker", desc: "Optimize TCP/IP stack, DNS cache & buffer sizes", gain: "−18ms latency", color: P.sky, category: "Network", adminRequired: true },
+    { id: "dns", icon: <Globe size={16} />, title: "DNS Cache Flusher", desc: "Flush DNS resolver cache to optimize network connection and reduce latency", gain: "Cleared cache", color: P.cyan, category: "Network", adminRequired: false },
+    { id: "visual", icon: <Monitor size={16} />, title: "Visual Effects Trim", desc: "Turn off non-essential animations and transparency", gain: "+6% GPU free", color: P.amber, category: "Graphics", adminRequired: false },
+    { id: "power", icon: <Zap size={16} />, title: "High Performance Mode", desc: "Switch Windows power plan to maximum performance", gain: "Max clock speed", color: P.rose, category: "Power", adminRequired: false },
+    { id: "disk", icon: <HardDrive size={16} />, title: "Disk I/O Optimizer", desc: "TRIM SSD, optimize prefetch and SuperFetch settings", gain: "−22% I/O wait", color: P.emerald, category: "Storage", adminRequired: true },
+    { id: "game", icon: <Activity size={16} />, title: "Game Mode Enhancer", desc: "Redirect resources to foreground game processes", gain: "Smoother FPS", color: P.pink, category: "Gaming", adminRequired: false },
+    { id: "temp", icon: <Thermometer size={16} />, title: "Thermal Manager", desc: "Optimize fan curves and thermal throttle limits", gain: "−4°C average", color: P.amber, category: "Cooling", adminRequired: false },
+    { id: "startup_delay", icon: <Clock size={16} />, title: "Startup Delay Speedup", desc: "Disable Windows startup app launch delay for faster booting", gain: "−2s boot wait", color: P.teal, category: "Boot", adminRequired: false },
   ];
 
   const applyBoost = async (id: string) => {
@@ -188,16 +95,9 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       toast.success(t(msg));
       const booster = BOOSTS.find((b) => b.id === id);
       if (booster) {
-        addHistoryLog({
-          type: "Booster Applied",
-          freed: booster.gain,
-          fixed: 1,
-          duration: "0.0s",
-          details: `Applied:${booster.title}`,
-        });
+        addHistoryLog({ type: "Booster Applied", freed: booster.gain, fixed: 1, duration: "0.0s", details: `Applied:${booster.title}` });
       }
     } catch (e: any) {
-      console.error(e);
       toast.error(t(e.message || e));
     }
     setBoosting(null);
@@ -211,16 +111,9 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
       toast.success(t(msg));
       const booster = BOOSTS.find((b) => b.id === id);
       if (booster) {
-        addHistoryLog({
-          type: "Booster Restored",
-          freed: "N/A",
-          fixed: 1,
-          duration: "0.0s",
-          details: `Restored:${booster.title}`,
-        });
+        addHistoryLog({ type: "Booster Restored", freed: "N/A", fixed: 1, duration: "0.0s", details: `Restored:${booster.title}` });
       }
     } catch (e: any) {
-      console.error(e);
       toast.error(t(e.message || e));
     }
     setBoosting(null);
@@ -237,130 +130,120 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   const scoreBoost = Math.round((doneCount / BOOSTS.length) * 28);
 
   return (
-    <div className="space-y-5">
-      <GradientCard className="bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-slate-900/40 dark:to-indigo-950/20">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4">
+      <Card
+        style={{
+          background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))`,
+          borderColor: `color-mix(in srgb, ${P.teal} 20%, var(--border))`,
+        }}
+      >
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div>
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-              {t("Optimization Profile")}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={16} style={{ color: P.teal }} />
+              <h3 className="text-base font-semibold text-foreground tracking-tight">
+                {t("Optimization Profile")}
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
               {t("Choose how aggressively to optimize your system")}
             </p>
           </div>
-          <div className="flex gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+          <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
             {(["balanced", "performance", "gaming"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={cn(
-                  "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize cursor-pointer",
+                className="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
+                style={
                   mode === m
-                    ? "bg-white dark:bg-card text-indigo-600 dark:text-indigo-400 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                style={mode === m ? { boxShadow: "0 1px 4px rgba(0,0,0,0.1)" } : undefined}
+                    ? { background: "var(--card)", color: P.teal, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                    : { color: "var(--muted-foreground)" }
+                }
               >
-                {m === "balanced"
-                  ? `⚖️ ${t("Balanced")}`
-                  : m === "performance"
-                    ? `🚀 ${t("Performance")}`
-                    : `🎮 ${t("Gaming")}`}
+                {m === "balanced" ? `⚖️ ${t("Balanced")}` : m === "performance" ? `🚀 ${t("Performance")}` : `🎮 ${t("Gaming")}`}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-4">
-          <div className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+        <div className="flex items-center gap-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
+          <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
             <div
-              className="h-3 rounded-full transition-all duration-700"
-              style={{
-                width: `${(doneCount / BOOSTS.length) * 100}%`,
-                background: "linear-gradient(90deg,#4f46e5,#7c3aed)",
-              }}
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${(doneCount / BOOSTS.length) * 100}%`, background: P.teal }}
             />
           </div>
-          <div className="text-right flex-shrink-0">
-            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              {doneCount}/{BOOSTS.length}
-            </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">{t("applied")}</span>
+          <div className="text-right flex-shrink-0 min-w-[60px]">
+            <span className="text-sm font-bold text-foreground tabular-nums">{doneCount}/{BOOSTS.length}</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground ml-1 tracking-wider">{t("Applied")}</span>
           </div>
           {doneCount < totalAvailable ? (
             <button
               onClick={applyAll}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-              style={{
-                background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
-                boxShadow: "0 4px 14px rgba(79,70,229,0.35)",
-              }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold text-white uppercase tracking-wider transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm cursor-pointer"
+              style={{ background: P.teal }}
             >
               <Zap size={14} /> {t("Apply All")}
             </button>
           ) : (
-            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-sm font-semibold px-3">
-              <CheckCircle2 size={16} /> +{scoreBoost} {t("pts")}
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-[11px] uppercase tracking-wider font-bold px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              <CheckCircle2 size={14} /> +{scoreBoost} {t("pts")}
             </div>
           )}
         </div>
-      </GradientCard>
+      </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {BOOSTS.map((b) => {
           const done = boosted[b.id];
           const loading = boosting === b.id;
           const locked = b.adminRequired && !isAdmin;
 
           return (
-            <GradientCard key={b.id}>
+            <div
+              key={b.id}
+              className="p-4 rounded-xl border bg-card transition-all duration-200 hover:shadow-sm"
+              style={{
+                borderColor: done ? `color-mix(in srgb, ${b.color} 30%, transparent)` : "var(--border)",
+              }}
+            >
               <div className="flex gap-4">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
-                    background: locked
-                      ? "rgba(244,63,94,0.12)"
-                      : done
-                        ? `${b.color}20`
-                        : "var(--border)",
-                    color: locked ? C.rose : done ? b.color : "var(--secondary-foreground)",
+                    background: locked ? `color-mix(in srgb, ${P.rose} 15%, transparent)` : done ? `color-mix(in srgb, ${b.color} 15%, transparent)` : "var(--secondary)",
+                    color: locked ? P.rose : done ? b.color : "var(--muted-foreground)",
                   }}
                 >
                   {locked ? <Lock size={18} /> : done ? <CheckCircle2 size={20} /> : b.icon}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    <h4 className="text-[13px] font-semibold text-foreground truncate max-w-[160px]">
                       {t(b.title)}
                     </h4>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground uppercase tracking-widest flex-shrink-0">
                       {t(b.category)}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground mb-3 leading-snug line-clamp-2">
                     {t(b.desc)}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: locked ? C.rose : b.color }}
-                    >
+                    <span className="text-[11px] font-bold" style={{ color: locked ? P.rose : b.color }}>
                       {locked ? t("Requires Admin Privileges") : t(b.gain)}
                     </span>
                     {locked ? (
-                      <div className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-red-50 dark:bg-red-950/20 text-rose-600 dark:text-rose-400 border border-red-100 dark:border-red-900/40">
-                        <Lock size={12} /> {t("Locked")}
+                      <div className="text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider flex items-center gap-1 bg-destructive/10 text-destructive border border-destructive/20">
+                        <Lock size={10} /> {t("Locked")}
                       </div>
                     ) : !done ? (
                       <button
                         onClick={() => applyBoost(b.id)}
                         disabled={loading}
-                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 cursor-pointer"
-                        style={{
-                          background: `${b.color}20`,
-                          color: b.color,
-                          border: `1px solid ${b.color}35`,
-                        }}
+                        className="text-[11px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider transition-all hover:opacity-80 disabled:opacity-50 cursor-pointer"
+                        style={{ background: `color-mix(in srgb, ${b.color} 15%, transparent)`, color: b.color }}
                       >
                         {loading ? <RefreshCw size={12} className="animate-spin" /> : t("Apply")}
                       </button>
@@ -368,21 +251,15 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                       <button
                         onClick={() => restoreBoost(b.id)}
                         disabled={loading}
-                        className="text-xs px-4 py-1.5 rounded-lg font-medium transition-all hover:shadow-sm disabled:opacity-50 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 cursor-pointer"
+                        className="text-[11px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1 bg-secondary text-muted-foreground hover:bg-secondary/80 border border-border cursor-pointer"
                       >
-                        {loading ? (
-                          <RefreshCw size={12} className="animate-spin" />
-                        ) : (
-                          <>
-                            <CheckCircle2 size={12} /> {t("Restore")}
-                          </>
-                        )}
+                        {loading ? <RefreshCw size={12} className="animate-spin" /> : <><RotateCcw size={10} /> {t("Restore")}</>}
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-            </GradientCard>
+            </div>
           );
         })}
       </div>

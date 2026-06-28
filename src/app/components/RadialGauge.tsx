@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "motion/react";
 
 interface RadialGaugeProps {
   value: number;
@@ -47,30 +48,36 @@ export function RadialGauge({
             stroke={trackColor}
             strokeWidth={strokeW}
           />
-          <circle
+          <motion.circle
             cx={size / 2}
             cy={size / 2}
             r={r}
             fill="none"
             stroke={color}
             strokeWidth={strokeW}
-            strokeDasharray={`${dash} ${gap}`}
             strokeLinecap="round"
+            initial={{ strokeDasharray: `0 ${circ}` }}
+            animate={{ strokeDasharray: `${dash} ${gap}` }}
+            transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
             style={{
-              transition: "stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1)",
-              filter: `drop-shadow(0 0 6px ${color}60)`,
+              filter: `drop-shadow(0 0 6px ${color}80)`,
             }}
           />
         </svg>
         {showValue && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="absolute inset-0 flex flex-col items-center justify-center"
+          >
             <span className="text-base font-bold" style={{ color }}>
               {value}%
             </span>
-          </div>
+          </motion.div>
         )}
       </div>
-      <span className="text-xs font-medium text-center text-[#ffffff]">{label}</span>
+      <span className="text-xs font-medium text-center text-muted-foreground">{label}</span>
       {sublabel && <span className="text-xs text-slate-400 text-center">{sublabel}</span>}
     </div>
   );

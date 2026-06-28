@@ -1,6 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, CheckCircle2 } from "lucide-react";
 
 interface QuickActionButtonProps {
   id: string;
@@ -10,6 +9,7 @@ interface QuickActionButtonProps {
   color: string;
   onClick: () => void;
   isLoading?: boolean;
+  done?: boolean;
 }
 
 export function QuickActionButton({
@@ -20,29 +20,38 @@ export function QuickActionButton({
   color,
   onClick,
   isLoading = false,
+  done = false,
 }: QuickActionButtonProps) {
+  const activeColor = done ? "#10b981" : color;
+
   return (
-    <motion.button
+    <button
       onClick={onClick}
-      className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-white/5 dark:border-slate-800/60 hover:border-indigo-500/30 transition-colors duration-300 group text-left w-full cursor-pointer bg-slate-900/50 dark:bg-slate-950/40 backdrop-blur-md"
-      style={{ background: `linear-gradient(135deg, ${color}10, ${color}1a)` }}
-      whileHover={{ scale: 1.03, y: -2 }}
-      whileTap={{ scale: 0.97 }}
+      className="flex items-center gap-3 p-3.5 rounded-xl text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+      style={{
+        border: `1px solid color-mix(in srgb, ${activeColor} 25%, transparent)`,
+        background: `color-mix(in srgb, ${activeColor} 6%, var(--card))`,
+      }}
     >
       <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-        style={{ background: `${color}15`, color: color }}
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200"
+        style={{
+          background: `color-mix(in srgb, ${activeColor} 12%, transparent)`,
+          color: activeColor,
+        }}
       >
         {isLoading ? (
-          <RefreshCw size={20} className="animate-spin" data-testid="loading-spinner" />
+          <RefreshCw size={18} className="animate-spin" data-testid="loading-spinner" />
+        ) : done ? (
+          <CheckCircle2 size={18} />
         ) : (
           icon
         )}
       </div>
-      <div className="text-center">
-        <div className="text-xs font-bold text-slate-100">{label}</div>
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</div>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-foreground truncate">{label}</div>
+        <div className="text-[11px] text-muted-foreground truncate mt-0.5">{sub}</div>
       </div>
-    </motion.button>
+    </button>
   );
 }

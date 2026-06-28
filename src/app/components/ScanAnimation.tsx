@@ -1,38 +1,29 @@
 import React, { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const CATEGORY_LOGS = [
-  // 0% - 10%: Temp Files
   [
     "Scanning C:\\Windows\\Temp...",
     "Analyzing temporary directory files...",
     "Checking local app temporary storage...",
   ],
-  // 10% - 20%: Browser Cache
   [
     "Checking browser cache (Chrome)...",
     "Checking browser cache (Edge)...",
     "Checking browser cache (Brave)...",
     "Analyzing browser storage files...",
   ],
-  // 20% - 30%: Update Cache
   ["Checking Windows Update residuals...", "Analyzing SoftwareDistribution directory..."],
-  // 30% - 40%: Crash Dumps & Logs
   ["Analyzing crash dump files...", "Checking Minidumps directory..."],
-  // 40% - 50%: Recycle Bin
   ["Querying Recycle Bin items...", "Checking all drive trash paths..."],
-  // 50% - 60%: Prefetch
   ["Scanning Windows Prefetch data...", "Analyzing application launch metadata..."],
-  // 60% - 70%: Thumbnail Cache
   ["Checking Explorer thumbnail database...", "Analyzing thumbcache index files..."],
-  // 70% - 80%: Windows Log Files
   ["Scanning system log files...", "Checking CBS and DISM logs..."],
-  // 80% - 90%: System Caches (Font, Shader, WER)
   [
     "Checking DirectX shader caches...",
     "Scanning Windows Error Reporting files...",
     "Querying local font caches...",
   ],
-  // 90% - 100%: App Cache
   [
     "Scanning Discord and Teams app data...",
     "Checking Steam html caches...",
@@ -59,7 +50,6 @@ export function ScanAnimation({ scanning, progress }: Props) {
       return;
     }
 
-    // Determine category log index based on current progress scaled to logs array size
     const catIdx = Math.min(
       Math.floor((progress / 100) * CATEGORY_LOGS.length),
       CATEGORY_LOGS.length - 1
@@ -67,18 +57,16 @@ export function ScanAnimation({ scanning, progress }: Props) {
 
     const currentLogs = CATEGORY_LOGS[catIdx];
 
-    // If progress has advanced, immediately add the first log from this category
     if (progress !== lastProgressRef.current) {
       lastProgressRef.current = progress;
       const firstLog = currentLogs[0];
       counterRef.current += 1;
       setLogs((prev) => {
         if (prev.length > 0 && prev[prev.length - 1].text === firstLog) return prev;
-        return [...prev.slice(-6), { text: firstLog, id: counterRef.current }];
+        return [...prev.slice(-5), { text: firstLog, id: counterRef.current }];
       });
     }
 
-    // Interval to simulate other logs inside the same category
     let subIdx = 1;
     const interval = setInterval(() => {
       if (subIdx < currentLogs.length) {
@@ -86,7 +74,7 @@ export function ScanAnimation({ scanning, progress }: Props) {
         const logText = currentLogs[subIdx];
         setLogs((prev) => {
           if (prev.length > 0 && prev[prev.length - 1].text === logText) return prev;
-          return [...prev.slice(-6), { text: logText, id: counterRef.current }];
+          return [...prev.slice(-5), { text: logText, id: counterRef.current }];
         });
         subIdx++;
       }
@@ -97,34 +85,54 @@ export function ScanAnimation({ scanning, progress }: Props) {
 
   if (!scanning && logs.length === 0)
     return (
-      <div className="h-32 flex items-center justify-center">
-        <p className="text-sm text-slate-400">Ready to scan your system</p>
+      <div className="h-32 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/10 transition-colors duration-300">
+        <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Ready to scan your system</p>
       </div>
     );
 
   return (
-    <div
-      className="rounded-lg p-3 h-32 overflow-hidden font-mono text-xs space-y-0.5"
-      style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        boxShadow: scanning 
+          ? "0 0 15px rgba(79, 70, 229, 0.12)" 
+          : "0 0 0px rgba(0, 0, 0, 0)"
+      }}
+      transition={{ duration: 0.4 }}
+      className="rounded-xl p-4 h-36 overflow-hidden font-mono text-xs space-y-1.5 transition-all duration-300 border bg-slate-950 border-slate-800 dark:bg-black/90"
     >
-      {logs.map((log, i) => (
-        <div
-          key={log.id}
-          className="flex items-center gap-2"
-          style={{ opacity: 0.3 + (i / logs.length) * 0.7 }}
-        >
-          <span className="text-indigo-500">&gt;</span>
-          <span className="text-slate-600">{log.text}</span>
-        </div>
-      ))}
+      <div className="space-y-1.5 h-[100px] overflow-hidden flex flex-col justify-end">
+        <AnimatePresence initial={false}>
+          {logs.map((log, i) => (
+            <motion.div
+              key={log.id}
+              initial={{ opacity: 0, x: -6, y: 3 }}
+              animate={{ opacity: 0.3 + (i / logs.length) * 0.7, x: 0, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="flex items-center gap-2"
+            >
+              <span className="text-indigo-400 font-bold">&gt;</span>
+              <span className="text-slate-300 select-all">{log.text}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+      
       {scanning && (
-        <div className="flex items-center gap-2">
-          <span className="text-indigo-500">&gt;</span>
-          <span className="text-indigo-600 animate-pulse">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-2 pt-1 border-t border-slate-800/60"
+        >
+          <span className="text-indigo-400 animate-pulse font-bold">&gt;</span>
+          <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent font-semibold animate-pulse">
             Processing... {Math.round(progress)}%
           </span>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
