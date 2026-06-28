@@ -3,7 +3,7 @@
 CPulse is a Tauri v2 + React-based Windows system cleaning and optimization utility. It features real-time hardware telemetry (CPU, RAM, Disk, Network) and various diagnostic and maintenance tools.
 
 ## 1. Project Health & Tests
-- **Vitest Suite**: **Pass (28/28 tests passing)**
+- **Vitest Suite**: **Pass (42/42 tests passing)**
 - **Cargo Test Suite**: **Pass (17/17 tests passing)**
 - **Rust Toolchain**: `stable-x86_64-pc-windows-gnu`
 
@@ -38,4 +38,4 @@ CPulse is a Tauri v2 + React-based Windows system cleaning and optimization util
 
 ## 4. Next Steps & Planned Tasks
 - [x] Store Unit Tests: Written robust unit tests for Zustand stores (useCleanerStore and useAppStore) using Vitest, achieving 100% logic coverage.
-- [ ] Telemetry Enhancements: Add details for other hardware metrics in the Diagnostics tab.
+- [x] Telemetry Enhancements: Added CPU temperature gauge, RAM diagnostics card with utilization bar, storage drives topology with per-drive progress bars, and active process count to the Diagnostics tab.
