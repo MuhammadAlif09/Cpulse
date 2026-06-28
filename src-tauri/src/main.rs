@@ -9,3 +9,9 @@ fn main() {
 
     app_lib::run()
 }
+
+#[cfg(test)]
+mod tests {
+    mod lib_tests;
+    mod cleaner_tests;
+}
