@@ -424,13 +424,13 @@ export function DiagnosticsTab() {
                 <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Used RAM")}</div>
                   <div className="text-sm font-extrabold text-foreground tabular-nums">
-                    {metrics ? (metrics.used_ram / 1024 / 1024 / 1024).toFixed(2) : "—"} GB
+                    {metrics ? metrics.used_ram.toFixed(2) : "—"} GB
                   </div>
                 </div>
                 <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Total RAM")}</div>
                   <div className="text-sm font-extrabold text-foreground tabular-nums">
-                    {metrics ? (metrics.total_ram / 1024 / 1024 / 1024).toFixed(1) : "—"} GB
+                    {metrics ? metrics.total_ram.toFixed(1) : "—"} GB
                   </div>
                 </div>
               </div>
@@ -454,8 +454,7 @@ export function DiagnosticsTab() {
                   const isLowSpace = disk.total > 0 && free / disk.total < 0.1;
                   const barColor = isLowSpace ? P.rose : pct > 75 ? P.amber : P.teal;
 
-                  const formatSize = (bytes: number) => {
-                    const gb = bytes / 1024 / 1024 / 1024;
+                  const formatSize = (gb: number) => {
                     if (gb > 1024) return (gb / 1024).toFixed(1) + " TB";
                     return gb.toFixed(0) + " GB";
                   };
