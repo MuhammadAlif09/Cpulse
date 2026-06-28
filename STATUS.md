@@ -37,5 +37,5 @@ CPulse is a Tauri v2 + React-based Windows system cleaning and optimization util
 ---
 
 ## 4. Next Steps & Planned Tasks
-- **[ ] Store Unit Tests**: Write unit tests for Zustand stores (e.g. `useCleanerStore`) to isolate state logic.
-- **[ ] Telemetry Enhancements**: Add details for other hardware metrics in the Diagnostics tab.
+- [x] Store Unit Tests: Written robust unit tests for Zustand stores (useCleanerStore and useAppStore) using Vitest, achieving 100% logic coverage.
+- [ ] Telemetry Enhancements: Add details for other hardware metrics in the Diagnostics tab.
