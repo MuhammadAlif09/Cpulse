@@ -63,7 +63,7 @@ import { SettingsTab } from "./features/SettingsTab";
 import { DiagnosticsTab } from "./features/DiagnosticsTab";
 import { useCleanerStore } from "./store/useCleanerStore";
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ translations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── translations ──────────────────────────────────────────────────────────────────
 const TRANSLATIONS: Record<string, Record<string, string>> = {
   id: {
     Dashboard: "Dasbor",
@@ -124,15 +124,15 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Privacy Sweep": "Sapu Privasi",
     "Traces found": "Jejak ditemukan",
     "Junk File Scanner": "Pemindai File Sampah",
-    "Deep scan for all unnecessary files — temporary data, cache, and residual clutter":
-      "Pindai mendalam file tak perlu — data sementara, cache, dan sisa",
+    "Deep scan for all unnecessary files —  temporary data, cache, and residual clutter":
+      "Pindai mendalam file tak perlu —  data sementara, cache, dan sisa",
     "Start Scan": "Mulai Pindai",
     "Scanning...": "Memindai...",
     Rescan: "Pindai Ulang",
     "Cleaned Successfully!": "Berhasil Dibersihkan!",
     Ready: "Siap",
     "Scan complete": "Pindai selesai",
-    "Found — Select to Clean": "Ditemukan — Pilih untuk Dibersihkan",
+    "Found —  Select to Clean": "Ditemukan —  Pilih untuk Dibersihkan",
     "Select All": "Semua",
     None: "Tidak ada",
     files: "file",
@@ -237,7 +237,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Network Tweaker": "Penyetel Jaringan",
     "Optimize TCP/IP stack, DNS cache & buffer sizes":
       "Optimalkan TCP/IP, cache DNS & ukuran buffer",
-    "Ã¢Ë†â€™18ms latency": "Ã¢Ë†â€™18ms latensi",
+    "−18ms latency": "−18ms latensi",
     Network: "Jaringan",
     "Visual Effects Trim": "Pemangkas Efek Visual",
     "Turn off non-essential animations and transparency": "Matikan animasi yang tidak penting",
@@ -251,7 +251,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Disk I/O Optimizer": "Pengoptimal I/O Disk",
     "TRIM SSD, optimize prefetch and SuperFetch settings":
       "TRIM SSD, optimalkan prefetch dan SuperFetch",
-    "Ã¢Ë†â€™22% I/O wait": "Ã¢Ë†â€™22% tunggu I/O",
+    "−22% I/O wait": "−22% tunggu I/O",
     Storage: "Penyimpanan",
     "Game Mode Enhancer": "Peningkat Mode Game",
     "Redirect resources to foreground game processes":
@@ -259,7 +259,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     "Smoother FPS": "FPS lebih mulus",
     "Thermal Manager": "Manajer Suhu",
     "Optimize fan curves and thermal throttle limits": "Optimalkan kurva kipas dan batas suhu",
-    "Ã¢Ë†â€™4Ã‚Â°C average": "Ã¢Ë†â€™4Ã‚Â°C rata-rata",
+    "−4°C average": "−4°C rata-rata",
     Cooling: "Pendingin",
     "Chrome Browsing History": "Riwayat Penelusuran Chrome",
     "1,842 URLs found": "1.842 URL ditemukan",
@@ -284,8 +284,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
       "Gunakan DNS pribadi untuk mencegah pelacakan ISP.",
     "Clear cookies weekly to remove cross-site tracking data.":
       "Bersihkan kuki setiap minggu untuk menghapus pelacakan.",
-    "Review app permissions — revoke access to camera and mic you don't need.":
-      "Tinjau izin aplikasi — cabut akses kamera dan mikrofon.",
+    "Review app permissions —  revoke access to camera and mic you don't need.":
+      "Tinjau izin aplikasi —  cabut akses kamera dan mikrofon.",
     Up: "Unggah",
     Down: "Unduh",
     "Boot delay:": "Tunda boot:",
@@ -307,7 +307,7 @@ const t = (lang: string, text: string) => {
   return TRANSLATIONS[l]?.[text] || text;
 };
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ palette Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── palette ──────────────────────────────────────────────────────────────────
 const C = {
   indigo: "#4f46e5",
   violet: "#7c3aed",
@@ -319,7 +319,7 @@ const C = {
   slate: "#64748b",
 };
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ mock data Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── mock data ────────────────────────────────────────────────────────────────
 const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
 
 interface JunkItem {
@@ -408,7 +408,7 @@ type Tab =
   | "settings"
   | "diagnostics";
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ shared helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── shared helpers ───────────────────────────────────────────────────────────
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -477,7 +477,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   );
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ dashboard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ─── dashboard ────────────────────────────────────────────────────────────────
 import { listen } from "@tauri-apps/api/event";
 import { load } from "@tauri-apps/plugin-store";
 import { enable, isEnabled, disable } from "@tauri-apps/plugin-autostart";

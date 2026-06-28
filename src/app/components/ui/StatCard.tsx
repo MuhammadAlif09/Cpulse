@@ -21,18 +21,18 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
       }}
     >
       {/*
-        Expanding Outline Effect:
-        Width is exactly 2x the border width (4px). This makes the left and right borders
-        touch, forming a solid vertical line initially.
-        On hover, the width expands to 100%, pulling the borders apart and forming
-        a perfect hollow box that draws itself around the card.
+        Expanding Hollow Outline Effect:
+        Starts as a 4px wide bar on the left.
+        On hover, the width expands to 100%, and since it has transparent top and bottom borders,
+        it effectively creates a top/bottom border tracking outward.
+        It is hollow in the middle.
       */}
       <div
-        className="absolute left-0 top-4 bottom-4 w-[4px] border-2 rounded-2xl transition-all duration-500 ease-out group-hover:top-0 group-hover:bottom-0 group-hover:w-full pointer-events-none"
+        className="absolute left-0 top-4 bottom-4 w-[4px] border-2 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:top-0 group-hover:bottom-0 group-hover:w-full pointer-events-none"
         style={{ borderColor: color }}
       />
 
-      <div className="pl-3 relative z-10 transition-transform duration-500 ease-out group-hover:translate-x-1">
+      <div className="pl-3 relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-1">
         <div className="flex items-center gap-2 mb-2" style={{ color }}>
           {icon}
           <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
