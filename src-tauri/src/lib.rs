@@ -657,126 +657,130 @@ fn is_startup_item_enabled(root: &RegKey, name: &str) -> bool {
 }
 
 #[tauri::command]
-fn get_startup_items() -> Result<Vec<StartupItem>, String> {
-    let mut raw_items = Vec::new();
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+async fn get_startup_items() -> Result<Vec<StartupItem>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut raw_items = Vec::new();
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+        let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 
-    struct RawItem {
-        name: String,
-        command: String,
-        enabled: bool,
-        registry_path: String,
-        is_hkcu: bool,
-        exe_path: Option<String>,
-    }
+        struct RawItem {
+            name: String,
+            command: String,
+            enabled: bool,
+            registry_path: String,
+            is_hkcu: bool,
+            exe_path: Option<String>,
+        }
 
-    if let Ok(key) = hkcu.open_subkey_with_flags(run_path, KEY_READ) {
-        for val in key.enum_values().flatten() {
-            if let Some(cmd) = val.1.to_string().into() {
-                let name = val.0;
-                let enabled = is_startup_item_enabled(&hkcu, &name);
-                let exe_path = parse_exe_path(&cmd);
-                raw_items.push(RawItem {
-                    name,
-                    command: cmd,
-                    enabled,
-                    registry_path: run_path.to_string(),
-                    is_hkcu: true,
-                    exe_path,
-                });
+        if let Ok(key) = hkcu.open_subkey_with_flags(run_path, KEY_READ) {
+            for val in key.enum_values().flatten() {
+                if let Some(cmd) = val.1.to_string().into() {
+                    let name = val.0;
+                    let enabled = is_startup_item_enabled(&hkcu, &name);
+                    let exe_path = parse_exe_path(&cmd);
+                    raw_items.push(RawItem {
+                        name,
+                        command: cmd,
+                        enabled,
+                        registry_path: run_path.to_string(),
+                        is_hkcu: true,
+                        exe_path,
+                    });
+                }
             }
         }
-    }
 
-    if let Ok(key) = hklm.open_subkey_with_flags(run_path, KEY_READ) {
-        for val in key.enum_values().flatten() {
-            if let Some(cmd) = val.1.to_string().into() {
-                let name = val.0;
-                let enabled = is_startup_item_enabled(&hklm, &name);
-                let exe_path = parse_exe_path(&cmd);
-                raw_items.push(RawItem {
-                    name,
-                    command: cmd,
-                    enabled,
-                    registry_path: run_path.to_string(),
-                    is_hkcu: false,
-                    exe_path,
-                });
+        if let Ok(key) = hklm.open_subkey_with_flags(run_path, KEY_READ) {
+            for val in key.enum_values().flatten() {
+                if let Some(cmd) = val.1.to_string().into() {
+                    let name = val.0;
+                    let enabled = is_startup_item_enabled(&hklm, &name);
+                    let exe_path = parse_exe_path(&cmd);
+                    raw_items.push(RawItem {
+                        name,
+                        command: cmd,
+                        enabled,
+                        registry_path: run_path.to_string(),
+                        is_hkcu: false,
+                        exe_path,
+                    });
+                }
             }
         }
-    }
 
-    let paths_to_query: Vec<String> = raw_items
-        .iter()
-        .filter_map(|x| x.exe_path.clone())
-        .collect();
+        let paths_to_query: Vec<String> = raw_items
+            .iter()
+            .filter_map(|x| x.exe_path.clone())
+            .collect();
 
-    let file_details_map = get_files_details(&paths_to_query);
+        let file_details_map = get_files_details(&paths_to_query);
 
-    let mut items = Vec::new();
-    for raw in raw_items {
-        let mut publisher = "Unknown".to_string();
-        let mut impact = "Low".to_string();
-        let mut delay = 0.1;
+        let mut items = Vec::new();
+        for raw in raw_items {
+            let mut publisher = "Unknown".to_string();
+            let mut impact = "Low".to_string();
+            let mut delay = 0.1;
 
-        if let Some(ref path) = raw.exe_path {
-            if let Some(details) = file_details_map.get(path) {
-                if let Some(ref pub_val) = details.publisher {
-                    let trimmed = pub_val.trim();
-                    if !trimmed.is_empty() {
-                        publisher = trimmed.to_string();
+            if let Some(ref path) = raw.exe_path {
+                if let Some(details) = file_details_map.get(path) {
+                    if let Some(ref pub_val) = details.publisher {
+                        let trimmed = pub_val.trim();
+                        if !trimmed.is_empty() {
+                            publisher = trimmed.to_string();
+                        }
+                    }
+
+                    let pub_lower = publisher.to_lowercase();
+                    let name_lower = raw.name.to_lowercase();
+                    let cmd_lower = raw.command.to_lowercase();
+                    let size = details.size;
+
+                    let is_heavy = pub_lower.contains("discord") ||
+                                   pub_lower.contains("spotify") ||
+                                   pub_lower.contains("steam") ||
+                                   pub_lower.contains("valve") ||
+                                   pub_lower.contains("adobe") ||
+                                   pub_lower.contains("epic games") ||
+                                   pub_lower.contains("slack") ||
+                                   pub_lower.contains("dropbox") ||
+                                   name_lower.contains("discord") ||
+                                   name_lower.contains("spotify") ||
+                                   name_lower.contains("steam") ||
+                                   name_lower.contains("teams") ||
+                                   name_lower.contains("onedrive") ||
+                                   cmd_lower.contains("discord") ||
+                                   cmd_lower.contains("spotify") ||
+                                   cmd_lower.contains("steam");
+
+                    if is_heavy || size > 30 * 1024 * 1024 {
+                        impact = "High".to_string();
+                        delay = 2.0 + ((size % 250) as f64) / 100.0;
+                    } else if size > 5 * 1024 * 1024 || pub_lower.contains("google") || pub_lower.contains("microsoft") || pub_lower.contains("apple") {
+                        impact = "Medium".to_string();
+                        delay = 0.5 + ((size % 130) as f64) / 100.0;
+                    } else {
+                        delay = 0.05 + ((size % 35) as f64) / 100.0;
                     }
                 }
-
-                let pub_lower = publisher.to_lowercase();
-                let name_lower = raw.name.to_lowercase();
-                let cmd_lower = raw.command.to_lowercase();
-                let size = details.size;
-
-                let is_heavy = pub_lower.contains("discord") ||
-                               pub_lower.contains("spotify") ||
-                               pub_lower.contains("steam") ||
-                               pub_lower.contains("valve") ||
-                               pub_lower.contains("adobe") ||
-                               pub_lower.contains("epic games") ||
-                               pub_lower.contains("slack") ||
-                               pub_lower.contains("dropbox") ||
-                               name_lower.contains("discord") ||
-                               name_lower.contains("spotify") ||
-                               name_lower.contains("steam") ||
-                               name_lower.contains("teams") ||
-                               name_lower.contains("onedrive") ||
-                               cmd_lower.contains("discord") ||
-                               cmd_lower.contains("spotify") ||
-                               cmd_lower.contains("steam");
-
-                if is_heavy || size > 30 * 1024 * 1024 {
-                    impact = "High".to_string();
-                    delay = 2.0 + ((size % 250) as f64) / 100.0;
-                } else if size > 5 * 1024 * 1024 || pub_lower.contains("google") || pub_lower.contains("microsoft") || pub_lower.contains("apple") {
-                    impact = "Medium".to_string();
-                    delay = 0.5 + ((size % 130) as f64) / 100.0;
-                } else {
-                    delay = 0.05 + ((size % 35) as f64) / 100.0;
-                }
             }
+
+            items.push(StartupItem {
+                name: raw.name,
+                command: raw.command,
+                enabled: raw.enabled,
+                registry_path: raw.registry_path,
+                is_hkcu: raw.is_hkcu,
+                publisher,
+                impact,
+                delay,
+            });
         }
 
-        items.push(StartupItem {
-            name: raw.name,
-            command: raw.command,
-            enabled: raw.enabled,
-            registry_path: raw.registry_path,
-            is_hkcu: raw.is_hkcu,
-            publisher,
-            impact,
-            delay,
-        });
-    }
-
-    Ok(items)
+        Ok(items)
+    })
+    .await
+    .map_err(|e| format!("Failed to spawn blocking task: {}", e))?
 }
 
 
