@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "./utils"; // Assuming utils holds cn
+import { cn } from "./utils";
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -13,30 +13,42 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-4 border border-slate-200 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-all duration-150 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100",
-        "hover:shadow-md"
+        "rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group cursor-default"
       )}
+      style={{
+        border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 5%, transparent))`,
+      }}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-          style={{ background: `${color}20`, color: color }}
-        >
-          {icon}
-        </div>
-      </div>
-      <div className="text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">
-        {value}
-      </div>
+      {/*
+        Expanding Outline Effect:
+        Width is exactly 2x the border width (4px). This makes the left and right borders
+        touch, forming a solid vertical line initially.
+        On hover, the width expands to 100%, pulling the borders apart and forming
+        a perfect hollow box that draws itself around the card.
+      */}
       <div
-        className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium"
-        style={{ color: color }}
-      >
-        {label}
+        className="absolute left-0 top-4 bottom-4 w-[4px] border-2 rounded-2xl transition-all duration-500 ease-out group-hover:top-0 group-hover:bottom-0 group-hover:w-full pointer-events-none"
+        style={{ borderColor: color }}
+      />
+
+      <div className="pl-3 relative z-10 transition-transform duration-500 ease-out group-hover:translate-x-1">
+        <div className="flex items-center gap-2 mb-2" style={{ color }}>
+          {icon}
+          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
+            {label}
+          </span>
+        </div>
+        <div
+          className="text-2xl font-bold tracking-tight text-foreground"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          {value}
+        </div>
+        {sub && (
+          <div className="text-[11px] text-muted-foreground mt-1 truncate">{sub}</div>
+        )}
       </div>
-      {sub && (
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">{sub}</div>
-      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   CheckCircle2,
@@ -10,9 +10,10 @@ import {
   Trash2,
   PackageX,
   Lock,
-  Sparkles,
-  RefreshCw,
   Zap,
+  RefreshCw,
+  TrendingUp,
+  Shield,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RadialGauge } from "../components/RadialGauge";
@@ -23,60 +24,236 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
-import { useJunkScanner } from "../hooks/useJunkScanner";
 import { addHistoryLog } from "../utils/history";
-import { StatCard } from "../components/ui/StatCard";
 import { DiskRow } from "../components/ui/DiskRow";
-import { QuickActionButton } from "../components/ui/QuickActionButton";
 
-const C = {
-  indigo: "#4f46e5",
-  violet: "#7c3aed",
-  cyan: "#0ea5e9",
-  emerald: "#10b981",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  pink: "#ec4899",
-  slate: "#64748b",
+// ─── palette ──────────────────────────────────────────────────────────────────
+const P = {
+  teal:    "#0d9488",
+  tealLt:  "#14b8a6",
+  sky:     "#0ea5e9",
+  amber:   "#f59e0b",
+  rose:    "#f43f5e",
+  violet:  "#8b5cf6",
+  slate:   "#64748b",
+  good:    "#10b981",   // score ≥ 80
+  warn:    "#f59e0b",   // score 50–79
+  bad:     "#f43f5e",   // score < 50
 };
+
+function scoreColor(score: number) {
+  if (score >= 80) return P.good;
+  if (score >= 50) return P.warn;
+  return P.bad;
+}
+
+function scoreLabel(score: number) {
+  if (score >= 90) return "Excellent";
+  if (score >= 80) return "Good";
+  if (score >= 60) return "Fair";
+  if (score >= 40) return "Poor";
+  return "Critical";
+}
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-function GradientCard({
+// ─── Card shell ───────────────────────────────────────────────────────────────
+function Card({
   children,
   className = "",
   style = {},
-  gradient,
 }: {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  gradient?: string;
 }) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-white/60 dark:border-slate-800/40 shadow-sm relative overflow-hidden transition-colors duration-300 bg-card text-card-foreground",
+        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
         className
       )}
-      style={{
-        background: gradient,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-        ...style,
-      }}
+      style={style}
     >
       {children}
     </div>
   );
 }
 
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  color: string;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4 bg-card border-border/60 shadow-sm relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      style={{
+        border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 5%, transparent))`,
+      }}
+    >
+      {/* colored left stripe */}
+      <div
+        className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full"
+        style={{ background: color }}
+      />
+      <div className="pl-3">
+        <div className="flex items-center gap-2 mb-2" style={{ color }}>
+          {icon}
+          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
+            {label}
+          </span>
+        </div>
+        <div
+          className="text-2xl font-bold tracking-tight"
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            color: "var(--foreground)",
+          }}
+        >
+          {value}
+        </div>
+        {sub && (
+          <div className="text-[11px] text-muted-foreground mt-1 truncate">
+            {sub}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick action button ───────────────────────────────────────────────────────
+function ActionBtn({
+  icon,
+  label,
+  sub,
+  color,
+  onClick,
+  isLoading,
+  done,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  color: string;
+  onClick: () => void;
+  isLoading?: boolean;
+  done?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 p-3.5 rounded-xl border text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+      style={{
+        borderColor: done
+          ? `color-mix(in srgb, ${P.good} 30%, transparent)`
+          : `color-mix(in srgb, ${color} 25%, transparent)`,
+        background: done
+          ? `color-mix(in srgb, ${P.good} 8%, var(--card))`
+          : `color-mix(in srgb, ${color} 6%, var(--card))`,
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200"
+        style={{
+          background: done
+            ? `color-mix(in srgb, ${P.good} 15%, transparent)`
+            : `color-mix(in srgb, ${color} 12%, transparent)`,
+          color: done ? P.good : color,
+        }}
+      >
+        {isLoading ? (
+          <RefreshCw size={18} className="animate-spin" data-testid="loading-spinner" />
+        ) : done ? (
+          <CheckCircle2 size={18} />
+        ) : (
+          icon
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-foreground truncate">{label}</div>
+        <div className="text-[11px] text-muted-foreground truncate mt-0.5">{sub}</div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Mini chart card ──────────────────────────────────────────────────────────
+function MiniChart({
+  title,
+  subtitle,
+  data,
+  color,
+  dataKey = "v",
+}: {
+  title: string;
+  subtitle: string;
+  data: { t: number; v: number }[];
+  color: string;
+  dataKey?: string;
+}) {
+  const gradId = `grad-${title.replace(/\s/g, "")}`;
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <span className="text-[11px] text-muted-foreground">{subtitle}</span>
+      </div>
+      <div className="h-24">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 2, right: 0, left: -30, bottom: 0 }}>
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="t" hide />
+            <YAxis domain={[0, 100]} hide />
+            <Tooltip
+              contentStyle={{
+                fontSize: 11,
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                background: "var(--card)",
+                color: "var(--foreground)",
+              }}
+              labelStyle={{ display: "none" }}
+              formatter={(v: number) => [`${v}%`, title.split(" ")[0]]}
+            />
+            <Area
+              type="monotone"
+              dataKey={dataKey}
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradId})`}
+              dot={false}
+              activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface DashboardTabProps {
   lang?: string;
   setTab: (
@@ -91,6 +268,7 @@ interface DashboardTabProps {
   healthText: string;
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
 export function DashboardTab({
   lang,
   setTab,
@@ -103,464 +281,319 @@ export function DashboardTab({
   const { t } = useTranslation();
   const { metrics, cpuData, ramData } = useSystemMetrics();
 
-  // In-place Clean Action States
-  const [cleanActionState, setCleanActionState] = useState<
-    "idle" | "scanning" | "cleaning" | "cleaned"
-  >("idle");
+  const [cleanState, setCleanState] = useState<"idle" | "scanning" | "cleaning" | "cleaned">("idle");
   const [cleanedSize, setCleanedSize] = useState("");
 
-  // In-place RAM Boost States
-  const [boostActionState, setBoostActionState] = useState<"idle" | "running" | "boosted">("idle");
+  const [boostState, setBoostState] = useState<"idle" | "running" | "boosted">("idle");
   const [boostedSize, setBoostedSize] = useState("");
 
-  const activeStartup = startupItems ? startupItems.filter((i) => i.enabled).length : 0;
-  const startupCountStr = `${activeStartup} ${t("items active")}`;
+  const activeStartup = startupItems?.filter((i) => i.enabled).length ?? 0;
 
-  const totalDiskUsed = metrics
-    ? metrics.disks.reduce((acc: number, d: any) => acc + d.used, 0)
-    : 0;
-  const totalDiskSize = metrics
-    ? metrics.disks.reduce((acc: number, d: any) => acc + d.total, 0)
-    : 1;
-  const diskUsagePct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
+  const totalDiskUsed = metrics?.disks?.reduce((a: number, d: any) => a + d.used, 0) ?? 0;
+  const totalDiskSize = metrics?.disks?.reduce((a: number, d: any) => a + d.total, 0) ?? 1;
+  const diskPct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
-  const totalJunkBytes = junkItems ? junkItems.reduce((acc, c) => acc + c.bytes, 0) : 0;
-  const junkSizeStr =
+  const totalJunkBytes = junkItems?.reduce((a, c) => a + c.bytes, 0) ?? 0;
+  const junkStr =
     totalJunkBytes > 0 ? `${(totalJunkBytes / 1048576).toFixed(1)} MB ready` : t("0 MB ready");
 
-  let cpuTempStr = "N/A";
-  if (metrics && metrics.cpu_temp > 0.0) {
-    cpuTempStr = `${Math.round(metrics.cpu_temp)}°C`;
-  }
+  let cpuTempStr = "";
+  if (metrics?.cpu_temp > 0) cpuTempStr = `${Math.round(metrics.cpu_temp)}°C`;
 
-  const handleCleanJunk = async () => {
-    if (cleanActionState !== "idle") return;
-    setCleanActionState("scanning");
-    const startTime = Date.now();
+  const handleClean = async () => {
+    if (cleanState !== "idle") return;
+    setCleanState("scanning");
+    const t0 = Date.now();
     try {
       const results: any[] = await invoke("scan_junk");
-      const bytes = results.reduce((acc, c) => acc + c.bytes, 0);
-
+      const bytes = results.reduce((a, c) => a + c.bytes, 0);
       if (bytes > 0) {
-        setCleanActionState("cleaning");
-        const categories = results.map((r) => r.name);
-        const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", { categories });
-
-        const actualFreedStr =
-          cleanResult.bytes_freed > 1073741824
-            ? (cleanResult.bytes_freed / 1073741824).toFixed(2) + " GB"
-            : (cleanResult.bytes_freed / 1048576).toFixed(1) + " MB";
-
-        setCleanedSize(actualFreedStr);
-        setCleanActionState("cleaned");
-
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+        setCleanState("cleaning");
+        const res = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", {
+          categories: results.map((r) => r.name),
+        });
+        const freed =
+          res.bytes_freed > 1073741824
+            ? (res.bytes_freed / 1073741824).toFixed(2) + " GB"
+            : (res.bytes_freed / 1048576).toFixed(1) + " MB";
+        setCleanedSize(freed);
         addHistoryLog({
           type: "Quick Clean",
-          freed: actualFreedStr,
-          fixed: cleanResult.files_cleaned,
-          duration,
+          freed,
+          fixed: res.files_cleaned,
+          duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
         });
       } else {
-        setCleanActionState("cleaned");
         setCleanedSize("0 MB");
-
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
-        addHistoryLog({
-          type: "Quick Clean",
-          freed: "0 MB",
-          fixed: 0,
-          duration,
-        });
+        addHistoryLog({ type: "Quick Clean", freed: "0 MB", fixed: 0, duration: ((Date.now() - t0) / 1000).toFixed(1) + "s" });
       }
-
-      setTimeout(() => {
-        setCleanActionState("idle");
-      }, 4000);
-    } catch (err) {
-      console.error("Quick clean error:", err);
-      setCleanActionState("idle");
+      setCleanState("cleaned");
+      setTimeout(() => setCleanState("idle"), 4000);
+    } catch (e) {
+      console.error(e);
+      setCleanState("idle");
     }
   };
 
-  const handleRamBoost = async () => {
-    if (boostActionState !== "idle") return;
-    setBoostActionState("running");
-    const startTime = Date.now();
+  const handleBoost = async () => {
+    if (boostState !== "idle") return;
+    setBoostState("running");
+    const t0 = Date.now();
     try {
-      const bytesFreed = await invoke<number>("clean_ram");
-      const sizeStr =
-        bytesFreed > 1073741824
-          ? `+${(bytesFreed / 1073741824).toFixed(1)} GB freed`
-          : `+${(bytesFreed / 1048576).toFixed(0)} MB freed`;
-
-      const freedLogStr =
-        bytesFreed > 1073741824
-          ? `${(bytesFreed / 1073741824).toFixed(1)} GB`
-          : `${(bytesFreed / 1048576).toFixed(0)} MB`;
-
-      setBoostedSize(sizeStr);
-      setBoostActionState("boosted");
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+      const freed = await invoke<number>("clean_ram");
+      const str =
+        freed > 1073741824
+          ? `+${(freed / 1073741824).toFixed(1)} GB freed`
+          : `+${(freed / 1048576).toFixed(0)} MB freed`;
+      setBoostedSize(str);
+      setBoostState("boosted");
       addHistoryLog({
         type: "RAM Boost",
-        freed: freedLogStr,
+        freed: str.replace("+", ""),
         fixed: 1,
-        duration,
+        duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
       });
-
-      setTimeout(() => {
-        setBoostActionState("idle");
-      }, 4000);
-    } catch (err) {
-      console.error("RAM clean error:", err);
-      setBoostActionState("idle");
+      setTimeout(() => setBoostState("idle"), 4000);
+    } catch (e) {
+      console.error(e);
+      setBoostState("idle");
     }
   };
 
-  const STATS = metrics
-    ? [
-        {
-          label: "CPU Usage",
-          value: `${Math.round(metrics.cpu_usage)}%`,
-          sub: t("Global CPU Load"),
-          icon: <Cpu size={18} />,
-          color: C.indigo,
-          temp: cpuTempStr,
-          trend: 0,
-        },
-        {
-          label: "RAM Usage",
-          value: `${Math.round(metrics.ram_usage)}%`,
-          sub: `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB ${t("in use")}`,
-          icon: <MemoryStick size={18} />,
-          color: C.violet,
-          trend: 0,
-        },
-        {
-          label: "Disk Usage",
-          value: `${diskUsagePct}%`,
-          sub: `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB ${t("in use")}`,
-          icon: <HardDrive size={18} />,
-          color: C.amber,
-          trend: 0,
-        },
-        {
-          label: "Network I/O",
-          value: `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s`,
-          sub: `${t("Up")}: ${metrics.network_up.toFixed(1)} | ${t("Down")}: ${metrics.network_down.toFixed(1)}`,
-          icon: <Wifi size={18} />,
-          color: C.emerald,
-          trend: 0,
-        },
-      ]
-    : [
-        {
-          label: "CPU Usage",
-          value: "...",
-          sub: t("Waiting for data"),
-          icon: <Cpu size={18} />,
-          color: C.indigo,
-          temp: "",
-          trend: 0,
-        },
-        {
-          label: "RAM Usage",
-          value: "...",
-          sub: t("Waiting for data"),
-          icon: <MemoryStick size={18} />,
-          color: C.violet,
-          trend: 0,
-        },
-        {
-          label: "Disk Usage",
-          value: "...",
-          sub: t("Waiting for data"),
-          icon: <HardDrive size={18} />,
-          color: C.amber,
-          trend: 0,
-        },
-        {
-          label: "Network I/O",
-          value: "...",
-          sub: t("Waiting for data"),
-          icon: <Wifi size={18} />,
-          color: C.emerald,
-          trend: 0,
-        },
-      ];
+  const sc = scoreColor(score);
 
   return (
-    <div className="space-y-5">
-      <GradientCard
-        className="text-white border border-white/40 shadow-xl relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(79,70,229,0.9) 0%, rgba(124,58,237,0.85) 50%, rgba(14,165,233,0.9) 100%)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-        }}
-      >
-        <div className="relative flex items-center justify-between flex-wrap gap-6">
+    <div className="space-y-4">
+
+      {/* ── Hero: health score ──────────────────────────────────────────────── */}
+      <Card className="relative overflow-hidden" style={{ padding: "1.5rem" }}>
+        {/* subtle teal glow top-right */}
+        <div
+          className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, color-mix(in srgb, ${sc} 12%, transparent) 0%, transparent 70%)`,
+          }}
+        />
+
+        <div className="relative flex items-center justify-between gap-6 flex-wrap">
+          {/* left: score */}
           <div>
-            <p className="text-indigo-100 text-sm mb-1">{t("System Health Score")}</p>
-            <div className="flex items-end gap-3">
-              <span className="text-6xl font-bold tracking-tight">{score}</span>
-              <span className="text-2xl text-indigo-200 mb-2">/100</span>
+            <div className="flex items-center gap-2 mb-1">
+              <Shield size={14} style={{ color: sc }} />
+              <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+                {t("System Health")}
+              </span>
             </div>
-            <p className="text-indigo-200 text-xs mt-1">
-              {issues && issues.length > 0
-                ? `${t(healthText)} — ${issues.length} ${t(issues.length === 1 ? "issue found" : "issues found")}`
+
+            <div className="flex items-end gap-2 leading-none">
+              <span
+                className="font-bold"
+                style={{
+                  fontSize: "4rem",
+                  lineHeight: 1,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  color: sc,
+                  letterSpacing: "-2px",
+                }}
+              >
+                {score}
+              </span>
+              <span
+                className="text-xl mb-1.5 font-medium"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                /100
+              </span>
+            </div>
+
+            <div
+              className="text-sm font-semibold mt-1"
+              style={{ color: sc }}
+            >
+              {t(scoreLabel(score))}
+            </div>
+
+            <div className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+              {issues?.length > 0
+                ? `${issues.length} ${t(issues.length === 1 ? "issue found" : "issues found")}`
                 : t("System is running optimally")}
-            </p>
+            </div>
+
+            {/* status pills */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                style={{
+                  background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
+                  color: P.good,
+                }}>
+                <CheckCircle2 size={11} /> {t("Protection active")}
+              </span>
+              {issues?.map((iss, i) => (
+                <span key={i} className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    background: `color-mix(in srgb, ${P.warn} 12%, transparent)`,
+                    color: P.warn,
+                  }}>
+                  <AlertTriangle size={11} /> {t(iss)}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap md:flex-nowrap gap-6 w-full md:w-auto items-center justify-center">
+
+          {/* right: gauges */}
+          <div className="flex gap-4 items-center">
             <RadialGauge
               value={metrics ? Math.round(metrics.cpu_usage) : 0}
               label="CPU"
-              color="rgba(255,255,255,0.9)"
-              trackColor="rgba(255,255,255,0.2)"
-              size={90}
+              color={P.teal}
+              trackColor="var(--border)"
+              size={80}
             />
             <RadialGauge
               value={metrics ? Math.round(metrics.ram_usage) : 0}
               label="RAM"
-              color="rgba(255,255,255,0.9)"
-              trackColor="rgba(255,255,255,0.2)"
-              size={90}
+              color={P.violet}
+              trackColor="var(--border)"
+              size={80}
             />
             <RadialGauge
-              value={diskUsagePct}
+              value={diskPct}
               label="Disk"
-              color="rgba(255,255,255,0.9)"
-              trackColor="rgba(255,255,255,0.2)"
-              size={90}
+              color={P.amber}
+              trackColor="var(--border)"
+              size={80}
             />
           </div>
         </div>
-        <div className="relative flex flex-wrap gap-3 mt-5 pt-4 border-t border-white/20">
-          <div className="flex items-center gap-1.5 text-xs text-indigo-100">
-            <CheckCircle2 size={13} /> {t("Real-time protection active")}
-          </div>
-          {issues &&
-            issues.map((issue, idx) => (
-              <div key={idx} className="flex items-center gap-1.5 text-xs text-indigo-100">
-                <AlertTriangle size={13} /> {t(issue)}
-              </div>
-            ))}
-          {(!issues || issues.length === 0) && (
-            <div className="flex items-center gap-1.5 text-xs text-indigo-100">
-              <CheckCircle2 size={13} /> {t("Disk and memory are healthy")}
-            </div>
-          )}
-        </div>
-      </GradientCard>
+      </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {STATS.map((s) => (
-          <StatCard
-            key={s.label}
-            icon={s.icon}
-            label={t(s.label)}
-            value={s.value}
-            sub={s.sub}
-            color={s.color}
-          />
-        ))}
+      {/* ── Stat cards ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          icon={<Cpu size={15} />}
+          label={t("CPU")}
+          value={metrics ? `${Math.round(metrics.cpu_usage)}%` : "—"}
+          sub={cpuTempStr ? `${t("Temp")}: ${cpuTempStr}` : t("Global CPU Load")}
+          color={P.teal}
+        />
+        <StatCard
+          icon={<MemoryStick size={15} />}
+          label={t("RAM")}
+          value={metrics ? `${Math.round(metrics.ram_usage)}%` : "—"}
+          sub={metrics ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB` : t("Waiting for data")}
+          color={P.violet}
+        />
+        <StatCard
+          icon={<HardDrive size={15} />}
+          label={t("Disk")}
+          value={`${diskPct}%`}
+          sub={metrics ? `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB` : t("Waiting for data")}
+          color={P.amber}
+        />
+        <StatCard
+          icon={<Wifi size={15} />}
+          label={t("Network")}
+          value={metrics ? `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s` : "—"}
+          sub={metrics ? `↑ ${metrics.network_up.toFixed(1)}  ↓ ${metrics.network_down.toFixed(1)}` : t("Waiting for data")}
+          color={P.sky}
+        />
       </div>
 
-      {/* charts + disk space */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* CPU History */}
-        <GradientCard style={{ overflow: "hidden" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("CPU History")}
-            </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
-          </div>
-          <div className="relative h-20">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cpuData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop key="cpu-stop-top" offset="5%" stopColor={C.indigo} stopOpacity={0.2} />
-                    <stop key="cpu-stop-bot" offset="95%" stopColor={C.indigo} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="t" hide />
-                <YAxis domain={[0, 100]} hide />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 11,
-                    borderRadius: 8,
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                    background: "var(--card)",
-                    color: "var(--card-foreground)",
-                  }}
-                  labelStyle={{ display: "none" }}
-                  formatter={(v: number) => [`${v}%`, "CPU"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke={C.indigo}
-                  strokeWidth={2}
-                  fill="url(#cpuGrad)"
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </GradientCard>
+      {/* ── Charts + disk ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <MiniChart
+          title={t("CPU History")}
+          subtitle={t("Last 20s")}
+          data={cpuData}
+          color={P.teal}
+        />
+        <MiniChart
+          title={t("RAM History")}
+          subtitle={t("Last 20s")}
+          data={ramData}
+          color={P.violet}
+        />
 
-        {/* RAM History */}
-        <GradientCard style={{ overflow: "hidden" }}>
+        {/* Disk list */}
+        <Card>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("RAM History")}
-            </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500">{t("Last 20s")}</span>
-          </div>
-          <div className="relative h-20">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ramData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="ramGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop key="ram-stop-top" offset="5%" stopColor={C.violet} stopOpacity={0.2} />
-                    <stop key="ram-stop-bot" offset="95%" stopColor={C.violet} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="t" hide />
-                <YAxis domain={[0, 100]} hide />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 11,
-                    borderRadius: 8,
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                    background: "var(--card)",
-                    color: "var(--card-foreground)",
-                  }}
-                  labelStyle={{ display: "none" }}
-                  formatter={(v: number) => [`${v}%`, "RAM"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke={C.violet}
-                  strokeWidth={2}
-                  fill="url(#ramGrad)"
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </GradientCard>
-
-        {/* Disk Space List */}
-        <GradientCard>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {t("Disk Space")}
-            </span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-              {metrics?.disks ? `${metrics.disks.length} ${t("drives")}` : "..."}
+            <span className="text-sm font-semibold text-foreground">{t("Disk Space")}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {metrics?.disks ? `${metrics.disks.length} ${t("drives")}` : "—"}
             </span>
           </div>
-          <div className="space-y-3 max-h-[96px] overflow-y-auto pr-1">
-            {metrics?.disks && metrics.disks.length > 0 ? (
-              metrics.disks.map((disk: any) => <DiskRow key={disk.name} disk={disk} t={t} />)
+          <div className="space-y-3 max-h-24 overflow-y-auto pr-0.5">
+            {metrics?.disks?.length > 0 ? (
+              metrics.disks.map((disk: any) => (
+                <DiskRow key={disk.name} disk={disk} t={t} />
+              ))
             ) : (
-              <div className="text-xs text-slate-400 py-6 text-center">{t("Loading disks...")}</div>
+              <div className="text-xs text-muted-foreground py-5 text-center">
+                {t("Loading disks...")}
+              </div>
             )}
           </div>
-        </GradientCard>
+        </Card>
       </div>
 
-      {/* quick actions */}
-      <GradientCard>
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4">
-          {t("Quick Actions")}
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              id: "cleaner",
-              icon: <Trash2 size={18} />,
-              label:
-                cleanActionState === "scanning"
-                  ? t("Scanning...")
-                  : cleanActionState === "cleaning"
-                    ? t("Cleaning...")
-                    : cleanActionState === "cleaned"
-                      ? t("Cleaned!")
-                      : t("Clean Junk"),
-              sub:
-                cleanActionState === "cleaned"
-                  ? `${t("Cleaned")} ${cleanedSize}`
-                  : cleanActionState === "scanning"
-                    ? t("Scanning...")
-                    : cleanActionState === "cleaning"
-                      ? t("Cleaning...")
-                      : junkSizeStr,
-              color: C.indigo,
-              onClick: handleCleanJunk,
-              isLoading: cleanActionState === "scanning" || cleanActionState === "cleaning",
-            },
-            {
-              id: "booster",
-              icon: <Zap size={18} />,
-              label:
-                boostActionState === "running"
-                  ? t("Running...")
-                  : boostActionState === "boosted"
-                    ? t("Boosted!")
-                    : t("Boost Now"),
-              sub:
-                boostActionState === "boosted"
-                  ? boostedSize
-                  : boostActionState === "running"
-                    ? t("Optimizing...")
-                    : t("Optimize memory"),
-              color: C.violet,
-              onClick: handleRamBoost,
-              isLoading: boostActionState === "running",
-            },
-            {
-              id: "startup",
-              icon: <PackageX size={18} />,
-              label: t("Fix Startup"),
-              sub: startupCountStr,
-              color: C.amber,
-              onClick: () => setTab("startup"),
-              isLoading: false,
-            },
-            {
-              id: "privacy",
-              icon: <Lock size={18} />,
-              label: t("Privacy Sweep"),
-              sub: t("Traces found"),
-              color: C.rose,
-              onClick: () => setTab("privacy"),
-              isLoading: false,
-            },
-          ].map((a) => (
-            <QuickActionButton
-              key={a.id}
-              id={a.id}
-              icon={a.icon}
-              label={a.label}
-              sub={a.sub}
-              color={a.color}
-              onClick={a.onClick}
-              isLoading={a.isLoading}
-            />
-          ))}
+      {/* ── Quick actions ──────────────────────────────────────────────────── */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={14} className="text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">{t("Quick Actions")}</h3>
         </div>
-      </GradientCard>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <ActionBtn
+            icon={<Trash2 size={18} />}
+            label={
+              cleanState === "scanning" ? t("Scanning...") :
+              cleanState === "cleaning" ? t("Cleaning...") :
+              cleanState === "cleaned" ? t("Cleaned!") :
+              t("Clean Junk")
+            }
+            sub={
+              cleanState === "cleaned" ? `${t("Freed")} ${cleanedSize}` :
+              cleanState === "scanning" || cleanState === "cleaning" ? t("Please wait...") :
+              junkStr
+            }
+            color={P.teal}
+            onClick={handleClean}
+            isLoading={cleanState === "scanning" || cleanState === "cleaning"}
+            done={cleanState === "cleaned"}
+          />
+          <ActionBtn
+            icon={<Zap size={18} />}
+            label={
+              boostState === "running" ? t("Optimizing...") :
+              boostState === "boosted" ? t("Boosted!") :
+              t("Boost RAM")
+            }
+            sub={
+              boostState === "boosted" ? boostedSize :
+              boostState === "running" ? t("Freeing memory...") :
+              t("Optimize memory")
+            }
+            color={P.violet}
+            onClick={handleBoost}
+            isLoading={boostState === "running"}
+            done={boostState === "boosted"}
+          />
+          <ActionBtn
+            icon={<PackageX size={18} />}
+            label={t("Fix Startup")}
+            sub={`${activeStartup} ${t("items active")}`}
+            color={P.amber}
+            onClick={() => setTab("startup")}
+          />
+          <ActionBtn
+            icon={<Lock size={18} />}
+            label={t("Privacy Sweep")}
+            sub={t("Traces found")}
+            color={P.rose}
+            onClick={() => setTab("privacy")}
+          />
+        </div>
+      </Card>
     </div>
   );
 }

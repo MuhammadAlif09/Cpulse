@@ -85,10 +85,16 @@ export function Header({
                 : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
             onClick={() => setShowNotif(!showNotif)}
+            aria-label={showNotif ? t(lang, "Close notifications") : t(lang, "Open notifications")}
+            aria-expanded={showNotif}
+            aria-controls="notification-panel"
           >
             <Bell size={16} />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900" />
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900"
+                aria-label={`${unreadCount} unread notifications`}
+              />
             )}
           </button>
 
@@ -171,6 +177,7 @@ export function Header({
               : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
           )}
           onClick={() => setTab("settings")}
+          aria-label={t(lang, "Open settings")}
         >
           <Settings size={16} />
         </button>

@@ -1,4 +1,4 @@
-mod cleaner;
+pub mod cleaner;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -33,12 +33,12 @@ static DISK_WRITE_BYTES: AtomicU64 = AtomicU64::new(0);
 static TYPEPERF_CHILD_PID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, Serialize)]
-struct DiskInfo {
-    name: String,
-    used: f64,
-    total: f64,
-    disk_type: String,
-    model: String,
+pub struct DiskInfo {
+    pub name: String,
+    pub used: f64,
+    pub total: f64,
+    pub disk_type: String,
+    pub model: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -209,7 +209,7 @@ struct PrivacyScanResult {
     run_hist: PrivacyCategoryInfo,
 }
 
-fn get_wifi_profiles_count() -> usize {
+pub fn get_wifi_profiles_count() -> usize {
     let path = Path::new("C:\\ProgramData\\Microsoft\\WlanSvc\\Profiles\\Interfaces");
     if !path.exists() {
         return 0;
@@ -230,7 +230,7 @@ fn get_wifi_profiles_count() -> usize {
     count
 }
 
-fn get_recent_files_count() -> usize {
+pub fn get_recent_files_count() -> usize {
     if let Some(app_data) = std::env::var_os("APPDATA") {
         let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
         if let Ok(entries) = fs::read_dir(recent_dir) {
@@ -240,7 +240,7 @@ fn get_recent_files_count() -> usize {
     0
 }
 
-fn get_run_mru_count() -> usize {
+pub fn get_run_mru_count() -> usize {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU")
@@ -253,7 +253,7 @@ fn get_run_mru_count() -> usize {
     0
 }
 
-fn get_search_history_count() -> usize {
+pub fn get_search_history_count() -> usize {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches")
@@ -521,15 +521,15 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
 }
 
 #[derive(Clone, Serialize)]
-struct StartupItem {
-    name: String,
-    command: String,
-    enabled: bool,
-    registry_path: String,
-    is_hkcu: bool,
-    publisher: String,
-    impact: String,
-    delay: f64,
+pub struct StartupItem {
+    pub name: String,
+    pub command: String,
+    pub enabled: bool,
+    pub registry_path: String,
+    pub is_hkcu: bool,
+    pub publisher: String,
+    pub impact: String,
+    pub delay: f64,
 }
 
 fn parse_exe_path(command: &str) -> Option<String> {
@@ -1592,76 +1592,3 @@ pub fn dummy_check() {
     println!("dummy check");
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_startup_item_creation() {
-        let item = StartupItem {
-            name: "TestApp".to_string(),
-            command: "test.exe".to_string(),
-            enabled: true,
-            registry_path: "Software\\Microsoft\\Windows\\CurrentVersion\\Run".to_string(),
-            is_hkcu: true,
-            publisher: "TestPublisher".to_string(),
-            impact: "Low".to_string(),
-            delay: 0.1,
-        };
-
-        assert_eq!(item.name, "TestApp");
-        assert_eq!(item.command, "test.exe");
-        assert!(item.enabled);
-        assert!(item.is_hkcu);
-        assert_eq!(item.publisher, "TestPublisher");
-        assert_eq!(item.impact, "Low");
-        assert_eq!(item.delay, 0.1);
-    }
-
-    #[test]
-    fn test_disk_info_creation() {
-        let disk = DiskInfo {
-            name: "C:".to_string(),
-            used: 100.5,
-            total: 500.0,
-            disk_type: "SSD".to_string(),
-            model: "Samsung SSD".to_string(),
-        };
-
-        assert_eq!(disk.name, "C:");
-        assert!(disk.used > 0.0);
-        assert!(disk.total > disk.used);
-        assert_eq!(disk.disk_type, "SSD");
-        assert_eq!(disk.model, "Samsung SSD");
-    }
-
-    #[test]
-    fn test_path_validation() {
-        let valid_path = PathBuf::from("C:\\Windows\\Temp");
-        assert!(valid_path.is_absolute());
-
-        let relative_path = PathBuf::from("temp");
-        assert!(!relative_path.is_absolute());
-    }
-
-    #[test]
-    fn test_get_wifi_profiles_count() {
-        // Should not panic, returns a count (>=0)
-        let _ = get_wifi_profiles_count();
-    }
-
-    #[test]
-    fn test_get_recent_files_count() {
-        let _ = get_recent_files_count();
-    }
-
-    #[test]
-    fn test_get_run_mru_count() {
-        let _ = get_run_mru_count();
-    }
-
-    #[test]
-    fn test_get_search_history_count() {
-        let _ = get_search_history_count();
-    }
-}

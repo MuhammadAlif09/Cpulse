@@ -17,8 +17,8 @@ use trash::delete as move_to_trash;
 // ─── Safeguard Constants ──────────────────────────────────────────────
 // Prevents OOM/stack overflow on abnormal folder structures (junction loops,
 // deeply nested symbolic links, or folders with millions of tiny files).
-const MAX_FILES: usize = 100_000;
-const MAX_DEPTH: usize = 20;
+pub const MAX_FILES: usize = 100_000;
+pub const MAX_DEPTH: usize = 20;
 const MAX_PATH_LEN: usize = 4096;
 
 // ─── Cancel Scan State ────────────────────────────────────────────────
@@ -75,7 +75,7 @@ pub fn format_size(bytes: u64) -> String {
 /// - MAX_DEPTH: stops recursing deeper than 20 levels
 /// - MAX_PATH_LEN: skips paths longer than 4096 characters
 /// - Cancel flag: checked per-iteration so user can abort mid-scan
-fn get_dir_size_and_count(
+pub fn get_dir_size_and_count(
     path: &Path,
     cancel_flag: Option<&AtomicBool>,
     depth: usize,
@@ -148,7 +148,7 @@ fn get_dir_size_and_count(
 }
 
 /// Convenience wrapper that starts at depth 0 and creates a file counter.
-fn scan_dir(path: &Path, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+pub fn scan_dir(path: &Path, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
     let mut file_count = 0usize;
     get_dir_size_and_count(path, cancel_flag, 0, &mut file_count)
 }
@@ -1409,104 +1409,3 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
 
 // ─── Unit Tests ───────────────────────────────────────────────────────
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_format_size_bytes() {
-        assert_eq!(format_size(512), "512 B");
-    }
-
-    #[test]
-    fn test_format_size_kb() {
-        assert_eq!(format_size(1536), "1.5 KB");
-    }
-
-    #[test]
-    fn test_format_size_mb() {
-        assert_eq!(format_size(5242880), "5.0 MB");
-    }
-
-    #[test]
-    fn test_format_size_gb() {
-        assert_eq!(format_size(2147483648), "2.0 GB");
-    }
-
-    #[test]
-    fn test_junk_item_creation_with_new_fields() {
-        let item = JunkItem {
-            name: "Test Cache".to_string(),
-            size: "1.5 MB".to_string(),
-            bytes: 1572864,
-            count: 10,
-            color: "#4f46e5".to_string(),
-            icon: "🗑️".to_string(),
-            description: "Test description".to_string(),
-            warning: "Test warning".to_string(),
-            requires_admin: true,
-        };
-
-        assert_eq!(item.name, "Test Cache");
-        assert_eq!(item.bytes, 1572864);
-        assert_eq!(item.count, 10);
-        assert_eq!(item.description, "Test description");
-        assert_eq!(item.warning, "Test warning");
-        assert!(item.requires_admin);
-    }
-
-    #[test]
-    fn test_junk_item_safe_category() {
-        let item = JunkItem {
-            name: "Browser Cache".to_string(),
-            size: "500 MB".to_string(),
-            bytes: 524288000,
-            count: 100,
-            color: "#7c3aed".to_string(),
-            icon: "🌐".to_string(),
-            description: "Cached web pages".to_string(),
-            warning: String::new(), // empty = safe
-            requires_admin: false,
-        };
-
-        assert!(item.warning.is_empty());
-        assert!(!item.requires_admin);
-    }
-
-    #[test]
-    fn test_safeguard_max_depth() {
-        // get_dir_size_and_count with depth > MAX_DEPTH should return (0, 0)
-        let path = Path::new("C:\\Windows\\Temp");
-        let mut file_count = 0;
-        let (size, count) = get_dir_size_and_count(path, None, MAX_DEPTH + 1, &mut file_count);
-        assert_eq!(size, 0);
-        assert_eq!(count, 0);
-    }
-
-    #[test]
-    fn test_safeguard_max_files() {
-        // When file_count is already at MAX_FILES, should return (0, 0)
-        let path = Path::new("C:\\Windows\\Temp");
-        let mut file_count = MAX_FILES;
-        let (size, count) = get_dir_size_and_count(path, None, 0, &mut file_count);
-        assert_eq!(size, 0);
-        assert_eq!(count, 0);
-    }
-
-    #[test]
-    fn test_cancel_flag_stops_scan() {
-        let cancel = AtomicBool::new(true); // Pre-cancelled
-        let path = Path::new("C:\\Windows\\Temp");
-        let mut file_count = 0;
-        let (size, count) = get_dir_size_and_count(path, Some(&cancel), 0, &mut file_count);
-        assert_eq!(size, 0);
-        assert_eq!(count, 0);
-    }
-
-    #[test]
-    fn test_scan_dir_nonexistent_path() {
-        let (size, count) = scan_dir(Path::new("C:\\NonexistentPathThatShouldNotExist12345"), None);
-        assert_eq!(size, 0);
-        assert_eq!(count, 0);
-    }
-}

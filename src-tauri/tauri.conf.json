@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Cpulse",
-  "version": "0.16.10",
+  "version": "0.16.11",
   "identifier": "com.cpulse.app",
   "build": {
     "frontendDist": "../dist",
@@ -41,6 +41,19 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "licenseFile": "../LICENSE",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "installMode": "both",
+        "languages": [
+          "English",
+          "Indonesian"
+        ],
+        "displayLanguageSelector": true
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

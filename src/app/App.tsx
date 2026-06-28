@@ -4,6 +4,7 @@ import { getVersion, getName } from "@tauri-apps/api/app";
 import { RadialGauge } from "./components/RadialGauge";
 import { ScanAnimation } from "./components/ScanAnimation";
 import { MainLayout } from "./layouts/MainLayout";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Shield,
   Trash2,
@@ -762,36 +763,46 @@ export default function App() {
         </p>
       </div>
 
-      {tab === "dashboard" && (
-        <DashboardTab
-          lang={lang}
-          setTab={setTab}
-          metrics={metrics}
-          junkItems={junkItems}
-          startupItems={startupItems}
-          score={score}
-          issues={issues}
-          healthText={healthText}
-        />
-      )}
-      {tab === "cleaner" && <CleanerTab />}
-      {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
-      {tab === "startup" && <StartupTab />}
-      {tab === "privacy" && (
-        <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
-      )}
-      {tab === "history" && <HistoryTab />}
-      {tab === "diagnostics" && <DiagnosticsTab />}
-      {tab === "settings" && (
-        <SettingsTab
-          appName={appName}
-          appVersion={appVersion}
-          onLanguageChange={(l) => {
-            setLang(l);
-            setGlobalSettings((prev: any) => ({ ...prev, language: l }));
-          }}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.18, ease: "easeInOut" }}
+        >
+          {tab === "dashboard" && (
+            <DashboardTab
+              lang={lang}
+              setTab={setTab}
+              metrics={metrics}
+              junkItems={junkItems}
+              startupItems={startupItems}
+              score={score}
+              issues={issues}
+              healthText={healthText}
+            />
+          )}
+          {tab === "cleaner" && <CleanerTab />}
+          {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
+          {tab === "startup" && <StartupTab />}
+          {tab === "privacy" && (
+            <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
+          )}
+          {tab === "history" && <HistoryTab />}
+          {tab === "diagnostics" && <DiagnosticsTab />}
+          {tab === "settings" && (
+            <SettingsTab
+              appName={appName}
+              appVersion={appVersion}
+              onLanguageChange={(l) => {
+                setLang(l);
+                setGlobalSettings((prev: any) => ({ ...prev, language: l }));
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </MainLayout>
   );
 }
