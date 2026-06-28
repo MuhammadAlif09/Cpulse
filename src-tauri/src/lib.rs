@@ -1,4 +1,4 @@
-mod cleaner;
+pub mod cleaner;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -209,7 +209,7 @@ struct PrivacyScanResult {
     run_hist: PrivacyCategoryInfo,
 }
 
-fn get_wifi_profiles_count() -> usize {
+pub fn get_wifi_profiles_count() -> usize {
     let path = Path::new("C:\\ProgramData\\Microsoft\\WlanSvc\\Profiles\\Interfaces");
     if !path.exists() {
         return 0;
@@ -230,7 +230,7 @@ fn get_wifi_profiles_count() -> usize {
     count
 }
 
-fn get_recent_files_count() -> usize {
+pub fn get_recent_files_count() -> usize {
     if let Some(app_data) = std::env::var_os("APPDATA") {
         let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
         if let Ok(entries) = fs::read_dir(recent_dir) {
@@ -240,7 +240,7 @@ fn get_recent_files_count() -> usize {
     0
 }
 
-fn get_run_mru_count() -> usize {
+pub fn get_run_mru_count() -> usize {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU")
@@ -253,7 +253,7 @@ fn get_run_mru_count() -> usize {
     0
 }
 
-fn get_search_history_count() -> usize {
+pub fn get_search_history_count() -> usize {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches")

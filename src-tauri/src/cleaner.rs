@@ -17,8 +17,8 @@ use trash::delete as move_to_trash;
 // ─── Safeguard Constants ──────────────────────────────────────────────
 // Prevents OOM/stack overflow on abnormal folder structures (junction loops,
 // deeply nested symbolic links, or folders with millions of tiny files).
-const MAX_FILES: usize = 100_000;
-const MAX_DEPTH: usize = 20;
+pub const MAX_FILES: usize = 100_000;
+pub const MAX_DEPTH: usize = 20;
 const MAX_PATH_LEN: usize = 4096;
 
 // ─── Cancel Scan State ────────────────────────────────────────────────
@@ -75,7 +75,7 @@ pub fn format_size(bytes: u64) -> String {
 /// - MAX_DEPTH: stops recursing deeper than 20 levels
 /// - MAX_PATH_LEN: skips paths longer than 4096 characters
 /// - Cancel flag: checked per-iteration so user can abort mid-scan
-fn get_dir_size_and_count(
+pub fn get_dir_size_and_count(
     path: &Path,
     cancel_flag: Option<&AtomicBool>,
     depth: usize,
@@ -148,7 +148,7 @@ fn get_dir_size_and_count(
 }
 
 /// Convenience wrapper that starts at depth 0 and creates a file counter.
-fn scan_dir(path: &Path, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+pub fn scan_dir(path: &Path, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
     let mut file_count = 0usize;
     get_dir_size_and_count(path, cancel_flag, 0, &mut file_count)
 }
