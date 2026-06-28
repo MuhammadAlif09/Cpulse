@@ -13,19 +13,26 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group"
+        "rounded-2xl p-4 relative overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 group cursor-default"
       )}
       style={{
         border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
         background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 5%, transparent))`,
       }}
     >
-      {/* background hover stripe effect */}
+      {/*
+        Expanding Outline Effect:
+        Width is exactly 2x the border width (4px). This makes the left and right borders
+        touch, forming a solid vertical line initially.
+        On hover, the width expands to 100%, pulling the borders apart and forming
+        a perfect hollow box that draws itself around the card.
+      */}
       <div
-        className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full transition-all duration-300 ease-out group-hover:w-full group-hover:top-0 group-hover:bottom-0 group-hover:rounded-none opacity-100 group-hover:opacity-10 z-0"
-        style={{ background: color }}
+        className="absolute left-0 top-4 bottom-4 w-[4px] border-2 rounded-2xl transition-all duration-500 ease-out group-hover:top-0 group-hover:bottom-0 group-hover:w-full pointer-events-none"
+        style={{ borderColor: color }}
       />
-      <div className="pl-3 relative z-10">
+
+      <div className="pl-3 relative z-10 transition-transform duration-500 ease-out group-hover:translate-x-1">
         <div className="flex items-center gap-2 mb-2" style={{ color }}>
           {icon}
           <span className="text-xs font-semibold tracking-wide uppercase opacity-80">

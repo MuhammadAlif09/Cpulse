@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## 0.16.11 - 2026-06-28
+
+### Fixed
+- **Rust Test Stabilization**: Migrated all backend unit tests from the library target (`lib.rs`, `cleaner.rs`) to the binary target module structure (`src/tests/`) to prevent `STATUS_ENTRYPOINT_NOT_FOUND` runtime loader crashes under MinGW/GNU toolchain.
+
 ## 0.16.10 - 2026-06-26
 
 ### Fixed

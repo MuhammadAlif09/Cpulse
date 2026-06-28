@@ -11,3 +11,10 @@
 - **Format**: `pnpm format`
 - **Rust Clippy**: `cargo clippy -- -D warnings`
 - **Rust Test**: `cargo test`
+
+## Important Rules
+
+1. Always start by reading the `CLAUDE.md` file for the project guidelines.
+2. auto commit after task is done.
+3. if task is not done, undo commit.
+4. before commit, run `cargo clippy -- -D warnings`
