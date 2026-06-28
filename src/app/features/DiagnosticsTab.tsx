@@ -18,6 +18,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Server,
+  Thermometer,
+  Layers,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "react-i18next";
@@ -268,11 +270,30 @@ export function DiagnosticsTab() {
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Cpu size={16} style={{ color: P.sky }} /> {t("Processor & Cores Topology")}
               </h3>
-              {metrics && metrics.cpu_cores.length > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
-                  {t("Avg Load")}: {Math.round(metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length)}%
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {metrics && metrics.cpu_temp !== undefined && metrics.cpu_temp > 0 && (
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 border"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${
+                        metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky
+                      } 30%, transparent)`,
+                      background: `color-mix(in srgb, ${
+                        metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky
+                      } 10%, transparent)`,
+                      color: metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky,
+                    }}
+                  >
+                    <Thermometer size={10} />
+                    {Math.round(metrics.cpu_temp)}°C
+                  </span>
+                )}
+                {metrics && metrics.cpu_cores.length > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
+                    {t("Avg Load")}: {Math.round(metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length)}%
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="mb-5 p-3 rounded-xl bg-secondary/50 border border-border flex items-center gap-3">
@@ -340,6 +361,135 @@ export function DiagnosticsTab() {
                 <div className="text-xs font-bold text-foreground">{metrics ? formatUptime(metrics.uptime) : "—"}</div>
               </div>
             </div>
+            <div className="flex items-start gap-3">
+              <Layers size={16} className="text-muted-foreground mt-0.5" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Active Processes")}</div>
+                <div className="text-xs font-bold text-foreground">{metrics ? metrics.process_count : "—"}</div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Memory & Storage Bento ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Memory diagnostics */}
+        <Card className="flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <MemoryStick size={16} style={{ color: P.violet }} /> {t("Memory Diagnostics")}
+              </h3>
+              {metrics && (
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-semibold border"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${
+                      metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good
+                    } 30%, transparent)`,
+                    background: `color-mix(in srgb, ${
+                      metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good
+                    } 10%, transparent)`,
+                    color: metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good,
+                  }}
+                >
+                  {metrics.ram_usage > 85 ? t("Heavy Load") : metrics.ram_usage > 60 ? t("Normal") : t("Optimal")}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {/* RAM circular/progress meter */}
+              <div>
+                <div className="flex justify-between text-xs mb-1.5 font-bold">
+                  <span className="text-muted-foreground">{t("RAM Utilization")}</span>
+                  <span className="text-foreground tabular-nums">{metrics ? Math.round(metrics.ram_usage) : 0}%</span>
+                </div>
+                <div className="h-2 w-full bg-secondary border border-border rounded-full overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: metrics ? `${metrics.ram_usage}%` : "0%",
+                      background: `linear-gradient(to right, ${P.sky}, ${
+                        metrics && metrics.ram_usage > 85 ? P.rose : metrics && metrics.ram_usage > 60 ? P.amber : P.violet
+                      })`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* RAM breakdown */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Used RAM")}</div>
+                  <div className="text-sm font-extrabold text-foreground tabular-nums">
+                    {metrics ? (metrics.used_ram / 1024 / 1024 / 1024).toFixed(2) : "—"} GB
+                  </div>
+                </div>
+                <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Total RAM")}</div>
+                  <div className="text-sm font-extrabold text-foreground tabular-nums">
+                    {metrics ? (metrics.total_ram / 1024 / 1024 / 1024).toFixed(1) : "—"} GB
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Storage Drives */}
+        <Card className="lg:col-span-2 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-2 mb-4">
+              <HardDrive size={16} style={{ color: P.teal }} /> {t("Storage Drives Topology")}
+            </h3>
+
+            {metrics && metrics.disks && metrics.disks.length > 0 ? (
+              <div className="space-y-4 max-h-[170px] overflow-y-auto pr-1">
+                {metrics.disks.map((disk: any, idx: number) => {
+                  const free = disk.total - disk.used;
+                  const ratio = disk.total > 0 ? disk.used / disk.total : 0;
+                  const pct = Math.round(ratio * 100);
+                  const isLowSpace = disk.total > 0 && free / disk.total < 0.1;
+                  const barColor = isLowSpace ? P.rose : pct > 75 ? P.amber : P.teal;
+
+                  const formatSize = (bytes: number) => {
+                    const gb = bytes / 1024 / 1024 / 1024;
+                    if (gb > 1024) return (gb / 1024).toFixed(1) + " TB";
+                    return gb.toFixed(0) + " GB";
+                  };
+
+                  return (
+                    <div key={idx} className="p-3 bg-secondary/30 border border-border/40 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-bold text-foreground shrink-0">{disk.name}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{disk.model || disk.disk_type}</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-background border text-muted-foreground uppercase shrink-0 font-semibold">
+                            {disk.disk_type}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground font-medium tabular-nums shrink-0">
+                          {formatSize(disk.used)} / {formatSize(disk.total)} ({pct}%)
+                        </div>
+                      </div>
+                      <div className="h-1.5 w-full bg-secondary border border-border rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: barColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-xs py-6 text-center">{t("Loading storage topology...")}</div>
+            )}
           </div>
         </Card>
       </div>
