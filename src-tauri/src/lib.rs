@@ -1419,8 +1419,10 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     }
     
     if let Ok(app_data) = app.path().app_data_dir() {
-        let _ = fs::create_dir_all(&app_data);
-        let report_path = app_data.join("diagnostics_report.md");
+        let reports_dir = app_data.join("reports");
+        let _ = fs::create_dir_all(&reports_dir);
+        let sanitized_date = date_str.replace(':', "-").replace(' ', "_");
+        let report_path = reports_dir.join(format!("report_{}.md", sanitized_date));
         fs::write(&report_path, report)
             .map_err(|e| format!("Failed to write report file: {}", e))?;
             
@@ -1433,6 +1435,41 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     } else {
         Err("Could not retrieve app data directory".to_string())
     }
+}
+
+#[tauri::command]
+fn get_diagnostics_reports(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let reports_dir = app_data.join("reports");
+    if !reports_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut files = Vec::new();
+    for entry in fs::read_dir(reports_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if let Some(name) = entry.file_name().to_str() {
+            if name.starts_with("report_") && name.ends_with(".md") {
+                files.push(name.to_string());
+            }
+        }
+    }
+    files.sort_by(|a, b| b.cmp(a));
+    Ok(files)
+}
+
+#[tauri::command]
+fn read_diagnostics_report(app: tauri::AppHandle, filename: String) -> Result<String, String> {
+    if filename.contains(['/', '\\']) || !filename.starts_with("report_") || !filename.ends_with(".md") {
+        return Err("Invalid report filename".into());
+    }
+
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let report_path = app_data.join("reports").join(filename);
+    if !report_path.exists() {
+        return Err("Report file not found".into());
+    }
+    fs::read_to_string(report_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1634,6 +1671,8 @@ pub fn run() {
             update_auto_clean,
             get_system_info,
             generate_diagnostics_report,
+            get_diagnostics_reports,
+            read_diagnostics_report,
             export_diagnostics_report
         ])
         .build(tauri::generate_context!())

@@ -18,8 +18,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Server,
-  Thermometer,
   Layers,
+  History,
+  Eye,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "react-i18next";
@@ -114,11 +115,15 @@ export function DiagnosticsTab() {
   const [reportResult, setReportResult] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [reports, setReports] = useState<string[]>([]);
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [selectedReportContent, setSelectedReportContent] = useState<string | null>(null);
 
   useEffect(() => {
     invoke<SystemInfo>("get_system_info")
       .then(setSystemInfo)
       .catch((err) => console.error(err));
+    loadReports();
   }, []);
 
   useEffect(() => {
@@ -139,6 +144,15 @@ export function DiagnosticsTab() {
     });
   }, [metrics]);
 
+  const loadReports = async () => {
+    try {
+      const result = await invoke<string[]>("get_diagnostics_reports");
+      setReports(result);
+    } catch (err) {
+      console.error("Failed to load diagnostics reports:", err);
+    }
+  };
+
   const handleGenerateReport = async () => {
     setGeneratingReport(true);
     setReportResult(null);
@@ -147,11 +161,22 @@ export function DiagnosticsTab() {
     try {
       const result = await invoke<string>("generate_diagnostics_report");
       setReportResult(result);
+      await loadReports();
       addHistoryLog({ type: "Diagnostics", freed: "N/A", fixed: 0, duration: ((Date.now() - t0) / 1000).toFixed(1) + "s", details: t("Generated diagnostic report") });
     } catch (err: any) {
       setReportError(err?.toString() || "Failed to generate report");
     } finally {
       setGeneratingReport(false);
+    }
+  };
+
+  const handleReadReport = async (filename: string) => {
+    try {
+      const content = await invoke<string>("read_diagnostics_report", { filename });
+      setSelectedReport(filename);
+      setSelectedReportContent(content);
+    } catch (err: any) {
+      toast.error(t(err?.toString() || "Failed to read report"));
     }
   };
 
@@ -260,6 +285,44 @@ export function DiagnosticsTab() {
           </div>
         </Card>
       )}
+
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <History size={16} style={{ color: P.teal }} /> {t("Report History")}
+          </h3>
+          <button
+            onClick={loadReports}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground active:scale-95"
+          >
+            <RefreshCw size={13} /> {t("Refresh")}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.4fr)]">
+          <div className="max-h-72 overflow-y-auto border-b border-border lg:border-b-0 lg:border-r">
+            {reports.length > 0 ? (
+              reports.map((report) => (
+                <button
+                  key={report}
+                  onClick={() => handleReadReport(report)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs transition-colors hover:bg-secondary/50",
+                    selectedReport === report && "bg-secondary/70 text-foreground"
+                  )}
+                >
+                  <span className="min-w-0 truncate font-medium">{report}</span>
+                  <Eye size={13} className="shrink-0 text-muted-foreground" />
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">{t("No saved reports yet")}</div>
+            )}
+          </div>
+          <pre className="max-h-72 min-h-40 overflow-auto whitespace-pre-wrap bg-secondary/20 p-4 text-xs leading-relaxed text-muted-foreground">
+            {selectedReportContent || t("Select a report to preview its details.")}
+          </pre>
+        </div>
+      </Card>
 
       {/* ── Top Bento ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
