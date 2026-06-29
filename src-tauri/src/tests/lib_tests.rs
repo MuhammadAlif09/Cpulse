@@ -68,3 +68,15 @@ fn test_get_run_mru_count() {
 fn test_get_search_history_count() {
     let _ = get_search_history_count();
 }
+
+#[test]
+fn test_add_and_delete_startup_item() {
+    let test_name = "CPulseTestAppSync".to_string();
+    let test_path = "C:\\Windows\\Temp\\testapp.exe".to_string();
+
+    let add_res = add_startup_item_impl(test_name.clone(), test_path, true);
+    assert!(add_res.is_ok());
+
+    let delete_res = delete_startup_item_impl(test_name, true);
+    assert!(delete_res.is_ok());
+}

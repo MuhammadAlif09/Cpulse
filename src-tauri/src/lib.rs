@@ -817,6 +817,57 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
     Ok(format!("Toggled {}", name))
 }
 
+pub fn delete_startup_item_impl(name: String, is_hkcu: bool) -> Result<String, String> {
+    if !is_hkcu && !is_elevated::is_elevated() {
+        return Err("Administrator privileges required to delete HKLM startup items".into());
+    }
+
+    let root = if is_hkcu {
+        RegKey::predef(HKEY_CURRENT_USER)
+    } else {
+        RegKey::predef(HKEY_LOCAL_MACHINE)
+    };
+    let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+
+    let key = root.open_subkey_with_flags(run_path, KEY_WRITE).map_err(|e| e.to_string())?;
+    let _ = key.delete_value(&name);
+
+    if let Ok(approved_key) = root.open_subkey_with_flags(approved_path, KEY_WRITE) {
+        let _ = approved_key.delete_value(&name);
+    }
+
+    Ok(format!("Deleted startup item {}", name))
+}
+
+#[tauri::command]
+fn delete_startup_item(name: String, is_hkcu: bool) -> Result<String, String> {
+    delete_startup_item_impl(name, is_hkcu)
+}
+
+pub fn add_startup_item_impl(name: String, path: String, is_hkcu: bool) -> Result<String, String> {
+    if !is_hkcu && !is_elevated::is_elevated() {
+        return Err("Administrator privileges required to add HKLM startup items".into());
+    }
+
+    let root = if is_hkcu {
+        RegKey::predef(HKEY_CURRENT_USER)
+    } else {
+        RegKey::predef(HKEY_LOCAL_MACHINE)
+    };
+    let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+
+    let key = root.open_subkey_with_flags(run_path, KEY_WRITE).map_err(|e| e.to_string())?;
+    key.set_value(&name, &path).map_err(|e| e.to_string())?;
+
+    Ok(format!("Added startup item {}", name))
+}
+
+#[tauri::command]
+fn add_startup_item(name: String, path: String, is_hkcu: bool) -> Result<String, String> {
+    add_startup_item_impl(name, path, is_hkcu)
+}
+
 
 #[tauri::command]
 fn clean_ram() -> Result<u64, String> {
@@ -1573,6 +1624,8 @@ pub fn run() {
             is_admin,
             get_startup_items,
             toggle_startup_item,
+            delete_startup_item,
+            add_startup_item,
             clean_ram,
             apply_boost,
             restore_boost,
