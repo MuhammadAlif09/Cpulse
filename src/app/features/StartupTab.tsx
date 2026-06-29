@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { PackageX, Clock, TrendingUp, Search } from "lucide-react";
+import { PackageX, Clock, TrendingUp, Search, Plus, Trash2, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { addHistoryLog } from "../utils/history";
 import { StatCard } from "../components/ui/StatCard";
@@ -126,6 +126,9 @@ export function StartupTab() {
   const { t } = useTranslation();
   const [items, setItems] = useState<StartupItem[]>([]);
   const [search, setSearch] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPath, setNewPath] = useState("");
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (isTauri) {
@@ -164,6 +167,40 @@ export function StartupTab() {
     }
   };
 
+  const refreshItems = async () => {
+    const res = await invoke<StartupItem[]>("get_startup_items");
+    const enriched = res.map((item) => ({ ...item, icon: getIconForApp(item.name, item.publisher || "") }));
+    setItems(enriched);
+  };
+
+  const handleDelete = async (name: string, is_hkcu: boolean) => {
+    if (!confirm(t("Are you sure you want to delete this startup item?"))) return;
+    try {
+      await invoke("delete_startup_item", { name, isHkcu: is_hkcu });
+      setItems((prev) => prev.filter((item) => item.name !== name));
+      addHistoryLog({ type: "Startup Deleted", freed: "N/A", fixed: 1, duration: "0.0s", details: `Deleted:${name}` });
+    } catch (e) {
+      console.error("Failed to delete startup item:", e);
+    }
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newPath.trim()) return;
+    setAdding(true);
+    try {
+      await invoke("add_startup_item", { name: newName.trim(), path: newPath.trim(), isHkcu: true });
+      addHistoryLog({ type: "Startup Added", freed: "N/A", fixed: 1, duration: "0.0s", details: `Added:${newName.trim()}` });
+      setNewName("");
+      setNewPath("");
+      await refreshItems();
+    } catch (e) {
+      console.error("Failed to add startup item:", e);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const filtered = items.filter(
     (i) => i.name.toLowerCase().includes(search.toLowerCase()) || (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
   );
@@ -198,6 +235,30 @@ export function StartupTab() {
           color={P.rose}
         />
       </div>
+
+      <form onSubmit={handleAdd} className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder={t("Program name")}
+          className="min-w-0 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-500"
+        />
+        <input
+          value={newPath}
+          onChange={(e) => setNewPath(e.target.value)}
+          placeholder={t("Executable path")}
+          className="min-w-0 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-500"
+        />
+        <button
+          type="submit"
+          disabled={adding || !newName.trim() || !newPath.trim()}
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={{ background: P.teal }}
+        >
+          {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          {adding ? t("Adding...") : t("Add Startup Item")}
+        </button>
+      </form>
 
       {/* ── Manager ────────────────────────────────────────────────────────── */}
       <Card className="p-0 overflow-hidden">
@@ -242,6 +303,14 @@ export function StartupTab() {
                 <div className="flex items-center gap-3">
                   <PillBadge label={item.impact || "Low"} />
                   <Toggle on={item.enabled} onChange={() => toggle(item.name, item.is_hkcu, item.enabled)} />
+                  <button
+                    onClick={() => handleDelete(item.name, item.is_hkcu)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-rose-400 hover:text-rose-500 active:scale-95"
+                    title={t("Delete startup item")}
+                    aria-label={t("Delete startup item")}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))
