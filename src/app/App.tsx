@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion, getName } from "@tauri-apps/api/app";
 import i18n from "./i18n/i18n";
@@ -53,14 +53,14 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { DashboardTab } from "./features/DashboardTab";
-import { CleanerTab } from "./features/CleanerTab";
-import { BoosterTab } from "./features/BoosterTab";
-import { StartupTab } from "./features/StartupTab";
-import { PrivacyTab } from "./features/PrivacyTab";
-import { HistoryTab } from "./features/HistoryTab";
-import { SettingsTab } from "./features/SettingsTab";
-import { DiagnosticsTab } from "./features/DiagnosticsTab";
+const DashboardTab = lazy(() => import("./features/DashboardTab").then(m => ({ default: m.DashboardTab })));
+const CleanerTab = lazy(() => import("./features/CleanerTab").then(m => ({ default: m.CleanerTab })));
+const BoosterTab = lazy(() => import("./features/BoosterTab").then(m => ({ default: m.BoosterTab })));
+const StartupTab = lazy(() => import("./features/StartupTab").then(m => ({ default: m.StartupTab })));
+const PrivacyTab = lazy(() => import("./features/PrivacyTab").then(m => ({ default: m.PrivacyTab })));
+const HistoryTab = lazy(() => import("./features/HistoryTab").then(m => ({ default: m.HistoryTab })));
+const SettingsTab = lazy(() => import("./features/SettingsTab").then(m => ({ default: m.SettingsTab })));
+const DiagnosticsTab = lazy(() => import("./features/DiagnosticsTab").then(m => ({ default: m.DiagnosticsTab })));
 import { useCleanerStore } from "./store/useCleanerStore";
 
 // ─── translations ──────────────────────────────────────────────────────────────────
@@ -776,37 +776,39 @@ export default function App() {
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.18, ease: "easeInOut" }}
         >
-          {tab === "dashboard" && (
-            <DashboardTab
-              lang={lang}
-              setTab={setTab}
-              metrics={metrics}
-              junkItems={junkItems}
-              startupItems={startupItems}
-              score={score}
-              issues={issues}
-              healthText={healthText}
-            />
-          )}
-          {tab === "cleaner" && <CleanerTab />}
-          {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
-          {tab === "startup" && <StartupTab />}
-          {tab === "privacy" && (
-            <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
-          )}
-          {tab === "history" && <HistoryTab />}
-          {tab === "diagnostics" && <DiagnosticsTab />}
-          {tab === "settings" && (
-            <SettingsTab
-              appName={appName}
-              appVersion={appVersion}
-              onLanguageChange={(l) => {
-                setLang(l);
-                i18n.changeLanguage(l).catch(console.error);
-                setGlobalSettings((prev: any) => ({ ...prev, language: l }));
-              }}
-            />
-          )}
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center p-12 text-[11px] font-medium text-muted-foreground uppercase tracking-widest animate-pulse">Loading...</div>}>
+            {tab === "dashboard" && (
+              <DashboardTab
+                lang={lang}
+                setTab={setTab}
+                metrics={metrics}
+                junkItems={junkItems}
+                startupItems={startupItems}
+                score={score}
+                issues={issues}
+                healthText={healthText}
+              />
+            )}
+            {tab === "cleaner" && <CleanerTab />}
+            {tab === "booster" && <BoosterTab isAdmin={isAdmin} />}
+            {tab === "startup" && <StartupTab />}
+            {tab === "privacy" && (
+              <PrivacyTab privacySwept={privacySwept} setPrivacySwept={setPrivacySwept} />
+            )}
+            {tab === "history" && <HistoryTab />}
+            {tab === "diagnostics" && <DiagnosticsTab />}
+            {tab === "settings" && (
+              <SettingsTab
+                appName={appName}
+                appVersion={appVersion}
+                onLanguageChange={(l) => {
+                  setLang(l);
+                  i18n.changeLanguage(l).catch(console.error);
+                  setGlobalSettings((prev: any) => ({ ...prev, language: l }));
+                }}
+              />
+            )}
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     </MainLayout>
