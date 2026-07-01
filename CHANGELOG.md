@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.16.12] - 2026-07-01
 
 ### Added
-- **Satoshi Typography**: Swapped global UI typography to the premium Satoshi typeface (for general UI texts) with OpenType `tabular-nums` alignment for numbers and metrics across all tabs.
+- **Startup Management Controls**: Staged native backend commands and UI controls for managing Windows autostart/boot applications directly from the `Startup` tab.
+- **Diagnostics History & Telemetry**: Added logical CPU cores load grids, network upload/download graphs, SSD read/write throughput speeds, active process task counts, RAM utilization bars, and diagnostic telemetry report export utilities.
+- **Satoshi Typography**: Migrated to the high-contrast Satoshi typeface with custom OpenType `tabular-nums` formatting to stabilize numeric values, clock speeds, and metric alignments across all sections.
+
+### Changed
+- **Unified Color System & Accents**: Refined all components to stick to a single, consistent brand design language. Replaced "rainbow" indicators in Booster apply buttons, metrics, and Privacy tips with unified **Teal** accenting, reserving **Red** strictly for dangerous actions (e.g. Sweep items, warning thresholds, blocked-admin status).
+- **Booster & Tab Navigation Contrast**: Highlighted active tab selections (Balanced, Performance, Gaming) by syncing their text and icons to Teal and border focus to match.
+- **Fingerprint Badge Pop**: Improved contrast ratio by rendering the Privacy fingerprint icon white against its teal background badge.
 
 ### Fixed
 - **Tauri CSP Resolution**: Updated webview Content Security Policy in `tauri.conf.json` to allow styling and font assets from `api.fontshare.com` and `fonts.googleapis.com`/`fonts.gstatic.com` to resolve blocked rendering of fonts.
