@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.16.11"
+version = "0.16.12"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
@@ -47,7 +47,9 @@ debug = "line-tables-only"
 strip = "debuginfo"
 
 [profile.release]
+opt-level = 3
 strip = true
 lto = true
 codegen-units = 1
+panic = "abort"
 
