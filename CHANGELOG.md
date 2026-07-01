@@ -5,14 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.16.12] - 2026-07-01
 
 ### Added
-
-### Changed
+- **Satoshi Typography**: Swapped global UI typography to the premium Satoshi typeface (for general UI texts) with OpenType `tabular-nums` alignment for numbers and metrics across all tabs.
 
 ### Fixed
-
+- **Tauri CSP Resolution**: Updated webview Content Security Policy in `tauri.conf.json` to allow styling and font assets from `api.fontshare.com` and `fonts.googleapis.com`/`fonts.gstatic.com` to resolve blocked rendering of fonts.
+- **i18n Translation Sync**: Cleaned up and synchronized all English and Indonesian language bundles (`translation.json` and local helper dictionaries), fixing instances of Indonesian text rendering in English mode and vice versa.
+- **Privacy Tab Layout & Rendering**: Fixed black screen layout crashes when navigating to the Privacy protection tab.
 
 ## 0.16.11 - 2026-06-28
 
