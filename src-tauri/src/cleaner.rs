@@ -9,7 +9,7 @@ use std::fs;
 use std::io::{BufWriter, Write};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use trash::delete as move_to_trash;
@@ -223,423 +223,586 @@ pub fn scan_junk_internal(
     app: Option<&tauri::AppHandle>,
     cancel_flag: Option<&AtomicBool>,
 ) -> Result<Vec<JunkItem>, String> {
-    let mut results = Vec::new();
     let is_admin = is_elevated::is_elevated();
-
-    // Total scan steps for progress reporting
+    let completed_steps = &AtomicUsize::new(0);
     let total_steps = 13.0f32;
-    let mut current_step = 0.0f32;
-
-    // Helper: emit progress and check cancel
-    let emit_progress = |step: f32| {
-        if let Some(h) = app {
-            let _ = h.emit("scan_progress", ((step / total_steps) * 100.0) as u8);
-        }
-    };
 
     let is_cancelled = || -> bool {
         cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed))
     };
 
-    // ── 1. Windows Temp Files ─────────────────────────────────────────
-    if !is_cancelled() {
-        let mut temp_bytes = 0u64;
-        let mut temp_count = 0usize;
-        let local_temp = std::env::temp_dir();
-        let (s, c) = scan_dir(&local_temp, cancel_flag);
-        temp_bytes += s;
-        temp_count += c;
+    let mut results = Vec::new();
 
-        if is_admin {
-            let win_temp = PathBuf::from("C:\\Windows\\Temp");
-            let (s, c) = scan_dir(&win_temp, cancel_flag);
+    std::thread::scope(|s| {
+        // ── 1. Windows Temp Files ─────────────────────────────────────────
+        let t1 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut temp_bytes = 0u64;
+            let mut temp_count = 0usize;
+            let local_temp = std::env::temp_dir();
+            let (s, c) = scan_dir(&local_temp, cancel_flag);
             temp_bytes += s;
             temp_count += c;
-        }
 
-        if temp_bytes > 0 || temp_count > 0 {
-            results.push(JunkItem {
-                name: "Windows Temp Files".to_string(),
-                size: format_size(temp_bytes),
-                bytes: temp_bytes,
-                count: temp_count,
-                color: "#4f46e5".to_string(),
-                icon: "🗑️".to_string(),
-                description: "Temporary files created by Windows and applications during normal operation. Safe to remove.".to_string(),
-                warning: String::new(),
-                requires_admin: false,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 2. Browser Cache (Chrome + Edge + Brave) ──────────────────────
-    if !is_cancelled() {
-        let mut browser_bytes = 0u64;
-        let mut browser_count = 0usize;
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let local_app_data = PathBuf::from(local_app_data);
-
-            // Chrome cache directories
-            let chrome_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache");
-            let (s, c) = scan_dir(&chrome_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-
-            let chrome_code_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Code Cache");
-            let (s, c) = scan_dir(&chrome_code_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-
-            // Edge cache directories
-            let edge_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache");
-            let (s, c) = scan_dir(&edge_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-
-            let edge_code_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Code Cache");
-            let (s, c) = scan_dir(&edge_code_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-
-            // Brave cache — path structure nearly identical to Chrome
-            let brave_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache");
-            let (s, c) = scan_dir(&brave_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-
-            let brave_code_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache");
-            let (s, c) = scan_dir(&brave_code_cache, cancel_flag);
-            browser_bytes += s;
-            browser_count += c;
-        }
-
-        if browser_bytes > 0 || browser_count > 0 {
-            results.push(JunkItem {
-                name: "Browser Cache".to_string(),
-                size: format_size(browser_bytes),
-                bytes: browser_bytes,
-                count: browser_count,
-                color: "#7c3aed".to_string(),
-                icon: "🌐".to_string(),
-                description: "Cached web pages, images, and scripts from Chrome, Edge, and Brave. Browsers will rebuild this cache as needed.".to_string(),
-                warning: String::new(),
-                requires_admin: false,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 3. Windows Update Cache (Admin) ───────────────────────────────
-    if !is_cancelled() && is_admin {
-        let soft_dist = PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download");
-        let (s, c) = scan_dir(&soft_dist, cancel_flag);
-        if s > 0 || c > 0 {
-            results.push(JunkItem {
-                name: "Windows Update Cache".to_string(),
-                size: format_size(s),
-                bytes: s,
-                count: c,
-                color: "#10b981".to_string(),
-                icon: "🔄".to_string(),
-                description: "Downloaded update packages that Windows no longer needs after successful installation.".to_string(),
-                warning: "Removing may cause Windows to re-download updates if they haven't been applied yet.".to_string(),
-                requires_admin: true,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 4. Crash Dumps & Logs ─────────────────────────────────────────
-    if !is_cancelled() {
-        let mut dump_bytes = 0u64;
-        let mut dump_count = 0usize;
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let crash_dumps = PathBuf::from(local_app_data).join("CrashDumps");
-            let (s, c) = scan_dir(&crash_dumps, cancel_flag);
-            dump_bytes += s;
-            dump_count += c;
-        }
-        if is_admin {
-            let minidump = PathBuf::from("C:\\Windows\\Minidump");
-            let (s, c) = scan_dir(&minidump, cancel_flag);
-            dump_bytes += s;
-            dump_count += c;
-        }
-        if dump_bytes > 0 || dump_count > 0 {
-            results.push(JunkItem {
-                name: "Crash Dumps & Logs".to_string(),
-                size: format_size(dump_bytes),
-                bytes: dump_bytes,
-                count: dump_count,
-                color: "#f43f5e".to_string(),
-                icon: "🪵".to_string(),
-                description: "Memory dump files generated when applications or Windows crash. Only needed for debugging.".to_string(),
-                warning: String::new(),
-                requires_admin: false,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 5. Recycle Bin ────────────────────────────────────────────────
-    if !is_cancelled() {
-        let (rb_bytes, rb_count) = get_recycle_bin_size();
-        if rb_bytes > 0 || rb_count > 0 {
-            results.push(JunkItem {
-                name: "Recycle Bin".to_string(),
-                size: format_size(rb_bytes),
-                bytes: rb_bytes,
-                count: rb_count,
-                color: "#64748b".to_string(),
-                icon: "♻️".to_string(),
-                description: "Files you've previously deleted that are sitting in the Recycle Bin across all drives.".to_string(),
-                warning: "This action is irreversible. Files will be permanently deleted and cannot be recovered.".to_string(),
-                requires_admin: false,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 6. Windows Prefetch (Admin) ───────────────────────────────────
-    if !is_cancelled() && is_admin {
-        let prefetch = PathBuf::from("C:\\Windows\\Prefetch");
-        let (s, c) = scan_dir(&prefetch, cancel_flag);
-        if s > 0 || c > 0 {
-            results.push(JunkItem {
-                name: "Windows Prefetch".to_string(),
-                size: format_size(s),
-                bytes: s,
-                count: c,
-                color: "#0ea5e9".to_string(),
-                icon: "⚡".to_string(),
-                description: "Application launch optimization data. Windows will rebuild this automatically.".to_string(),
-                warning: "First app launches after cleaning may be slightly slower while Windows rebuilds the prefetch data.".to_string(),
-                requires_admin: true,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
-
-    // ── 7. Thumbnail Cache ────────────────────────────────────────────
-    // Note: thumbcache files are often locked by Explorer.exe. We scan
-    // gracefully and skip anything that returns PermissionDenied.
-    if !is_cancelled() {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let explorer_dir = PathBuf::from(&local_app_data)
-                .join("Microsoft\\Windows\\Explorer");
-            let (s, c) = scan_matching_children(&explorer_dir, "thumbcache", cancel_flag);
-            if s > 0 || c > 0 {
-                results.push(JunkItem {
-                    name: "Thumbnail Cache".to_string(),
-                    size: format_size(s),
-                    bytes: s,
-                    count: c,
-                    color: "#ec4899".to_string(),
-                    icon: "🖼️".to_string(),
-                    description: "Cached thumbnail images for File Explorer. Windows will regenerate them as needed.".to_string(),
-                    warning: "Some files may be locked by Explorer and will be skipped.".to_string(),
-                    requires_admin: false,
-                });
+            if is_admin {
+                let win_temp = PathBuf::from("C:\\Windows\\Temp");
+                let (s, c) = scan_dir(&win_temp, cancel_flag);
+                temp_bytes += s;
+                temp_count += c;
             }
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
 
-    // ── 8. Windows Log Files (Admin) ──────────────────────────────────
-    if !is_cancelled() && is_admin {
-        let logs_dir = PathBuf::from("C:\\Windows\\Logs");
-        let (s, c) = scan_dir(&logs_dir, cancel_flag);
-        if s > 0 || c > 0 {
-            results.push(JunkItem {
-                name: "Windows Log Files".to_string(),
-                size: format_size(s),
-                bytes: s,
-                count: c,
-                color: "#f59e0b".to_string(),
-                icon: "📋".to_string(),
-                description: "System log files including CBS, DISM, and setup logs. Safe to remove old entries.".to_string(),
-                warning: "Removing may make it harder to diagnose recent system issues.".to_string(),
-                requires_admin: true,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
 
-    // ── 9. Font Cache ─────────────────────────────────────────────────
-    if !is_cancelled() {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let font_cache_dir = PathBuf::from(&local_app_data);
-            let (s, c) = scan_matching_children(&font_cache_dir, "fontcache", cancel_flag);
-            if s > 0 || c > 0 {
-                results.push(JunkItem {
-                    name: "Font Cache".to_string(),
-                    size: format_size(s),
-                    bytes: s,
-                    count: c,
-                    color: "#8b5cf6".to_string(),
-                    icon: "🔤".to_string(),
-                    description: "Cached font rendering data. Windows will rebuild this on next restart.".to_string(),
+            if temp_bytes > 0 || temp_count > 0 {
+                Some(JunkItem {
+                    name: "Windows Temp Files".to_string(),
+                    size: format_size(temp_bytes),
+                    bytes: temp_bytes,
+                    count: temp_count,
+                    color: "#4f46e5".to_string(),
+                    icon: "🗑️".to_string(),
+                    description: "Temporary files created by Windows and applications during normal operation. Safe to remove.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
-                });
+                })
+            } else {
+                None
             }
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+        });
 
-    // ── 10. DirectX Shader Cache ──────────────────────────────────────
-    if !is_cancelled() {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let shader_cache = PathBuf::from(&local_app_data).join("D3DSCache");
-            let (s, c) = scan_dir(&shader_cache, cancel_flag);
-            if s > 0 || c > 0 {
-                results.push(JunkItem {
-                    name: "DirectX Shader Cache".to_string(),
-                    size: format_size(s),
-                    bytes: s,
-                    count: c,
-                    color: "#06b6d4".to_string(),
-                    icon: "🎮".to_string(),
-                    description: "Compiled shader programs cached by DirectX. Games and apps will recompile them as needed.".to_string(),
+        // ── 2. Browser Cache (Chrome + Edge + Brave) ──────────────────────
+        let t2 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut browser_bytes = 0u64;
+            let mut browser_count = 0usize;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let local_app_data = PathBuf::from(local_app_data);
+
+                // Chrome cache directories
+                let chrome_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache");
+                let (s, c) = scan_dir(&chrome_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+
+                let chrome_code_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Code Cache");
+                let (s, c) = scan_dir(&chrome_code_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+
+                // Edge cache directories
+                let edge_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache");
+                let (s, c) = scan_dir(&edge_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+
+                let edge_code_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Code Cache");
+                let (s, c) = scan_dir(&edge_code_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+
+                // Brave cache
+                let brave_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache");
+                let (s, c) = scan_dir(&brave_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+
+                let brave_code_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache");
+                let (s, c) = scan_dir(&brave_code_cache, cancel_flag);
+                browser_bytes += s;
+                browser_count += c;
+            }
+
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+
+            if browser_bytes > 0 || browser_count > 0 {
+                Some(JunkItem {
+                    name: "Browser Cache".to_string(),
+                    size: format_size(browser_bytes),
+                    bytes: browser_bytes,
+                    count: browser_count,
+                    color: "#7c3aed".to_string(),
+                    icon: "🌐".to_string(),
+                    description: "Cached web pages, images, and scripts from Chrome, Edge, and Brave. Browsers will rebuild this cache as needed.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
-                });
+                })
+            } else {
+                None
             }
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+        });
 
-    // ── 11. Windows Error Reports ─────────────────────────────────────
-    if !is_cancelled() {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let wer_dir = PathBuf::from(&local_app_data)
-                .join("Microsoft\\Windows\\WER");
-            let (s, c) = scan_dir(&wer_dir, cancel_flag);
-            if s > 0 || c > 0 {
-                results.push(JunkItem {
-                    name: "Windows Error Reports".to_string(),
-                    size: format_size(s),
-                    bytes: s,
-                    count: c,
-                    color: "#ef4444".to_string(),
-                    icon: "⚠️".to_string(),
-                    description: "Error reports generated by Windows Error Reporting. Safe to remove if issues are resolved.".to_string(),
+        // ── 3. Windows Update Cache (Admin) ───────────────────────────────
+        let t3 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if is_admin {
+                let soft_dist = PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download");
+                let (s, c) = scan_dir(&soft_dist, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Windows Update Cache".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#10b981".to_string(),
+                        icon: "🔄".to_string(),
+                        description: "Downloaded update packages that Windows no longer needs after successful installation.".to_string(),
+                        warning: "Removing may cause Windows to re-download updates if they haven't been applied yet.".to_string(),
+                        requires_admin: true,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
+
+        // ── 4. Crash Dumps & Logs ─────────────────────────────────────────
+        let t4 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut dump_bytes = 0u64;
+            let mut dump_count = 0usize;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let crash_dumps = PathBuf::from(local_app_data).join("CrashDumps");
+                let (s, c) = scan_dir(&crash_dumps, cancel_flag);
+                dump_bytes += s;
+                dump_count += c;
+            }
+            if is_admin {
+                let minidump = PathBuf::from("C:\\Windows\\Minidump");
+                let (s, c) = scan_dir(&minidump, cancel_flag);
+                dump_bytes += s;
+                dump_count += c;
+            }
+
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+
+            if dump_bytes > 0 || dump_count > 0 {
+                Some(JunkItem {
+                    name: "Crash Dumps & Logs".to_string(),
+                    size: format_size(dump_bytes),
+                    bytes: dump_bytes,
+                    count: dump_count,
+                    color: "#f43f5e".to_string(),
+                    icon: "🪵".to_string(),
+                    description: "Memory dump files generated when applications or Windows crash. Only needed for debugging.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
-                });
+                })
+            } else {
+                None
             }
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+        });
 
-    // ── 12. Delivery Optimization Cache (Admin) ───────────────────────
-    if !is_cancelled() && is_admin {
-        let delivery_opt = PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization");
-        let (s, c) = scan_dir(&delivery_opt, cancel_flag);
-        if s > 0 || c > 0 {
-            results.push(JunkItem {
-                name: "Delivery Optimization".to_string(),
-                size: format_size(s),
-                bytes: s,
-                count: c,
-                color: "#14b8a6".to_string(),
-                icon: "📦".to_string(),
-                description: "Cached files used by Windows to share updates with other PCs on your network.".to_string(),
-                warning: "Removing may cause Windows to re-download update data for peer sharing.".to_string(),
-                requires_admin: true,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+        // ── 5. Recycle Bin ────────────────────────────────────────────────
+        let t5 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let (rb_bytes, rb_count) = get_recycle_bin_size();
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            if rb_bytes > 0 || rb_count > 0 {
+                Some(JunkItem {
+                    name: "Recycle Bin".to_string(),
+                    size: format_size(rb_bytes),
+                    bytes: rb_bytes,
+                    count: rb_count,
+                    color: "#64748b".to_string(),
+                    icon: "♻️".to_string(),
+                    description: "Files you've previously deleted that are sitting in the Recycle Bin across all drives.".to_string(),
+                    warning: "This action is irreversible. Files will be permanently deleted and cannot be recovered.".to_string(),
+                    requires_admin: false,
+                })
+            } else {
+                None
+            }
+        });
 
-    // ── 13. Application Cache (Discord, Teams, Steam, Riot) ───────────
-    if !is_cancelled() {
-        let mut app_bytes = 0u64;
-        let mut app_count = 0usize;
+        // ── 6. Windows Prefetch (Admin) ───────────────────────────────────
+        let t6 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if is_admin {
+                let prefetch = PathBuf::from("C:\\Windows\\Prefetch");
+                let (s, c) = scan_dir(&prefetch, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Windows Prefetch".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#0ea5e9".to_string(),
+                        icon: "⚡".to_string(),
+                        description: "Application launch optimization data. Windows will rebuild this automatically.".to_string(),
+                        warning: "First app launches after cleaning may be slightly slower while Windows rebuilds the prefetch data.".to_string(),
+                        requires_admin: true,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-        if let Some(appdata) = std::env::var_os("APPDATA") {
-            let appdata = PathBuf::from(appdata);
+        // ── 7. Thumbnail Cache ────────────────────────────────────────────
+        let t7 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let explorer_dir = PathBuf::from(&local_app_data)
+                    .join("Microsoft\\Windows\\Explorer");
+                let (s, c) = scan_matching_children(&explorer_dir, "thumbcache", cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Thumbnail Cache".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#ec4899".to_string(),
+                        icon: "🖼️".to_string(),
+                        description: "Cached thumbnail images for File Explorer. Windows will regenerate them as needed.".to_string(),
+                        warning: "Some files may be locked by Explorer and will be skipped.".to_string(),
+                        requires_admin: false,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-            // Discord cache
-            let discord_cache = appdata.join("discord\\Cache");
-            let (s, c) = scan_dir(&discord_cache, cancel_flag);
-            app_bytes += s;
-            app_count += c;
+        // ── 8. Windows Log Files (Admin) ──────────────────────────────────
+        let t8 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if is_admin {
+                let logs_dir = PathBuf::from("C:\\Windows\\Logs");
+                let (s, c) = scan_dir(&logs_dir, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Windows Log Files".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#f59e0b".to_string(),
+                        icon: "📋".to_string(),
+                        description: "System log files including CBS, DISM, and setup logs. Safe to remove old entries.".to_string(),
+                        warning: "Removing may make it harder to diagnose recent system issues.".to_string(),
+                        requires_admin: true,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-            let discord_code_cache = appdata.join("discord\\Code Cache");
-            let (s, c) = scan_dir(&discord_code_cache, cancel_flag);
-            app_bytes += s;
-            app_count += c;
+        // ── 9. Font Cache ─────────────────────────────────────────────────
+        let t9 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let font_cache_dir = PathBuf::from(&local_app_data);
+                let (s, c) = scan_matching_children(&font_cache_dir, "fontcache", cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Font Cache".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#8b5cf6".to_string(),
+                        icon: "🔤".to_string(),
+                        description: "Cached font rendering data. Windows will rebuild this on next restart.".to_string(),
+                        warning: String::new(),
+                        requires_admin: false,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-            // Microsoft Teams cache
-            let teams_cache = appdata.join("Microsoft\\Teams\\Cache");
-            let (s, c) = scan_dir(&teams_cache, cancel_flag);
-            app_bytes += s;
-            app_count += c;
+        // ── 10. DirectX Shader Cache ──────────────────────────────────────
+        let t10 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let shader_cache = PathBuf::from(&local_app_data).join("D3DSCache");
+                let (s, c) = scan_dir(&shader_cache, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "DirectX Shader Cache".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#06b6d4".to_string(),
+                        icon: "🎮".to_string(),
+                        description: "Compiled shader programs cached by DirectX. Games and apps will recompile them as needed.".to_string(),
+                        warning: String::new(),
+                        requires_admin: false,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-            let teams_code_cache = appdata.join("Microsoft\\Teams\\Code Cache");
-            let (s, c) = scan_dir(&teams_code_cache, cancel_flag);
-            app_bytes += s;
-            app_count += c;
-        }
+        // ── 11. Windows Error Reports ─────────────────────────────────────
+        let t11 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let wer_dir = PathBuf::from(&local_app_data)
+                    .join("Microsoft\\Windows\\WER");
+                let (s, c) = scan_dir(&wer_dir, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Windows Error Reports".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#ef4444".to_string(),
+                        icon: "⚠️".to_string(),
+                        description: "Error reports generated by Windows Error Reporting. Safe to remove if issues are resolved.".to_string(),
+                        warning: String::new(),
+                        requires_admin: false,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let local_app_data = PathBuf::from(local_app_data);
+        // ── 12. Delivery Optimization Cache (Admin) ───────────────────────
+        let t12 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut item = None;
+            if is_admin {
+                let delivery_opt = PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization");
+                let (s, c) = scan_dir(&delivery_opt, cancel_flag);
+                if s > 0 || c > 0 {
+                    item = Some(JunkItem {
+                        name: "Delivery Optimization".to_string(),
+                        size: format_size(s),
+                        bytes: s,
+                        count: c,
+                        color: "#14b8a6".to_string(),
+                        icon: "📦".to_string(),
+                        description: "Cached files used by Windows to share updates with other PCs on your network.".to_string(),
+                        warning: "Removing may cause Windows to re-download update data for peer sharing.".to_string(),
+                        requires_admin: true,
+                    });
+                }
+            }
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+            item
+        });
 
-            // Steam appcache
-            let steam_cache = local_app_data.join("Steam\\htmlcache");
-            let (s, c) = scan_dir(&steam_cache, cancel_flag);
-            app_bytes += s;
-            app_count += c;
+        // ── 13. Application Cache (Discord, Teams, Steam, Riot) ───────────
+        let t13 = s.spawn(|| {
+            if is_cancelled() {
+                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+                if let Some(h) = app {
+                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+                }
+                return None;
+            }
+            let mut app_bytes = 0u64;
+            let mut app_count = 0usize;
 
-            // Riot Games / Valorant temp data
-            let riot_cache = local_app_data.join("Riot Games");
-            if riot_cache.exists() {
-                // Only scan known temp/cache subdirectories, not game installs
-                let riot_logs = riot_cache.join("Riot Client\\Logs");
-                let (s, c) = scan_dir(&riot_logs, cancel_flag);
+            if let Some(appdata) = std::env::var_os("APPDATA") {
+                let appdata = PathBuf::from(appdata);
+
+                // Discord cache
+                let discord_cache = appdata.join("discord\\Cache");
+                let (s, c) = scan_dir(&discord_cache, cancel_flag);
                 app_bytes += s;
                 app_count += c;
 
-                let riot_data = riot_cache.join("Riot Client\\Data");
-                let (s, c) = scan_dir(&riot_data, cancel_flag);
+                let discord_code_cache = appdata.join("discord\\Code Cache");
+                let (s, c) = scan_dir(&discord_code_cache, cancel_flag);
+                app_bytes += s;
+                app_count += c;
+
+                // Microsoft Teams cache
+                let teams_cache = appdata.join("Microsoft\\Teams\\Cache");
+                let (s, c) = scan_dir(&teams_cache, cancel_flag);
+                app_bytes += s;
+                app_count += c;
+
+                let teams_code_cache = appdata.join("Microsoft\\Teams\\Code Cache");
+                let (s, c) = scan_dir(&teams_code_cache, cancel_flag);
                 app_bytes += s;
                 app_count += c;
             }
-        }
 
-        if app_bytes > 0 || app_count > 0 {
-            results.push(JunkItem {
-                name: "Application Cache".to_string(),
-                size: format_size(app_bytes),
-                bytes: app_bytes,
-                count: app_count,
-                color: "#a855f7".to_string(),
-                icon: "📱".to_string(),
-                description: "Cache files from Discord, Teams, Steam, and Riot Games. Apps will rebuild their cache on next launch.".to_string(),
-                warning: String::new(),
-                requires_admin: false,
-            });
-        }
-    }
-    current_step += 1.0;
-    emit_progress(current_step);
+            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+                let local_app_data = PathBuf::from(local_app_data);
+
+                // Steam appcache
+                let steam_cache = local_app_data.join("Steam\\htmlcache");
+                let (s, c) = scan_dir(&steam_cache, cancel_flag);
+                app_bytes += s;
+                app_count += c;
+
+                // Riot Games
+                let riot_cache = local_app_data.join("Riot Games");
+                if riot_cache.exists() {
+                    let riot_logs = riot_cache.join("Riot Client\\Logs");
+                    let (s, c) = scan_dir(&riot_logs, cancel_flag);
+                    app_bytes += s;
+                    app_count += c;
+
+                    let riot_data = riot_cache.join("Riot Client\\Data");
+                    let (s, c) = scan_dir(&riot_data, cancel_flag);
+                    app_bytes += s;
+                    app_count += c;
+                }
+            }
+
+            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
+            if let Some(h) = app {
+                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
+            }
+
+            if app_bytes > 0 || app_count > 0 {
+                Some(JunkItem {
+                    name: "Application Cache".to_string(),
+                    size: format_size(app_bytes),
+                    bytes: app_bytes,
+                    count: app_count,
+                    color: "#a855f7".to_string(),
+                    icon: "📱".to_string(),
+                    description: "Cache files from Discord, Teams, Steam, and Riot Games. Apps will rebuild their cache on next launch.".to_string(),
+                    warning: String::new(),
+                    requires_admin: false,
+                })
+            } else {
+                None
+            }
+        });
+
+        // Collect results
+        if let Some(item) = t1.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t2.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t3.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t4.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t5.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t6.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t7.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t8.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t9.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t10.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t11.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t12.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t13.join().unwrap_or(None) { results.push(item); }
+    });
 
     Ok(results)
 }
+
 
 // ─── Tauri Commands ───────────────────────────────────────────────────
 

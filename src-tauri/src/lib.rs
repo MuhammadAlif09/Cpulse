@@ -1644,7 +1644,7 @@ pub fn run() {
 
                     let _ = app_handle.emit("system-metrics", metrics);
 
-                    std::thread::sleep(Duration::from_secs(1));
+                    std::thread::sleep(Duration::from_secs(2));
                 }
             });
 

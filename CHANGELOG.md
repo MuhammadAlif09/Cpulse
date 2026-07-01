@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.13] - 2026-07-02
+
+### Added
+- **Parallelized Junk Scan Engine**: Refactored `scan_junk_internal` to execute all 13 directory scanning categories concurrently using scoped threads (`std::thread::scope`), yielding sub-second query speeds.
+- **Throttled Diagnostics Telemetry**: Capped system metrics updates to a 2-second interval, reducing re-rendering CPU load inside WebView.
+- **Smooth Dashboard & Diagnostics Transitions**: Enabled line/area animations on metrics charts and customized CSS transition durations to `1500ms` across all progress bars.
+- **CI Build Fixes**: Patched GitHub Actions workflow with Linux build dependencies (`pkg-config`, `libglib2.0-dev`).
+
 ## [0.16.12] - 2026-07-01
 
 ### Added

@@ -21,6 +21,7 @@ import {
   Layers,
   History,
   Eye,
+  Thermometer,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useTranslation } from "react-i18next";
@@ -383,7 +384,7 @@ export function DiagnosticsTab() {
                     <div className="text-[9px] text-muted-foreground font-semibold">C{idx + 1}</div>
                     <div className="text-xs font-bold tabular-nums text-foreground">{val}%</div>
                     <div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-300"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-[1500ms] ease-out"
                       style={{ width: `${val}%`, backgroundColor: color }}
                     />
                   </div>
@@ -471,7 +472,7 @@ export function DiagnosticsTab() {
                 </div>
                 <div className="h-2 w-full bg-secondary border border-border rounded-full overflow-hidden relative">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-[1500ms] ease-out"
                     style={{
                       width: metrics ? `${metrics.ram_usage}%` : "0%",
                       background: `linear-gradient(to right, ${P.sky}, ${
@@ -538,7 +539,7 @@ export function DiagnosticsTab() {
                       </div>
                       <div className="h-1.5 w-full bg-secondary border border-border rounded-full overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all duration-500"
+                          className="h-full rounded-full transition-all duration-[1500ms] ease-out"
                           style={{
                             width: `${pct}%`,
                             backgroundColor: barColor,
@@ -597,8 +598,8 @@ export function DiagnosticsTab() {
                 <XAxis dataKey="t" hide />
                 <YAxis hide />
                 <Tooltip content={<ChartTooltip unit="MB/s" />} />
-                <Area type="monotone" dataKey="read" name={t("Read")} stroke={P.teal} strokeWidth={2} fillOpacity={1} fill="url(#rGrad)" activeDot={<PulsingDot />} isAnimationActive={false} />
-                <Area type="monotone" dataKey="write" name={t("Write")} stroke={P.rose} strokeWidth={2} fillOpacity={1} fill="url(#wGrad)" activeDot={<PulsingDot />} isAnimationActive={false} />
+                <Area type="monotone" dataKey="read" name={t("Read")} stroke={P.teal} strokeWidth={2} fillOpacity={1} fill="url(#rGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
+                <Area type="monotone" dataKey="write" name={t("Write")} stroke={P.rose} strokeWidth={2} fillOpacity={1} fill="url(#wGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -634,8 +635,8 @@ export function DiagnosticsTab() {
                 <XAxis dataKey="t" hide />
                 <YAxis hide />
                 <Tooltip content={<ChartTooltip unit="MB/s" />} />
-                <Area type="monotone" dataKey="up" name={t("Upload")} stroke={P.sky} strokeWidth={2} fillOpacity={1} fill="url(#upGrad)" activeDot={<PulsingDot />} isAnimationActive={false} />
-                <Area type="monotone" dataKey="down" name={t("Download")} stroke={P.violet} strokeWidth={2} fillOpacity={1} fill="url(#dnGrad)" activeDot={<PulsingDot />} isAnimationActive={false} />
+                <Area type="monotone" dataKey="up" name={t("Upload")} stroke={P.sky} strokeWidth={2} fillOpacity={1} fill="url(#upGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
+                <Area type="monotone" dataKey="down" name={t("Download")} stroke={P.violet} strokeWidth={2} fillOpacity={1} fill="url(#dnGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
