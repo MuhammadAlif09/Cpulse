@@ -13,7 +13,7 @@ import {
   Settings,
   ChevronRight,
   AlertTriangle,
-  CheckCircle2,
+  Check,
   HardDrive,
   Cpu,
   MemoryStick,
@@ -563,7 +563,7 @@ export default function App() {
   const junkItems = useCleanerStore((state) => state.junkCats);
   const [startupItems, setStartupItems] = useState<StartupItem[]>([]);
   const [privacySwept, setPrivacySwept] = useState(false);
-  const [appVersion, setAppVersion] = useState("0.16.11");
+  const [appVersion, setAppVersion] = useState("0.16.12");
   const [appName, setAppName] = useState("Cpulse");
 
   useEffect(() => {

@@ -12,8 +12,10 @@ import {
   Clock,
   HardDrive,
   Files,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "motion/react";
 import { ScanAnimation } from "../components/ScanAnimation";
 import { useCleanerStore } from "../store/useCleanerStore";
 import { invoke } from "@tauri-apps/api/core";
@@ -56,7 +58,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-border/60 shadow-sm relative overflow-hidden transition-all duration-300 bg-card",
+        "rounded-2xl p-5 border border-border/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card/80 backdrop-blur-md",
         className
       )}
       style={style}
@@ -177,7 +179,7 @@ export function CleanerTab() {
               <button
                 onClick={startScan}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95 cursor-pointer"
-                style={{ background: P.teal }}
+                style={{ background: P.teal, boxShadow: `0 4px 14px -4px ${P.teal}` }}
               >
                 <Sparkles size={15} /> {t("Start Scan")}
               </button>
@@ -245,8 +247,28 @@ export function CleanerTab() {
                 >
                   <RotateCcw size={12} /> {t("Scan Again")}
                 </button>
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-600 bg-emerald-500/10">
-                  <CheckCircle2 size={16} /> {t("Cleaned!")}
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-500"
+                  style={{
+                    background: "color-mix(in srgb, #10b981 12%, transparent)",
+                    border: "1px solid color-mix(in srgb, #10b981 25%, transparent)",
+                    boxShadow: "0 0 25px -5px rgba(16, 185, 129, 0.4)",
+                  }}
+                >
+                  <motion.svg
+                    className="w-4 h-4 stroke-emerald-500"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </motion.svg>{" "}
+                  {t("Cleaned!")}
                 </div>
               </div>
             )}
@@ -263,7 +285,7 @@ export function CleanerTab() {
             <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%`, background: P.teal }}
+                style={{ width: `${progress}%`, background: P.teal, boxShadow: `0 0 8px ${P.teal}` }}
               />
             </div>
           </div>
@@ -340,7 +362,7 @@ export function CleanerTab() {
                   <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wide">
                     {cleaned ? t("Freed") : t("Selected")}
                   </span>
-                  <span className="text-lg font-bold text-foreground mt-0.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <span className="text-lg font-bold text-foreground mt-0.5" style={{ fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}>
                     {displayBytesStr.split(' ')[0]}
                   </span>
                 </div>
@@ -393,6 +415,7 @@ export function CleanerTab() {
                     style={{
                       background: isOn ? `color-mix(in srgb, ${cat.color} 8%, var(--card))` : "var(--card)",
                       borderColor: isOn ? `color-mix(in srgb, ${cat.color} 40%, transparent)` : "var(--border)",
+                      boxShadow: isOn ? `0 0 16px -6px color-mix(in srgb, ${cat.color} 20%, transparent)` : "none",
                     }}
                   >
                     <div className="flex items-start gap-2.5 mb-2">
@@ -413,13 +436,25 @@ export function CleanerTab() {
                         </p>
                       </div>
                       <div
-                        className="w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 mt-0.5"
+                        className="w-[18px] h-[18px] rounded-md border transition-all flex items-center justify-center flex-shrink-0 mt-0.5"
                         style={{
-                          borderColor: isOn ? cat.color : "var(--border)",
+                          border: isOn ? "none" : "1px solid var(--border)",
                           background: isOn ? cat.color : "transparent",
+                          boxShadow: isOn ? `0 0 8px -2px ${cat.color}` : "none",
                         }}
                       >
-                        {isOn && <CheckCircle2 size={12} color="var(--card)" />}
+                        <AnimatePresence>
+                          {isOn && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                            >
+                              <Check size={11} color="white" strokeWidth={3.5} className="drop-shadow-sm" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 

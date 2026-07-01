@@ -53,7 +53,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
+        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
         className
       )}
       style={style}
@@ -303,6 +303,10 @@ export function HistoryTab() {
                         <stop offset="0%" stopColor={P.teal} stopOpacity={0.9} />
                         <stop offset="100%" stopColor={P.teal} stopOpacity={0.2} />
                       </linearGradient>
+                      <filter id="barGlow" x="-20%" y="-10%" width="140%" height="120%">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
                     </defs>
                   </BarChart>
                 </ResponsiveContainer>
@@ -346,7 +350,7 @@ export function HistoryTab() {
                     </div>
                     {showFreed && (
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm font-bold" style={{ color: P.teal, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <div className="text-sm font-bold" style={{ color: P.teal, fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}>
                           {h.freed}
                         </div>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">

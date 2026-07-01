@@ -47,7 +47,7 @@ export function Header({
   setNotifications,
 }: HeaderProps) {
   return (
-    <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-card/85 dark:bg-slate-900/85 backdrop-blur-md flex-shrink-0 border-border">
+    <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-card/70 backdrop-blur-xl flex-shrink-0 border-border">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-800">
           <img src={AppLogo} alt="Logo" className="w-8 h-8 object-contain" />
@@ -99,7 +99,7 @@ export function Header({
           </button>
 
           {showNotif && (
-            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-card/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl border border-border overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-popover/95 backdrop-blur-xl shadow-xl border border-border overflow-hidden z-50">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-slate-50/50 dark:bg-slate-950/50">
                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {t(lang, "Notifications")}

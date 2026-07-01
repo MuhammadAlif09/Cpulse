@@ -46,7 +46,7 @@ export function Sidebar({
   const sc = scoreColor(score);
 
   return (
-    <aside className="w-56 flex-shrink-0 border-r bg-card flex flex-col py-5 px-3 gap-1 border-border">
+    <aside className="w-56 flex-shrink-0 border-r bg-card/80 backdrop-blur-xl flex flex-col py-5 px-3 gap-1 border-border">
       <div className="flex-1 space-y-0.5">
         {nav.map((n) => {
           const active = tab === n.id;
@@ -66,12 +66,15 @@ export function Sidebar({
             <button
               key={n.id}
               onClick={() => setTab(n.id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer group"
               style={{
                 background: active
-                  ? `color-mix(in srgb, ${P.teal} 8%, transparent)`
+                  ? `color-mix(in srgb, ${P.teal} 12%, transparent)`
                   : "transparent",
                 color: active ? P.teal : "var(--muted-foreground)",
+                boxShadow: active
+                  ? `inset 0 0 0 1px color-mix(in srgb, ${P.teal} 15%, transparent), 0 0 12px -4px color-mix(in srgb, ${P.teal} 20%, transparent)`
+                  : "none",
               }}
               onMouseEnter={(e) => {
                 if (!active) {
@@ -115,10 +118,11 @@ export function Sidebar({
       <div className="mt-auto pt-4 transition-all duration-500 ease-in-out">
         {/* Score Card */}
         <div
-          className="rounded-2xl p-4 mb-3 border relative overflow-hidden"
+          className="rounded-2xl p-4 mb-3 border relative overflow-hidden backdrop-blur-md"
           style={{
-            borderColor: `color-mix(in srgb, ${sc} 20%, var(--border))`,
-            background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${sc} 5%, transparent))`,
+            borderColor: `color-mix(in srgb, ${sc} 15%, var(--border))`,
+            background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${sc} 4%, transparent))`,
+            boxShadow: `0 0 20px -6px color-mix(in srgb, ${sc} 12%, transparent)`,
           }}
         >
           <div className="flex items-center gap-1.5 mb-2">
@@ -130,7 +134,7 @@ export function Sidebar({
           <div className="flex items-baseline gap-1.5">
             <div
               className="text-3xl font-bold tracking-tight"
-              style={{ color: "var(--foreground)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ color: "var(--foreground)", fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}
             >
               {score}
             </div>
@@ -146,19 +150,19 @@ export function Sidebar({
           <div className="w-full h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: "var(--secondary)" }}>
             <div
               className="h-full rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${score}%`, background: sc }}
+              style={{ width: `${score}%`, background: sc, boxShadow: `0 0 8px ${sc}` }}
             />
           </div>
         </div>
 
         {/* Last Scan Info */}
-        <div className="rounded-xl p-3 bg-secondary/50 border border-border/50 text-[11px]">
+        <div className="rounded-xl p-3 bg-secondary/40 backdrop-blur-sm border border-border/30 text-[11px]">
           <div className="flex items-center gap-1.5 text-muted-foreground font-medium mb-1">
             <Sparkles size={12} />
             <span>{t(lang, "Last cleaned")}</span>
           </div>
           <div className="font-semibold text-foreground truncate">
-            {t(lang, "Belum ada")}
+            {t(lang, "None yet")}
           </div>
         </div>
       </div>

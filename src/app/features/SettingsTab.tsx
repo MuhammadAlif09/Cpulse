@@ -37,7 +37,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
+        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
         className
       )}
       style={style}
@@ -55,6 +55,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
       style={{
         background: on ? P.teal : "var(--secondary)",
         borderColor: on ? "transparent" : "var(--border)",
+        boxShadow: on ? `0 0 10px -2px ${P.teal}` : "none",
       }}
     >
       <span

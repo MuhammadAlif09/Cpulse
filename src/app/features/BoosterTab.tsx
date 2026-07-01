@@ -9,14 +9,18 @@ import {
   HardDrive,
   Activity,
   Thermometer,
-  CheckCircle2,
+  Check,
   RefreshCw,
   Lock,
   Clock,
+  RotateCcw,
+  Rocket,
+  Gamepad2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { addHistoryLog } from "../utils/history";
+import { motion } from "motion/react";
 
 // Teal-based palette
 const P = {
@@ -48,7 +52,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
+        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
         className
       )}
       style={style}
@@ -75,15 +79,15 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   }, [mode]);
 
   const BOOSTS = [
-    { id: "ram", icon: <MemoryStick size={16} />, title: "RAM Optimizer", desc: "Flush standby list and free unused memory pages", gain: "+1.4 GB freed", color: P.violet, category: "Memory", adminRequired: false },
+    { id: "ram", icon: <MemoryStick size={16} />, title: "RAM Optimizer", desc: "Flush standby list and free unused memory pages", gain: "+1.4 GB freed", color: P.teal, category: "Memory", adminRequired: false },
     { id: "cpu", icon: <Cpu size={16} />, title: "CPU Priority Manager", desc: "Elevate priority for active foreground processes", gain: "~12% snappier", color: P.teal, category: "Processor", adminRequired: true },
-    { id: "net", icon: <Globe size={16} />, title: "Network Tweaker", desc: "Optimize TCP/IP stack, DNS cache & buffer sizes", gain: "−18ms latency", color: P.sky, category: "Network", adminRequired: true },
-    { id: "dns", icon: <Globe size={16} />, title: "DNS Cache Flusher", desc: "Flush DNS resolver cache to optimize network connection and reduce latency", gain: "Cleared cache", color: P.cyan, category: "Network", adminRequired: false },
-    { id: "visual", icon: <Monitor size={16} />, title: "Visual Effects Trim", desc: "Turn off non-essential animations and transparency", gain: "+6% GPU free", color: P.amber, category: "Graphics", adminRequired: false },
-    { id: "power", icon: <Zap size={16} />, title: "High Performance Mode", desc: "Switch Windows power plan to maximum performance", gain: "Max clock speed", color: P.rose, category: "Power", adminRequired: false },
-    { id: "disk", icon: <HardDrive size={16} />, title: "Disk I/O Optimizer", desc: "TRIM SSD, optimize prefetch and SuperFetch settings", gain: "−22% I/O wait", color: P.emerald, category: "Storage", adminRequired: true },
-    { id: "game", icon: <Activity size={16} />, title: "Game Mode Enhancer", desc: "Redirect resources to foreground game processes", gain: "Smoother FPS", color: P.pink, category: "Gaming", adminRequired: false },
-    { id: "temp", icon: <Thermometer size={16} />, title: "Thermal Manager", desc: "Optimize fan curves and thermal throttle limits", gain: "−4°C average", color: P.amber, category: "Cooling", adminRequired: false },
+    { id: "net", icon: <Globe size={16} />, title: "Network Tweaker", desc: "Optimize TCP/IP stack, DNS cache & buffer sizes", gain: "−18ms latency", color: P.teal, category: "Network", adminRequired: true },
+    { id: "dns", icon: <Globe size={16} />, title: "DNS Cache Flusher", desc: "Flush DNS resolver cache to optimize network connection and reduce latency", gain: "Cleared cache", color: P.teal, category: "Network", adminRequired: false },
+    { id: "visual", icon: <Monitor size={16} />, title: "Visual Effects Trim", desc: "Turn off non-essential animations and transparency", gain: "+6% GPU free", color: P.teal, category: "Graphics", adminRequired: false },
+    { id: "power", icon: <Zap size={16} />, title: "High Performance Mode", desc: "Switch Windows power plan to maximum performance", gain: "Max clock speed", color: P.teal, category: "Power", adminRequired: false },
+    { id: "disk", icon: <HardDrive size={16} />, title: "Disk I/O Optimizer", desc: "TRIM SSD, optimize prefetch and SuperFetch settings", gain: "−22% I/O wait", color: P.teal, category: "Storage", adminRequired: true },
+    { id: "game", icon: <Activity size={16} />, title: "Game Mode Enhancer", desc: "Redirect resources to foreground game processes", gain: "Smoother FPS", color: P.teal, category: "Gaming", adminRequired: false },
+    { id: "temp", icon: <Thermometer size={16} />, title: "Thermal Manager", desc: "Optimize fan curves and thermal throttle limits", gain: "−4°C average", color: P.teal, category: "Cooling", adminRequired: false },
     { id: "startup_delay", icon: <Clock size={16} />, title: "Startup Delay Speedup", desc: "Disable Windows startup app launch delay for faster booting", gain: "−2s boot wait", color: P.teal, category: "Boot", adminRequired: false },
   ];
 
@@ -154,14 +158,15 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
+                className="px-4 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide flex items-center gap-1.5"
                 style={
                   mode === m
                     ? { background: "var(--card)", color: P.teal, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
                     : { color: "var(--muted-foreground)" }
                 }
               >
-                {m === "balanced" ? `⚖️ ${t("Balanced")}` : m === "performance" ? `🚀 ${t("Performance")}` : `🎮 ${t("Gaming")}`}
+                {m === "balanced" ? <Zap size={13} className={mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"} /> : m === "performance" ? <Rocket size={13} className={mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"} /> : <Gamepad2 size={13} className={mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"} />}
+                {t(m.charAt(0).toUpperCase() + m.slice(1))}
               </button>
             ))}
           </div>
@@ -171,7 +176,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${(doneCount / BOOSTS.length) * 100}%`, background: P.teal }}
+              style={{ width: `${(doneCount / BOOSTS.length) * 100}%`, background: P.teal, boxShadow: `0 0 8px ${P.teal}` }}
             />
           </div>
           <div className="text-right flex-shrink-0 min-w-[60px]">
@@ -187,8 +192,28 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
               <Zap size={14} /> {t("Apply All")}
             </button>
           ) : (
-            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500 text-[11px] uppercase tracking-wider font-bold px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-              <CheckCircle2 size={14} /> +{scoreBoost} {t("pts")}
+            <div
+              className="flex items-center gap-1.5 text-emerald-500 text-[11px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-lg"
+              style={{
+                background: "color-mix(in srgb, #10b981 12%, transparent)",
+                border: "1px solid color-mix(in srgb, #10b981 25%, transparent)",
+                boxShadow: "0 0 25px -5px rgba(16, 185, 129, 0.4)",
+              }}
+            >
+              <motion.svg
+                className="w-3.5 h-3.5 stroke-emerald-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </motion.svg>{" "}
+              +{scoreBoost} {t("pts")}
             </div>
           )}
         </div>
@@ -203,9 +228,10 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           return (
             <div
               key={b.id}
-              className="p-4 rounded-xl border bg-card transition-all duration-200 hover:shadow-sm"
+              className="p-4 rounded-xl border bg-card/80 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
               style={{
                 borderColor: done ? `color-mix(in srgb, ${b.color} 30%, transparent)` : "var(--border)",
+                boxShadow: done ? `0 0 16px -4px color-mix(in srgb, ${b.color} 15%, transparent)` : "none",
               }}
             >
               <div className="flex gap-4">
@@ -216,7 +242,19 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                     color: locked ? P.rose : done ? b.color : "var(--muted-foreground)",
                   }}
                 >
-                  {locked ? <Lock size={18} /> : done ? <CheckCircle2 size={20} /> : b.icon}
+                  {locked ? (
+                    <Lock size={18} />
+                  ) : done ? (
+                    <motion.div
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                    >
+                      <Check size={20} strokeWidth={3} />
+                    </motion.div>
+                  ) : (
+                    b.icon
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">

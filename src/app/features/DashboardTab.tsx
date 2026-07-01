@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  CheckCircle2,
+  Check,
   AlertTriangle,
   Cpu,
   MemoryStick,
@@ -16,6 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "motion/react";
 import { RadialGauge } from "../components/RadialGauge";
 import {
   AreaChart,
@@ -74,7 +75,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
+        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
         className
       )}
       style={style}
@@ -98,19 +99,77 @@ function StatCard({
   sub?: string;
   color: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setDimensions({
+          width: cardRef.current?.offsetWidth || entry.target.clientWidth,
+          height: cardRef.current?.offsetHeight || entry.target.clientHeight,
+        });
+      }
+    });
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const W = dimensions.width;
+  const H = dimensions.height;
+  const R = 16;
+
+  // Symmetrical split paths starting from middle of the left edge (2, H/2) with 2px offset to prevent clipping
+  const topPath = W && H ? `M 2 ${H / 2} L 2 16 A 14 14 0 0 1 16 2 L ${W - 16} 2 A 14 14 0 0 1 ${W - 2} 16 L ${W - 2} ${H / 2}` : "";
+  const bottomPath = W && H ? `M 2 ${H / 2} L 2 ${H - 16} A 14 14 0 0 0 16 ${H - 2} L ${W - 16} ${H - 2} A 14 14 0 0 0 ${W - 2} ${H - 16} L ${W - 2} ${H / 2}` : "";
+
   return (
     <div
-      className="rounded-2xl p-4 bg-card border-border/60 shadow-sm relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      ref={cardRef}
+      className="rounded-2xl p-4 bg-card/80 backdrop-blur-md shadow-sm relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group cursor-default"
       style={{
-        border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 5%, transparent))`,
+        border: "1px solid var(--border)",
+        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 4%, transparent))`,
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* colored left stripe */}
-      <div
-        className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full"
-        style={{ background: color }}
-      />
+      {/* Tracing Border Progress Lines (Symmetrical Split) */}
+      {W > 0 && H > 0 && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl" style={{ width: W, height: H }}>
+          {/* Top Half Path */}
+          <path
+            d={topPath}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            pathLength="100"
+            style={{
+              strokeDasharray: isHovered ? "100 0" : "8 92",
+              strokeDashoffset: 0,
+              transition: "stroke-dasharray 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+              opacity: isHovered ? 0.9 : 0.7,
+            }}
+          />
+          {/* Bottom Half Path */}
+          <path
+            d={bottomPath}
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            pathLength="100"
+            style={{
+              strokeDasharray: isHovered ? "100 0" : "8 92",
+              strokeDashoffset: 0,
+              transition: "stroke-dasharray 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+              opacity: isHovered ? 0.9 : 0.7,
+            }}
+          />
+        </svg>
+      )}
       <div className="pl-3">
         <div className="flex items-center gap-2 mb-2" style={{ color }}>
           {icon}
@@ -121,7 +180,8 @@ function StatCard({
         <div
           className="text-2xl font-bold tracking-tight"
           style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "'Satoshi', sans-serif",
+            fontVariantNumeric: "tabular-nums",
             color: "var(--foreground)",
           }}
         >
@@ -177,13 +237,36 @@ function ActionBtn({
           color: done ? P.good : color,
         }}
       >
-        {isLoading ? (
-          <RefreshCw size={18} className="animate-spin" data-testid="loading-spinner" />
-        ) : done ? (
-          <CheckCircle2 size={18} />
-        ) : (
-          icon
-        )}
+        <AnimatePresence mode="wait">
+          {isLoading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+            >
+              <RefreshCw size={18} className="animate-spin" data-testid="loading-spinner" />
+            </motion.div>
+          ) : done ? (
+            <motion.div
+              key="done"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 18 }}
+            >
+              <Check size={18} strokeWidth={3} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="icon"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+            >
+              {icon}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-foreground truncate">{label}</div>
@@ -208,6 +291,7 @@ function MiniChart({
   dataKey?: string;
 }) {
   const gradId = `grad-${title.replace(/\s/g, "")}`;
+  const glowId = `glow-${title.replace(/\s/g, "")}`;
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between mb-3">
@@ -219,19 +303,24 @@ function MiniChart({
           <AreaChart data={data} margin={{ top: 2, right: 0, left: -30, bottom: 0 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                <stop offset="5%" stopColor={color} stopOpacity={0.35} />
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
+              <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
             </defs>
             <XAxis dataKey="t" hide />
             <YAxis domain={[0, 100]} hide />
             <Tooltip
               contentStyle={{
                 fontSize: 11,
-                borderRadius: 8,
+                borderRadius: 10,
                 border: "1px solid var(--border)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                background: "var(--card)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                background: "var(--popover)",
+                backdropFilter: "blur(12px)",
                 color: "var(--foreground)",
               }}
               labelStyle={{ display: "none" }}
@@ -243,8 +332,9 @@ function MiniChart({
               stroke={color}
               strokeWidth={2}
               fill={`url(#${gradId})`}
+              filter={`url(#${glowId})`}
               dot={false}
-              activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: color, strokeWidth: 2, stroke: "var(--card)" }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -391,7 +481,8 @@ export function DashboardTab({
                 style={{
                   fontSize: "4rem",
                   lineHeight: 1,
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "'Satoshi', sans-serif",
+                  fontVariantNumeric: "tabular-nums",
                   color: sc,
                   letterSpacing: "-2px",
                 }}
@@ -426,7 +517,7 @@ export function DashboardTab({
                   background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
                   color: P.good,
                 }}>
-                <CheckCircle2 size={11} /> {t("Protection active")}
+                <Check size={11} strokeWidth={3} /> {t("Protection active")}
               </span>
               {issues?.map((iss, i) => (
                 <span key={i} className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"

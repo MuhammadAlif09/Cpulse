@@ -16,7 +16,7 @@ import {
   MemoryStick,
   Wifi,
   AlertTriangle,
-  CheckCircle2,
+  Check,
   Server,
   Layers,
   History,
@@ -56,7 +56,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card border border-border/60 shadow-sm transition-colors duration-200",
+        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
         className
       )}
       style={style}
@@ -242,7 +242,7 @@ export function DiagnosticsTab() {
               color: hs.color
             }}
           >
-            {hs.sev === 0 ? <CheckCircle2 size={14} className="animate-pulse" /> : <AlertTriangle size={14} />}
+            {hs.sev === 0 ? <Check size={14} strokeWidth={3} className="animate-pulse" /> : <AlertTriangle size={14} />}
             {hs.label}
           </div>
 

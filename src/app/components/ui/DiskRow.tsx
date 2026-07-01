@@ -53,6 +53,7 @@ export function DiskRow({ disk, t }: DiskRowProps) {
           style={{
             width: `${usedPct}%`,
             backgroundColor: barColor,
+            boxShadow: `0 0 6px ${barColor}`,
           }}
         />
       </div>
