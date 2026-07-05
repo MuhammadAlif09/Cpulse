@@ -127,14 +127,21 @@ export function Sidebar({
         >
           <div className="flex items-center gap-1.5 mb-2">
             <Shield size={14} style={{ color: sc }} />
-            <span className="text-[11px] font-bold uppercase tracking-wide opacity-80" style={{ color: sc }}>
+            <span
+              className="text-[11px] font-bold uppercase tracking-wide opacity-80"
+              style={{ color: sc }}
+            >
               {t(lang, "Health Score")}
             </span>
           </div>
           <div className="flex items-baseline gap-1.5">
             <div
               className="text-3xl font-bold tracking-tight"
-              style={{ color: "var(--foreground)", fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}
+              style={{
+                color: "var(--foreground)",
+                fontFamily: "'Satoshi', sans-serif",
+                fontVariantNumeric: "tabular-nums",
+              }}
             >
               {score}
             </div>
@@ -147,7 +154,10 @@ export function Sidebar({
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: "var(--secondary)" }}>
+          <div
+            className="w-full h-1.5 rounded-full mt-3 overflow-hidden"
+            style={{ background: "var(--secondary)" }}
+          >
             <div
               className="h-full rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${score}%`, background: sc, boxShadow: `0 0 8px ${sc}` }}
@@ -161,9 +171,7 @@ export function Sidebar({
             <Sparkles size={12} />
             <span>{t(lang, "Last cleaned")}</span>
           </div>
-          <div className="font-semibold text-foreground truncate">
-            {t(lang, "None yet")}
-          </div>
+          <div className="font-semibold text-foreground truncate">{t(lang, "None yet")}</div>
         </div>
       </div>
     </aside>

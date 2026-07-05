@@ -12,6 +12,6 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    mod lib_tests;
     mod cleaner_tests;
+    mod lib_tests;
 }

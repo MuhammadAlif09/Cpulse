@@ -29,8 +29,6 @@ fn test_junk_item_creation_with_new_fields() {
         size: "1.5 MB".to_string(),
         bytes: 1572864,
         count: 10,
-        color: "#4f46e5".to_string(),
-        icon: "🗑️".to_string(),
         description: "Test description".to_string(),
         warning: "Test warning".to_string(),
         requires_admin: true,
@@ -51,8 +49,6 @@ fn test_junk_item_safe_category() {
         size: "500 MB".to_string(),
         bytes: 524288000,
         count: 100,
-        color: "#7c3aed".to_string(),
-        icon: "🌐".to_string(),
         description: "Cached web pages".to_string(),
         warning: String::new(),
         requires_admin: false,
@@ -92,7 +88,10 @@ fn test_cancel_flag_stops_scan() {
 
 #[test]
 fn test_scan_dir_nonexistent_path() {
-    let (size, count) = scan_dir(Path::new("C:\\NonexistentPathThatShouldNotExist12345"), None);
+    let (size, count) = scan_dir(
+        Path::new("C:\\NonexistentPathThatShouldNotExist12345"),
+        None,
+    );
     assert_eq!(size, 0);
     assert_eq!(count, 0);
 }

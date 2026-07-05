@@ -108,11 +108,23 @@ function getIconForApp(name: string, publisher: string): string {
   if (nameLower.includes("spotify")) return "🎵";
   if (nameLower.includes("steam")) return "🎮";
   if (nameLower.includes("onedrive") || nameLower.includes("skydrive")) return "☁️";
-  if (nameLower.includes("teams") || nameLower.includes("skype") || nameLower.includes("zoom")) return "👥";
+  if (nameLower.includes("teams") || nameLower.includes("skype") || nameLower.includes("zoom"))
+    return "👥";
   if (pubLower.includes("google") || nameLower.includes("chrome")) return "🌐";
-  if (pubLower.includes("microsoft") || pubLower.includes("windows") || nameLower.includes("explorer")) return "🪟";
-  if (pubLower.includes("adobe") || nameLower.includes("photoshop") || nameLower.includes("creative cloud")) return "🎨";
-  if (nameLower.includes("nvidia") || nameLower.includes("radeon") || nameLower.includes("intel")) return "⚙️";
+  if (
+    pubLower.includes("microsoft") ||
+    pubLower.includes("windows") ||
+    nameLower.includes("explorer")
+  )
+    return "🪟";
+  if (
+    pubLower.includes("adobe") ||
+    nameLower.includes("photoshop") ||
+    nameLower.includes("creative cloud")
+  )
+    return "🎨";
+  if (nameLower.includes("nvidia") || nameLower.includes("radeon") || nameLower.includes("intel"))
+    return "⚙️";
   return "⚡";
 }
 
@@ -134,7 +146,10 @@ export function StartupTab() {
     if (isTauri) {
       invoke<StartupItem[]>("get_startup_items")
         .then((res) => {
-          const enriched = res.map((item) => ({ ...item, icon: getIconForApp(item.name, item.publisher || "") }));
+          const enriched = res.map((item) => ({
+            ...item,
+            icon: getIconForApp(item.name, item.publisher || ""),
+          }));
           setItems(enriched);
         })
         .catch(console.error);
@@ -144,8 +159,16 @@ export function StartupTab() {
   const toggle = async (name: string, is_hkcu: boolean, current_enabled: boolean) => {
     try {
       await invoke("toggle_startup_item", { name, isHkcu: is_hkcu, enable: !current_enabled });
-      setItems((prev) => prev.map((item) => (item.name === name ? { ...item, enabled: !item.enabled } : item)));
-      addHistoryLog({ type: "Startup Toggled", freed: "N/A", fixed: 1, duration: "0.0s", details: !current_enabled ? `Enabled:${name}` : `Disabled:${name}` });
+      setItems((prev) =>
+        prev.map((item) => (item.name === name ? { ...item, enabled: !item.enabled } : item))
+      );
+      addHistoryLog({
+        type: "Startup Toggled",
+        freed: "N/A",
+        fixed: 1,
+        duration: "0.0s",
+        details: !current_enabled ? `Enabled:${name}` : `Disabled:${name}`,
+      });
     } catch (e) {
       console.error("Failed to toggle:", e);
     }
@@ -157,11 +180,23 @@ export function StartupTab() {
     const startTime = Date.now();
     try {
       for (const item of highImpactEnabled) {
-        await invoke("toggle_startup_item", { name: item.name, isHkcu: item.is_hkcu, enable: false });
+        await invoke("toggle_startup_item", {
+          name: item.name,
+          isHkcu: item.is_hkcu,
+          enable: false,
+        });
       }
-      setItems((prev) => prev.map((item) => (item.impact === "High" ? { ...item, enabled: false } : item)));
+      setItems((prev) =>
+        prev.map((item) => (item.impact === "High" ? { ...item, enabled: false } : item))
+      );
       const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
-      addHistoryLog({ type: "Startup Optimizer", freed: "N/A", fixed: highImpactEnabled.length, duration, details: `DisabledHighImpact:${highImpactEnabled.length}` });
+      addHistoryLog({
+        type: "Startup Optimizer",
+        freed: "N/A",
+        fixed: highImpactEnabled.length,
+        duration,
+        details: `DisabledHighImpact:${highImpactEnabled.length}`,
+      });
     } catch (e) {
       console.error("Failed to disable high impact:", e);
     }
@@ -169,7 +204,10 @@ export function StartupTab() {
 
   const refreshItems = async () => {
     const res = await invoke<StartupItem[]>("get_startup_items");
-    const enriched = res.map((item) => ({ ...item, icon: getIconForApp(item.name, item.publisher || "") }));
+    const enriched = res.map((item) => ({
+      ...item,
+      icon: getIconForApp(item.name, item.publisher || ""),
+    }));
     setItems(enriched);
   };
 
@@ -178,7 +216,13 @@ export function StartupTab() {
     try {
       await invoke("delete_startup_item", { name, isHkcu: is_hkcu });
       setItems((prev) => prev.filter((item) => item.name !== name));
-      addHistoryLog({ type: "Startup Deleted", freed: "N/A", fixed: 1, duration: "0.0s", details: `Deleted:${name}` });
+      addHistoryLog({
+        type: "Startup Deleted",
+        freed: "N/A",
+        fixed: 1,
+        duration: "0.0s",
+        details: `Deleted:${name}`,
+      });
     } catch (e) {
       console.error("Failed to delete startup item:", e);
     }
@@ -189,8 +233,18 @@ export function StartupTab() {
     if (!newName.trim() || !newPath.trim()) return;
     setAdding(true);
     try {
-      await invoke("add_startup_item", { name: newName.trim(), path: newPath.trim(), isHkcu: true });
-      addHistoryLog({ type: "Startup Added", freed: "N/A", fixed: 1, duration: "0.0s", details: `Added:${newName.trim()}` });
+      await invoke("add_startup_item", {
+        name: newName.trim(),
+        path: newPath.trim(),
+        isHkcu: true,
+      });
+      addHistoryLog({
+        type: "Startup Added",
+        freed: "N/A",
+        fixed: 1,
+        duration: "0.0s",
+        details: `Added:${newName.trim()}`,
+      });
       setNewName("");
       setNewPath("");
       await refreshItems();
@@ -202,12 +256,19 @@ export function StartupTab() {
   };
 
   const filtered = items.filter(
-    (i) => i.name.toLowerCase().includes(search.toLowerCase()) || (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
+    (i) =>
+      i.name.toLowerCase().includes(search.toLowerCase()) ||
+      (i.publisher && i.publisher.toLowerCase().includes(search.toLowerCase()))
   );
 
   const disabledCount = items.filter((i) => !i.enabled).length;
-  const timeSaved = items.filter((i) => !i.enabled).reduce((s, i) => s + (i.delay || 0), 0).toFixed(1);
-  const bootTime = (items.filter((i) => i.enabled).reduce((s, i) => s + (i.delay || 0), 0) + 8).toFixed(1);
+  const timeSaved = items
+    .filter((i) => !i.enabled)
+    .reduce((s, i) => s + (i.delay || 0), 0)
+    .toFixed(1);
+  const bootTime = (
+    items.filter((i) => i.enabled).reduce((s, i) => s + (i.delay || 0), 0) + 8
+  ).toFixed(1);
 
   return (
     <div className="space-y-4">
@@ -236,7 +297,10 @@ export function StartupTab() {
         />
       </div>
 
-      <form onSubmit={handleAdd} className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+      <form
+        onSubmit={handleAdd}
+        className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
+      >
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -288,21 +352,42 @@ export function StartupTab() {
                 key={item.name}
                 className={cn(
                   "flex items-center gap-4 p-4 transition-colors duration-200",
-                  item.enabled ? "bg-card hover:bg-secondary/30" : "bg-secondary/20 hover:bg-secondary/50 opacity-80"
+                  item.enabled
+                    ? "bg-card hover:bg-secondary/30"
+                    : "bg-secondary/20 hover:bg-secondary/50 opacity-80"
                 )}
               >
-                <span className="text-2xl w-8 text-center" style={{ filter: !item.enabled ? "grayscale(100%)" : "none" }}>{item.icon}</span>
+                <span
+                  className="text-2xl w-8 text-center"
+                  style={{ filter: !item.enabled ? "grayscale(100%)" : "none" }}
+                >
+                  {item.icon}
+                </span>
                 <div className="flex-1 min-w-0">
-                  <div className={cn("text-sm font-semibold truncate", item.enabled ? "text-foreground" : "text-muted-foreground line-through decoration-muted-foreground/30")}>
+                  <div
+                    className={cn(
+                      "text-sm font-semibold truncate",
+                      item.enabled
+                        ? "text-foreground"
+                        : "text-muted-foreground line-through decoration-muted-foreground/30"
+                    )}
+                  >
                     {item.name}
                   </div>
-                  <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={item.command}>
-                    {item.publisher} <span className="mx-1.5 opacity-50">•</span> {t("Boot delay:")} +{item.delay?.toFixed(1)}s
+                  <div
+                    className="text-[11px] text-muted-foreground truncate mt-0.5"
+                    title={item.command}
+                  >
+                    {item.publisher} <span className="mx-1.5 opacity-50">•</span> {t("Boot delay:")}{" "}
+                    +{item.delay?.toFixed(1)}s
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <PillBadge label={item.impact || "Low"} />
-                  <Toggle on={item.enabled} onChange={() => toggle(item.name, item.is_hkcu, item.enabled)} />
+                  <Toggle
+                    on={item.enabled}
+                    onChange={() => toggle(item.name, item.is_hkcu, item.enabled)}
+                  />
                   <button
                     onClick={() => handleDelete(item.name, item.is_hkcu)}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-rose-400 hover:text-rose-500 active:scale-95"

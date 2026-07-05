@@ -43,7 +43,8 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
           style={{
             strokeDasharray: isHovered ? "100 0" : "12 88",
             strokeDashoffset: isHovered ? 0 : 16,
-            transition: "stroke-dasharray 0.6s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+            transition:
+              "stroke-dasharray 0.6s cubic-bezier(0.16, 1, 0.3, 1), stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
             opacity: isHovered ? 0.9 : 0.7,
           }}
         />
@@ -52,9 +53,7 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
       <div className="pl-3 relative z-10">
         <div className="flex items-center gap-2 mb-2" style={{ color }}>
           {icon}
-          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
-            {label}
-          </span>
+          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">{label}</span>
         </div>
         <div
           className="text-2xl font-bold tracking-tight text-foreground"
@@ -62,9 +61,7 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
         >
           {value}
         </div>
-        {sub && (
-          <div className="text-[11px] text-muted-foreground mt-1 truncate">{sub}</div>
-        )}
+        {sub && <div className="text-[11px] text-muted-foreground mt-1 truncate">{sub}</div>}
       </div>
     </div>
   );

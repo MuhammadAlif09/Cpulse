@@ -12,7 +12,10 @@ use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::{Emitter, Manager};
 
-use cleaner::{scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log, ScanCancelFlag, run_silent_clean, format_size, clear_dir};
+use cleaner::{
+    cancel_scan, clean_junk, clear_dir, format_size, open_cleaner_audit_log, run_silent_clean,
+    scan_junk, ScanCancelFlag,
+};
 
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::CloseHandle;
@@ -77,7 +80,7 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
         .args([
             "-NoProfile",
             "-Command",
-            "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json"
+            "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json",
         ])
         .creation_flags(0x08000000)
         .output();
@@ -88,7 +91,8 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
         let trimmed = s.trim();
         if !trimmed.is_empty() {
             if trimmed.starts_with('{') {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed)) {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed))
+                {
                     if let Some(arr) = v.as_array() {
                         parts = arr.clone();
                     }
@@ -109,7 +113,8 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
         let trimmed = s.trim();
         if !trimmed.is_empty() {
             if trimmed.starts_with('{') {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed)) {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed))
+                {
                     if let Some(arr) = v.as_array() {
                         phys = arr.clone();
                     }
@@ -474,13 +479,15 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
                 "cookies" => {
                     let chrome_cookies_path =
                         local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
-                    let edge_cookies_path =
-                        local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
+                    let edge_cookies_path = local_app_data
+                        .join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
 
                     let mut chrome_ok = true;
                     let mut edge_ok = true;
 
-                    if chrome_cookies_path.exists() && fs::remove_file(&chrome_cookies_path).is_err() {
+                    if chrome_cookies_path.exists()
+                        && fs::remove_file(&chrome_cookies_path).is_err()
+                    {
                         chrome_ok = false;
                     }
                     if edge_cookies_path.exists() && fs::remove_file(&edge_cookies_path).is_err() {
@@ -490,7 +497,8 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
                     if chrome_ok && edge_ok {
                         success_msgs.push("Chrome & Edge cookies cleared.");
                     } else if !chrome_ok && !edge_ok {
-                        fail_msgs.push("Could not clear Chrome & Edge cookies. Close browsers first.");
+                        fail_msgs
+                            .push("Could not clear Chrome & Edge cookies. Close browsers first.");
                     } else if !chrome_ok {
                         success_msgs.push("Edge cookies cleared.");
                         fail_msgs.push("Could not clear Chrome cookies. Close Chrome first.");
@@ -551,7 +559,10 @@ fn parse_exe_path(command: &str) -> Option<String> {
             }
             path_acc.push_str(part);
             let p = Path::new(&path_acc);
-            if p.is_file() && p.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("exe")) {
+            if p.is_file()
+                && p.extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
+            {
                 found_path = Some(path_acc.clone());
                 break;
             }
@@ -583,7 +594,8 @@ fn get_files_details(paths: &[String]) -> HashMap<String, FileDetails> {
         script.push_str(&format!("  \"{}\",\n", escaped));
     }
     script.push_str(")\n");
-    script.push_str(r#"
+    script.push_str(
+        r#"
 $paths | ForEach-Object {
     $p = [System.Environment]::ExpandEnvironmentVariables($_)
     if (Test-Path $p) {
@@ -603,7 +615,8 @@ $paths | ForEach-Object {
         [PSCustomObject]@{ path = $_; publisher = ""; description = ""; size = 0 }
     }
 } | ConvertTo-Json -Compress
-"#);
+"#,
+    );
 
     let output = std::process::Command::new("powershell")
         .args(["-NoProfile", "-Command", "-"])
@@ -643,7 +656,8 @@ $paths | ForEach-Object {
 }
 
 fn is_startup_item_enabled(root: &RegKey, name: &str) -> bool {
-    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    let approved_path =
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
     if let Ok(key) = root.open_subkey_with_flags(approved_path, KEY_READ) {
         if let Ok(reg_val) = key.get_raw_value(name) {
             if reg_val.vtype == REG_BINARY {
@@ -736,27 +750,31 @@ async fn get_startup_items() -> Result<Vec<StartupItem>, String> {
                     let cmd_lower = raw.command.to_lowercase();
                     let size = details.size;
 
-                    let is_heavy = pub_lower.contains("discord") ||
-                                   pub_lower.contains("spotify") ||
-                                   pub_lower.contains("steam") ||
-                                   pub_lower.contains("valve") ||
-                                   pub_lower.contains("adobe") ||
-                                   pub_lower.contains("epic games") ||
-                                   pub_lower.contains("slack") ||
-                                   pub_lower.contains("dropbox") ||
-                                   name_lower.contains("discord") ||
-                                   name_lower.contains("spotify") ||
-                                   name_lower.contains("steam") ||
-                                   name_lower.contains("teams") ||
-                                   name_lower.contains("onedrive") ||
-                                   cmd_lower.contains("discord") ||
-                                   cmd_lower.contains("spotify") ||
-                                   cmd_lower.contains("steam");
+                    let is_heavy = pub_lower.contains("discord")
+                        || pub_lower.contains("spotify")
+                        || pub_lower.contains("steam")
+                        || pub_lower.contains("valve")
+                        || pub_lower.contains("adobe")
+                        || pub_lower.contains("epic games")
+                        || pub_lower.contains("slack")
+                        || pub_lower.contains("dropbox")
+                        || name_lower.contains("discord")
+                        || name_lower.contains("spotify")
+                        || name_lower.contains("steam")
+                        || name_lower.contains("teams")
+                        || name_lower.contains("onedrive")
+                        || cmd_lower.contains("discord")
+                        || cmd_lower.contains("spotify")
+                        || cmd_lower.contains("steam");
 
                     if is_heavy || size > 30 * 1024 * 1024 {
                         impact = "High".to_string();
                         delay = 2.0 + ((size % 250) as f64) / 100.0;
-                    } else if size > 5 * 1024 * 1024 || pub_lower.contains("google") || pub_lower.contains("microsoft") || pub_lower.contains("apple") {
+                    } else if size > 5 * 1024 * 1024
+                        || pub_lower.contains("google")
+                        || pub_lower.contains("microsoft")
+                        || pub_lower.contains("apple")
+                    {
                         impact = "Medium".to_string();
                         delay = 0.5 + ((size % 130) as f64) / 100.0;
                     } else {
@@ -783,7 +801,6 @@ async fn get_startup_items() -> Result<Vec<StartupItem>, String> {
     .map_err(|e| format!("Failed to spawn blocking task: {}", e))?
 }
 
-
 #[tauri::command]
 fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<String, String> {
     if !is_hkcu && !is_elevated::is_elevated() {
@@ -795,9 +812,12 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
     } else {
         RegKey::predef(HKEY_LOCAL_MACHINE)
     };
-    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    let approved_path =
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
-    let (key, _) = root.create_subkey(approved_path).map_err(|e| e.to_string())?;
+    let (key, _) = root
+        .create_subkey(approved_path)
+        .map_err(|e| e.to_string())?;
 
     let mut data = vec![0u8; 12];
     if enable {
@@ -811,7 +831,8 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
         bytes: data.into(),
     };
 
-    key.set_raw_value(&name, &reg_val).map_err(|e| e.to_string())?;
+    key.set_raw_value(&name, &reg_val)
+        .map_err(|e| e.to_string())?;
 
     println!("Toggled {} to {}", name, enable);
     Ok(format!("Toggled {}", name))
@@ -828,9 +849,12 @@ pub fn delete_startup_item_impl(name: String, is_hkcu: bool) -> Result<String, S
         RegKey::predef(HKEY_LOCAL_MACHINE)
     };
     let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    let approved_path =
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
-    let key = root.open_subkey_with_flags(run_path, KEY_WRITE).map_err(|e| e.to_string())?;
+    let key = root
+        .open_subkey_with_flags(run_path, KEY_WRITE)
+        .map_err(|e| e.to_string())?;
     let _ = key.delete_value(&name);
 
     if let Ok(approved_key) = root.open_subkey_with_flags(approved_path, KEY_WRITE) {
@@ -857,7 +881,9 @@ pub fn add_startup_item_impl(name: String, path: String, is_hkcu: bool) -> Resul
     };
     let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 
-    let key = root.open_subkey_with_flags(run_path, KEY_WRITE).map_err(|e| e.to_string())?;
+    let key = root
+        .open_subkey_with_flags(run_path, KEY_WRITE)
+        .map_err(|e| e.to_string())?;
     key.set_value(&name, &path).map_err(|e| e.to_string())?;
 
     Ok(format!("Added startup item {}", name))
@@ -867,7 +893,6 @@ pub fn add_startup_item_impl(name: String, path: String, is_hkcu: bool) -> Resul
 fn add_startup_item(name: String, path: String, is_hkcu: bool) -> Result<String, String> {
     add_startup_item_impl(name, path, is_hkcu)
 }
-
 
 #[tauri::command]
 fn clean_ram() -> Result<u64, String> {
@@ -970,7 +995,10 @@ fn toggle_context_menu(enable: bool) -> Result<String, String> {
 #[tauri::command]
 fn apply_boost(id: String, profile: String) -> Result<String, String> {
     if ["cpu", "net", "disk"].contains(&id.as_str()) && !is_elevated::is_elevated() {
-        return Err(format!("Administrator privileges are required to apply the {} boost.", id.to_uppercase()));
+        return Err(format!(
+            "Administrator privileges are required to apply the {} boost.",
+            id.to_uppercase()
+        ));
     }
 
     match id.as_str() {
@@ -982,14 +1010,16 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "startup_delay" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize")
+            let (key, _) = hkcu
+                .create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize")
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("StartupDelayInMSec", &0u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            let (key, _) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
+            let (key, _) = hklm
+                .create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("Win32PrioritySeparation", &26u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1006,7 +1036,10 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "visual" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects")
+            let (key, _) = hkcu
+                .create_subkey(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+                )
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("VisualFXSetting", &2u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1026,7 +1059,8 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "game" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\GameBar")
+            let (key, _) = hkcu
+                .create_subkey("Software\\Microsoft\\GameBar")
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("AllowAutoGameMode", &1u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1035,7 +1069,13 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
         }
         "temp" => {
             let output = std::process::Command::new("powercfg")
-                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "1"])
+                .args([
+                    "-setacvalueindex",
+                    "SCHEME_CURRENT",
+                    "SUB_PROCESSOR",
+                    "SYSCOOLPOL",
+                    "1",
+                ])
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to set powercfg cooling policy: {}", e))?;
@@ -1059,7 +1099,10 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
 #[tauri::command]
 fn restore_boost(id: String) -> Result<String, String> {
     if ["cpu", "net", "disk"].contains(&id.as_str()) && !is_elevated::is_elevated() {
-        return Err(format!("Administrator privileges are required to restore the {} boost.", id.to_uppercase()));
+        return Err(format!(
+            "Administrator privileges are required to restore the {} boost.",
+            id.to_uppercase()
+        ));
     }
 
     match id.as_str() {
@@ -1080,7 +1123,8 @@ fn restore_boost(id: String) -> Result<String, String> {
         }
         "cpu" => {
             let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            let (key, _) = hklm.create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
+            let (key, _) = hklm
+                .create_subkey("SYSTEM\\CurrentControlSet\\Control\\PriorityControl")
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("Win32PrioritySeparation", &2u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1097,7 +1141,10 @@ fn restore_boost(id: String) -> Result<String, String> {
         }
         "visual" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects")
+            let (key, _) = hkcu
+                .create_subkey(
+                    "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+                )
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("VisualFXSetting", &0u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1117,7 +1164,8 @@ fn restore_boost(id: String) -> Result<String, String> {
         }
         "game" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let (key, _) = hkcu.create_subkey("Software\\Microsoft\\GameBar")
+            let (key, _) = hkcu
+                .create_subkey("Software\\Microsoft\\GameBar")
                 .map_err(|e| format!("Registry error: {}", e))?;
             key.set_value("AllowAutoGameMode", &0u32)
                 .map_err(|e| format!("Registry write failed: {}", e))?;
@@ -1126,7 +1174,13 @@ fn restore_boost(id: String) -> Result<String, String> {
         }
         "temp" => {
             let output = std::process::Command::new("powercfg")
-                .args(["-setacvalueindex", "SCHEME_CURRENT", "SUB_PROCESSOR", "SYSCOOLPOL", "0"])
+                .args([
+                    "-setacvalueindex",
+                    "SCHEME_CURRENT",
+                    "SUB_PROCESSOR",
+                    "SYSCOOLPOL",
+                    "0",
+                ])
                 .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to reset powercfg cooling policy: {}", e))?;
@@ -1193,7 +1247,10 @@ fn parse_typeperf_line(line: &str) -> Option<(u64, u64)> {
     if parts.len() >= 6 {
         let read_str = parts[3].replace(',', ".");
         let write_str = parts[5].replace(',', ".");
-        if let (Ok(r_val), Ok(w_val)) = (read_str.trim().parse::<f64>(), write_str.trim().parse::<f64>()) {
+        if let (Ok(r_val), Ok(w_val)) = (
+            read_str.trim().parse::<f64>(),
+            write_str.trim().parse::<f64>(),
+        ) {
             return Some((r_val as u64, w_val as u64));
         }
     }
@@ -1219,7 +1276,7 @@ fn spawn_typeperf_listener() {
                 Ok(mut child) => {
                     let pid = child.id();
                     TYPEPERF_CHILD_PID.store(pid, Ordering::SeqCst);
-                    
+
                     if let Some(stdout) = child.stdout.take() {
                         let reader = std::io::BufReader::new(stdout);
                         use std::io::BufRead;
@@ -1230,7 +1287,7 @@ fn spawn_typeperf_listener() {
                             }
                         }
                     }
-                    
+
                     let _ = child.wait();
                 }
                 Err(e) => {
@@ -1273,13 +1330,13 @@ fn get_system_info() -> Result<serde_json::Value, String> {
 async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, String> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     let mut components = Components::new_with_refreshed_list();
     components.refresh(true);
-    
+
     let mut disks = Disks::new_with_refreshed_list();
     disks.refresh(true);
-    
+
     let mut networks = Networks::new_with_refreshed_list();
     networks.refresh(true);
 
@@ -1287,14 +1344,18 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     let os_version = System::os_version().unwrap_or_else(|| "Unknown Version".to_string());
     let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown Kernel".to_string());
     let host_name = System::host_name().unwrap_or_else(|| "Unknown Host".to_string());
-    
-    let cpu_brand = sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string());
+
+    let cpu_brand = sys
+        .cpus()
+        .first()
+        .map(|c| c.brand().to_string())
+        .unwrap_or_else(|| "Unknown CPU".to_string());
     let cpu_cores = sys.cpus().len();
-    
+
     let total_ram = sys.total_memory() as f64 / 1_073_741_824.0;
     let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
     let free_ram = total_ram - used_ram;
-    
+
     let mut cpu_temp = 0.0;
     for comp in components.list() {
         if comp.label().to_lowercase().contains("cpu") {
@@ -1302,32 +1363,63 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
             break;
         }
     }
-    
+
     let disk_cache = get_disk_details();
-    
+
     let mut processes: Vec<_> = sys.processes().values().collect();
-    processes.sort_by(|a, b| b.cpu_usage().partial_cmp(&a.cpu_usage()).unwrap_or(std::cmp::Ordering::Equal));
-    let top_cpu: Vec<_> = processes.iter().take(10).map(|p| {
-        format!("| {} | {} | {:.1}% | {} |", p.pid(), p.name().to_string_lossy(), p.cpu_usage(), format_size(p.memory()))
-    }).collect();
-    
+    processes.sort_by(|a, b| {
+        b.cpu_usage()
+            .partial_cmp(&a.cpu_usage())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let top_cpu: Vec<_> = processes
+        .iter()
+        .take(10)
+        .map(|p| {
+            format!(
+                "| {} | {} | {:.1}% | {} |",
+                p.pid(),
+                p.name().to_string_lossy(),
+                p.cpu_usage(),
+                format_size(p.memory())
+            )
+        })
+        .collect();
+
     processes.sort_by_key(|b| std::cmp::Reverse(b.memory()));
-    let top_mem: Vec<_> = processes.iter().take(10).map(|p| {
-        format!("| {} | {} | {} | {:.1}% |", p.pid(), p.name().to_string_lossy(), format_size(p.memory()), p.cpu_usage())
-    }).collect();
-    
+    let top_mem: Vec<_> = processes
+        .iter()
+        .take(10)
+        .map(|p| {
+            format!(
+                "| {} | {} | {} | {:.1}% |",
+                p.pid(),
+                p.name().to_string_lossy(),
+                format_size(p.memory()),
+                p.cpu_usage()
+            )
+        })
+        .collect();
+
     let date_output = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-Command", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"])
+        .args([
+            "-NoProfile",
+            "-Command",
+            "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'",
+        ])
         .creation_flags(0x08000000)
         .output();
-    let date_str = date_output.ok().and_then(|o| {
-        if o.status.success() {
-            Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
-        } else {
-            None
-        }
-    }).unwrap_or_else(|| "2026-06-17 00:00:00".to_string());
-    
+    let date_str = date_output
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "2026-06-17 00:00:00".to_string());
+
     let mut report = String::new();
     report.push_str("# CPulse System Diagnostics Report\n\n");
     report.push_str(&format!("**Generated on:** {}\n", date_str));
@@ -1336,14 +1428,22 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     report.push_str(&format!("- **OS Name:** {}\n", os_name));
     report.push_str(&format!("- **OS Version:** {}\n", os_version));
     report.push_str(&format!("- **Kernel Version:** {}\n", kernel_version));
-    
+
     report.push_str("\n## Hardware Specifications\n");
     report.push_str(&format!("- **CPU:** {}\n", cpu_brand));
     report.push_str(&format!("- **Logical Cores:** {}\n", cpu_cores));
     report.push_str(&format!("- **Total Memory:** {:.2} GB\n", total_ram));
-    report.push_str(&format!("- **Used Memory:** {:.2} GB ({:.1}%)\n", used_ram, if total_ram > 0.0 { used_ram / total_ram * 100.0 } else { 0.0 }));
+    report.push_str(&format!(
+        "- **Used Memory:** {:.2} GB ({:.1}%)\n",
+        used_ram,
+        if total_ram > 0.0 {
+            used_ram / total_ram * 100.0
+        } else {
+            0.0
+        }
+    ));
     report.push_str(&format!("- **Free Memory:** {:.2} GB\n", free_ram));
-    
+
     report.push_str("\n## Disk Storage Details\n");
     report.push_str("| Drive | Model | Type | Used | Total | Free | % Used |\n");
     report.push_str("| --- | --- | --- | --- | --- | --- | --- |\n");
@@ -1352,9 +1452,14 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
         let u = (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
         let f = disk.available_space() as f64 / 1_073_741_824.0;
         let mount_p = disk.mount_point().to_string_lossy().into_owned();
-        let letter = mount_p.chars().next().unwrap_or('C').to_string().to_uppercase();
+        let letter = mount_p
+            .chars()
+            .next()
+            .unwrap_or('C')
+            .to_string()
+            .to_uppercase();
         let pct = if t > 0.0 { (u / t * 100.0) as u32 } else { 0 };
-        
+
         let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
             (m.clone(), dt.clone())
         } else {
@@ -1365,50 +1470,66 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
             };
             ("Local Disk".to_string(), dt)
         };
-        
-        report.push_str(&format!("| {}: | {} | {} | {:.1} GB | {:.1} GB | {:.1} GB | {}% |\n", letter, model, disk_type, u, t, f, pct));
+
+        report.push_str(&format!(
+            "| {}: | {} | {} | {:.1} GB | {:.1} GB | {:.1} GB | {}% |\n",
+            letter, model, disk_type, u, t, f, pct
+        ));
     }
-    
+
     report.push_str("\n## Active Network Interfaces\n");
     report.push_str("| Interface | Sent (Total) | Received (Total) |\n");
     report.push_str("| --- | --- | --- |\n");
     for (name, data) in networks.iter() {
         if data.transmitted() > 0 || data.received() > 0 {
-            report.push_str(&format!("| {} | {} | {} |\n", name, format_size(data.total_transmitted()), format_size(data.total_received())));
+            report.push_str(&format!(
+                "| {} | {} | {} |\n",
+                name,
+                format_size(data.total_transmitted()),
+                format_size(data.total_received())
+            ));
         }
     }
-    
+
     report.push_str("\n## Top 10 CPU-Consuming Processes\n");
     report.push_str("| PID | Process Name | CPU Usage | Memory |\n");
     report.push_str("| --- | --- | --- | --- |\n");
     for p_line in top_cpu {
         report.push_str(&format!("{}\n", p_line));
     }
-    
+
     report.push_str("\n## Top 10 Memory-Consuming Processes\n");
     report.push_str("| PID | Process Name | Memory | CPU Usage |\n");
     report.push_str("| --- | --- | --- | --- |\n");
     for p_line in top_mem {
         report.push_str(&format!("{}\n", p_line));
     }
-    
+
     report.push_str("\n## Diagnostic Health Check\n");
     let mut alerts: Vec<String> = Vec::new();
     if total_ram > 0.0 && used_ram / total_ram > 0.90 {
-        alerts.push("- [WARNING] Memory usage is critically high (>90%). Close some applications.".to_string());
+        alerts.push(
+            "- [WARNING] Memory usage is critically high (>90%). Close some applications."
+                .to_string(),
+        );
     }
     if cpu_temp > 85.0 {
-        alerts.push("- [WARNING] CPU temperature is high (>85°C). Check cooling/airflow.".to_string());
+        alerts.push(
+            "- [WARNING] CPU temperature is high (>85°C). Check cooling/airflow.".to_string(),
+        );
     }
     for disk in disks.list() {
         let t = disk.total_space() as f64;
         let a = disk.available_space() as f64;
         if t > 0.0 && (a / t) < 0.10 {
             let mount_p = disk.mount_point().to_string_lossy();
-            alerts.push(format!("- [WARNING] Disk space on {} is low (<10% free).", mount_p));
+            alerts.push(format!(
+                "- [WARNING] Disk space on {} is low (<10% free).",
+                mount_p
+            ));
         }
     }
-    
+
     if alerts.is_empty() {
         report.push_str("All core diagnostics look healthy! No issues detected.\n");
     } else {
@@ -1417,7 +1538,7 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
             report.push_str(&format!("{}\n", alert));
         }
     }
-    
+
     if let Ok(app_data) = app.path().app_data_dir() {
         let reports_dir = app_data.join("reports");
         let _ = fs::create_dir_all(&reports_dir);
@@ -1425,13 +1546,16 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
         let report_path = reports_dir.join(format!("report_{}.md", sanitized_date));
         fs::write(&report_path, report)
             .map_err(|e| format!("Failed to write report file: {}", e))?;
-            
+
         std::process::Command::new("notepad.exe")
             .arg(&report_path)
             .spawn()
             .map_err(|e| format!("Failed to open report: {}", e))?;
-            
-        Ok(format!("Report saved and opened: {}", report_path.to_string_lossy()))
+
+        Ok(format!(
+            "Report saved and opened: {}",
+            report_path.to_string_lossy()
+        ))
     } else {
         Err("Could not retrieve app data directory".to_string())
     }
@@ -1460,7 +1584,10 @@ fn get_diagnostics_reports(app: tauri::AppHandle) -> Result<Vec<String>, String>
 
 #[tauri::command]
 fn read_diagnostics_report(app: tauri::AppHandle, filename: String) -> Result<String, String> {
-    if filename.contains(['/', '\\']) || !filename.starts_with("report_") || !filename.ends_with(".md") {
+    if filename.contains(['/', '\\'])
+        || !filename.starts_with("report_")
+        || !filename.ends_with(".md")
+    {
         return Err("Invalid report filename".into());
     }
 
@@ -1487,25 +1614,25 @@ async fn export_diagnostics_report(report_content: String) -> Result<String, Str
         Write-Output "CANCELLED"
     }
     "#;
-    
+
     let output = std::process::Command::new("powershell")
         .args(["-NoProfile", "-Command", script])
         .creation_flags(0x08000000)
         .output()
         .map_err(|e| e.to_string())?;
-        
+
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
-    
+
     let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if path_str == "CANCELLED" || path_str.is_empty() {
         return Err("Cancelled by user".to_string());
     }
-    
+
     std::fs::write(&path_str, report_content)
         .map_err(|e| format!("Failed to write file: {}", e))?;
-        
+
     Ok(format!("Report saved successfully to {}", path_str))
 }
 
@@ -1593,7 +1720,12 @@ pub fn run() {
                         let u =
                             (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
                         let mount_p = disk.mount_point().to_string_lossy().into_owned();
-                        let letter = mount_p.chars().next().unwrap_or('C').to_string().to_uppercase();
+                        let letter = mount_p
+                            .chars()
+                            .next()
+                            .unwrap_or('C')
+                            .to_string()
+                            .to_uppercase();
 
                         let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
                             (m.clone(), dt.clone())
@@ -1622,8 +1754,10 @@ pub fn run() {
                         network_down += data.received() as f64 / 1_048_576.0;
                     }
 
-                    let disk_read_speed = DISK_READ_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
-                    let disk_write_speed = DISK_WRITE_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+                    let disk_read_speed =
+                        DISK_READ_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+                    let disk_write_speed =
+                        DISK_WRITE_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
 
                     let metrics = SystemMetrics {
                         cpu_usage,
@@ -1687,4 +1821,3 @@ pub fn run() {
 pub fn dummy_check() {
     println!("dummy check");
 }
-

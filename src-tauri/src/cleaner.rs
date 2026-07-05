@@ -40,8 +40,6 @@ pub struct JunkItem {
     pub size: String,
     pub bytes: u64,
     pub count: usize,
-    pub color: String,
-    pub icon: String,
     /// Human-readable explanation of what this category contains
     pub description: String,
     /// Warning text for sensitive categories (empty string = safe to clean)
@@ -128,12 +126,8 @@ pub fn get_dir_size_and_count(
 
         if let Ok(metadata) = entry.metadata() {
             if metadata.is_dir() {
-                let (s, c) = get_dir_size_and_count(
-                    &entry_path,
-                    cancel_flag,
-                    depth + 1,
-                    file_count,
-                );
+                let (s, c) =
+                    get_dir_size_and_count(&entry_path, cancel_flag, depth + 1, file_count);
                 size += s;
                 count += c;
             } else {
@@ -197,7 +191,7 @@ fn get_recycle_bin_size() -> (u64, usize) {
              $items = $rb.Items(); \
              $totalSize = 0; $count = $items.Count; \
              foreach($item in $items) { $totalSize += $item.ExtendedProperty('System.Size') }; \
-             Write-Output \"$totalSize|$count\""
+             Write-Output \"$totalSize|$count\"",
         ])
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output();
@@ -227,9 +221,7 @@ pub fn scan_junk_internal(
     let completed_steps = &AtomicUsize::new(0);
     let total_steps = 13.0f32;
 
-    let is_cancelled = || -> bool {
-        cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed))
-    };
+    let is_cancelled = || -> bool { cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed)) };
 
     let mut results = Vec::new();
 
@@ -268,8 +260,6 @@ pub fn scan_junk_internal(
                     size: format_size(temp_bytes),
                     bytes: temp_bytes,
                     count: temp_count,
-                    color: "#4f46e5".to_string(),
-                    icon: "🗑️".to_string(),
                     description: "Temporary files created by Windows and applications during normal operation. Safe to remove.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
@@ -338,8 +328,6 @@ pub fn scan_junk_internal(
                     size: format_size(browser_bytes),
                     bytes: browser_bytes,
                     count: browser_count,
-                    color: "#7c3aed".to_string(),
-                    icon: "🌐".to_string(),
                     description: "Cached web pages, images, and scripts from Chrome, Edge, and Brave. Browsers will rebuild this cache as needed.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
@@ -368,8 +356,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#10b981".to_string(),
-                        icon: "🔄".to_string(),
                         description: "Downloaded update packages that Windows no longer needs after successful installation.".to_string(),
                         warning: "Removing may cause Windows to re-download updates if they haven't been applied yet.".to_string(),
                         requires_admin: true,
@@ -418,8 +404,6 @@ pub fn scan_junk_internal(
                     size: format_size(dump_bytes),
                     bytes: dump_bytes,
                     count: dump_count,
-                    color: "#f43f5e".to_string(),
-                    icon: "🪵".to_string(),
                     description: "Memory dump files generated when applications or Windows crash. Only needed for debugging.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
@@ -449,8 +433,6 @@ pub fn scan_junk_internal(
                     size: format_size(rb_bytes),
                     bytes: rb_bytes,
                     count: rb_count,
-                    color: "#64748b".to_string(),
-                    icon: "♻️".to_string(),
                     description: "Files you've previously deleted that are sitting in the Recycle Bin across all drives.".to_string(),
                     warning: "This action is irreversible. Files will be permanently deleted and cannot be recovered.".to_string(),
                     requires_admin: false,
@@ -479,8 +461,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#0ea5e9".to_string(),
-                        icon: "⚡".to_string(),
                         description: "Application launch optimization data. Windows will rebuild this automatically.".to_string(),
                         warning: "First app launches after cleaning may be slightly slower while Windows rebuilds the prefetch data.".to_string(),
                         requires_admin: true,
@@ -514,8 +494,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#ec4899".to_string(),
-                        icon: "🖼️".to_string(),
                         description: "Cached thumbnail images for File Explorer. Windows will regenerate them as needed.".to_string(),
                         warning: "Some files may be locked by Explorer and will be skipped.".to_string(),
                         requires_admin: false,
@@ -548,8 +526,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#f59e0b".to_string(),
-                        icon: "📋".to_string(),
                         description: "System log files including CBS, DISM, and setup logs. Safe to remove old entries.".to_string(),
                         warning: "Removing may make it harder to diagnose recent system issues.".to_string(),
                         requires_admin: true,
@@ -582,9 +558,9 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#8b5cf6".to_string(),
-                        icon: "🔤".to_string(),
-                        description: "Cached font rendering data. Windows will rebuild this on next restart.".to_string(),
+                        description:
+                            "Cached font rendering data. Windows will rebuild this on next restart."
+                                .to_string(),
                         warning: String::new(),
                         requires_admin: false,
                     });
@@ -616,8 +592,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#06b6d4".to_string(),
-                        icon: "🎮".to_string(),
                         description: "Compiled shader programs cached by DirectX. Games and apps will recompile them as needed.".to_string(),
                         warning: String::new(),
                         requires_admin: false,
@@ -651,8 +625,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#ef4444".to_string(),
-                        icon: "⚠️".to_string(),
                         description: "Error reports generated by Windows Error Reporting. Safe to remove if issues are resolved.".to_string(),
                         warning: String::new(),
                         requires_admin: false,
@@ -685,8 +657,6 @@ pub fn scan_junk_internal(
                         size: format_size(s),
                         bytes: s,
                         count: c,
-                        color: "#14b8a6".to_string(),
-                        icon: "📦".to_string(),
                         description: "Cached files used by Windows to share updates with other PCs on your network.".to_string(),
                         warning: "Removing may cause Windows to re-download update data for peer sharing.".to_string(),
                         requires_admin: true,
@@ -773,8 +743,6 @@ pub fn scan_junk_internal(
                     size: format_size(app_bytes),
                     bytes: app_bytes,
                     count: app_count,
-                    color: "#a855f7".to_string(),
-                    icon: "📱".to_string(),
                     description: "Cache files from Discord, Teams, Steam, and Riot Games. Apps will rebuild their cache on next launch.".to_string(),
                     warning: String::new(),
                     requires_admin: false,
@@ -785,24 +753,49 @@ pub fn scan_junk_internal(
         });
 
         // Collect results
-        if let Some(item) = t1.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t2.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t3.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t4.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t5.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t6.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t7.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t8.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t9.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t10.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t11.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t12.join().unwrap_or(None) { results.push(item); }
-        if let Some(item) = t13.join().unwrap_or(None) { results.push(item); }
+        if let Some(item) = t1.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t2.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t3.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t4.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t5.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t6.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t7.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t8.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t9.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t10.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t11.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t12.join().unwrap_or(None) {
+            results.push(item);
+        }
+        if let Some(item) = t13.join().unwrap_or(None) {
+            results.push(item);
+        }
     });
 
     Ok(results)
 }
-
 
 // ─── Tauri Commands ───────────────────────────────────────────────────
 
@@ -868,7 +861,11 @@ pub fn clear_dir_internal(
                     let _ = writeln!(
                         w,
                         "{} | {} | {} | {} | {} |",
-                        time_str, status, category, format_size(size), path_str
+                        time_str,
+                        status,
+                        category,
+                        format_size(size),
+                        path_str
                     );
                 }
                 Err(e) => {
@@ -880,7 +877,12 @@ pub fn clear_dir_internal(
                     let _ = writeln!(
                         w,
                         "{} | {} | {} | {} | {} | {}",
-                        time_str, status, category, format_size(size), path_str, e
+                        time_str,
+                        status,
+                        category,
+                        format_size(size),
+                        path_str,
+                        e
                     );
                 }
             }
@@ -888,7 +890,8 @@ pub fn clear_dir_internal(
     } else if path.is_dir() {
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries.flatten() {
-                let (b, f) = clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
+                let (b, f) =
+                    clear_dir_internal(writer, &entry.path(), category, to_trash, time_str, false);
                 bytes_freed += b;
                 files_cleaned += f;
             }
@@ -913,8 +916,7 @@ pub fn clear_dir_internal(
                         );
                     }
                     Err(e) => {
-                        let status = if e.contains("Access is denied") || e.contains("permission")
-                        {
+                        let status = if e.contains("Access is denied") || e.contains("permission") {
                             "FAILED_LOCKED"
                         } else {
                             "FAILED_ERROR"
@@ -958,7 +960,8 @@ fn clear_matching_children(
             if entry_name.contains(name_contains) {
                 let path = entry.path();
                 if path.is_dir() {
-                    let (b, f) = clear_dir_internal(writer, &path, category, to_trash, time_str, true);
+                    let (b, f) =
+                        clear_dir_internal(writer, &path, category, to_trash, time_str, true);
                     bytes_freed += b;
                     files_cleaned += f;
                 } else if path.is_file() {
@@ -983,7 +986,11 @@ fn clear_matching_children(
                                 let _ = writeln!(
                                     w,
                                     "{} | {} | {} | {} | {} |",
-                                    time_str, status, category, format_size(size), path_str
+                                    time_str,
+                                    status,
+                                    category,
+                                    format_size(size),
+                                    path_str
                                 );
                             }
                             Err(e) => {
@@ -999,7 +1006,12 @@ fn clear_matching_children(
                                 let _ = writeln!(
                                     w,
                                     "{} | {} | {} | {} | {} | {}",
-                                    time_str, status, category, format_size(size), path_str, e
+                                    time_str,
+                                    status,
+                                    category,
+                                    format_size(size),
+                                    path_str,
+                                    e
                                 );
                             }
                         }
@@ -1013,10 +1025,7 @@ fn clear_matching_children(
 
 /// Empties the Recycle Bin across all drives using PowerShell.
 /// This operation is irreversible — caller must confirm with user first.
-fn empty_recycle_bin(
-    writer: &mut Option<BufWriter<fs::File>>,
-    time_str: &str,
-) -> (u64, usize) {
+fn empty_recycle_bin(writer: &mut Option<BufWriter<fs::File>>, time_str: &str) -> (u64, usize) {
     let (rb_bytes, rb_count) = get_recycle_bin_size();
     let output = std::process::Command::new("powershell")
         .args([
@@ -1089,7 +1098,11 @@ pub fn clean_junk_internal(
     if let Ok(app_data) = app.path().app_data_dir() {
         let _ = fs::create_dir_all(&app_data);
         let log_path = app_data.join("cleaner_audit.log");
-        if let Ok(file) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+        if let Ok(file) = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+        {
             writer = Some(BufWriter::new(file));
         }
     }
@@ -1139,7 +1152,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1207,7 +1223,8 @@ pub fn clean_junk_internal(
 
             let (b, f) = clear_dir_internal(
                 &mut writer,
-                &local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache"),
+                &local_app_data
+                    .join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache"),
                 "Browser Cache",
                 false,
                 &time_str,
@@ -1218,7 +1235,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1238,7 +1258,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1270,7 +1293,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1281,7 +1307,10 @@ pub fn clean_junk_internal(
         total_files_cleaned += f;
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1301,7 +1330,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1322,7 +1354,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1342,7 +1377,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1363,7 +1401,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1383,7 +1424,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1403,7 +1447,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1423,7 +1470,10 @@ pub fn clean_junk_internal(
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1431,39 +1481,91 @@ pub fn clean_junk_internal(
     if categories.contains(&"Application Cache".to_string()) {
         if let Some(appdata) = std::env::var_os("APPDATA") {
             let appdata = PathBuf::from(appdata);
-            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("discord\\Cache"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &appdata.join("discord\\Cache"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
 
-            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("discord\\Code Cache"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &appdata.join("discord\\Code Cache"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
 
-            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Cache"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &appdata.join("Microsoft\\Teams\\Cache"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
 
-            let (b, f) = clear_dir_internal(&mut writer, &appdata.join("Microsoft\\Teams\\Code Cache"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &appdata.join("Microsoft\\Teams\\Code Cache"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
         }
         if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
             let local_app_data = PathBuf::from(local_app_data);
-            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Steam\\htmlcache"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &local_app_data.join("Steam\\htmlcache"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
 
-            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Logs"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &local_app_data.join("Riot Games\\Riot Client\\Logs"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
 
-            let (b, f) = clear_dir_internal(&mut writer, &local_app_data.join("Riot Games\\Riot Client\\Data"), "Application Cache", false, &time_str, true);
+            let (b, f) = clear_dir_internal(
+                &mut writer,
+                &local_app_data.join("Riot Games\\Riot Client\\Data"),
+                "Application Cache",
+                false,
+                &time_str,
+                true,
+            );
             total_bytes_freed += b;
             total_files_cleaned += f;
         }
         current_step += 1.0;
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit("clean_progress", ((current_step / total_steps) * 100.0) as u8);
+            let _ = app.emit(
+                "clean_progress",
+                ((current_step / total_steps) * 100.0) as u8,
+            );
         }
     }
 
@@ -1483,11 +1585,9 @@ pub async fn clean_junk(
     categories: Vec<String>,
 ) -> Result<CleanResult, String> {
     let app_clone = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        clean_junk_internal(&app_clone, categories, true)
-    })
-    .await
-    .map_err(|e| format!("Clean junk thread panicked: {}", e))?
+    tauri::async_runtime::spawn_blocking(move || clean_junk_internal(&app_clone, categories, true))
+        .await
+        .map_err(|e| format!("Clean junk thread panicked: {}", e))?
 }
 
 #[tauri::command]
@@ -1516,8 +1616,10 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
     let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
 
     // 2. Perform the clean
-    let clean_res = clean_junk_internal(app_handle, categories, false)
-        .unwrap_or(CleanResult { bytes_freed: 0, files_cleaned: 0 });
+    let clean_res = clean_junk_internal(app_handle, categories, false).unwrap_or(CleanResult {
+        bytes_freed: 0,
+        files_cleaned: 0,
+    });
 
     let duration = start_time.elapsed().as_secs_f64();
     let duration_str = format!("{:.1}s", duration);
@@ -1543,7 +1645,9 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
             }
         }
 
-        let time_str = chrono::Local::now().format("%b %d, %Y, %I:%M %p").to_string();
+        let time_str = chrono::Local::now()
+            .format("%b %d, %Y, %I:%M %p")
+            .to_string();
 
         let new_log = serde_json::json!({
             "date": time_str,
@@ -1571,4 +1675,3 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
 }
 
 // ─── Unit Tests ───────────────────────────────────────────────────────
-

@@ -243,16 +243,18 @@ export function SettingsTab({
         <Card>
           <div className="flex items-center gap-2 mb-5">
             <LayoutGrid size={16} style={{ color: P.teal }} />
-            <h3 className="text-sm font-semibold text-foreground">
-              {t("General Settings")}
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground">{t("General Settings")}</h3>
           </div>
           <div className="space-y-1">
             {/* Theme Switcher */}
             <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition">
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Theme Mode")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">{t("Select visual theme")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Theme Mode")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">
+                  {t("Select visual theme")}
+                </div>
               </div>
               <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
                 {(["light", "dark", "system"] as const).map((tMode) => (
@@ -262,7 +264,11 @@ export function SettingsTab({
                     className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
                     style={
                       theme === tMode
-                        ? { background: "var(--card)", color: P.teal, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                        ? {
+                            background: "var(--card)",
+                            color: P.teal,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                          }
                         : { color: "var(--muted-foreground)" }
                     }
                   >
@@ -276,7 +282,9 @@ export function SettingsTab({
             <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition">
               <div>
                 <div className="text-xs font-semibold text-foreground mb-0.5">{t("Language")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">{t("Select application language")}</div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">
+                  {t("Select application language")}
+                </div>
               </div>
               <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
                 {(["en", "id"] as const).map((l) => (
@@ -286,7 +294,11 @@ export function SettingsTab({
                     className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
                     style={
                       settings.language === l
-                        ? { background: "var(--card)", color: P.teal, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                        ? {
+                            background: "var(--card)",
+                            color: P.teal,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                          }
                         : { color: "var(--muted-foreground)" }
                     }
                   >
@@ -296,26 +308,47 @@ export function SettingsTab({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("startWithWindows")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("startWithWindows")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Start with Windows")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Launch automatically when PC boots")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Start with Windows")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Launch automatically when PC boots")}
+                </div>
               </div>
               <Toggle on={settings.startWithWindows} onChange={() => {}} />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("minimizeToTray")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("minimizeToTray")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Minimize to Tray")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Keep running in background when closed")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Minimize to Tray")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Keep running in background when closed")}
+                </div>
               </div>
               <Toggle on={settings.minimizeToTray} onChange={() => {}} />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("contextMenu")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("contextMenu")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Context Menu Integration")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t('Add "Clean with CPulse" to right-click menu')}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Context Menu Integration")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t('Add "Clean with CPulse" to right-click menu')}
+                </div>
               </div>
               <Toggle on={settings.contextMenu} onChange={() => {}} />
             </div>
@@ -331,26 +364,47 @@ export function SettingsTab({
             </h3>
           </div>
           <div className="space-y-1">
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("autoClean")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("autoClean")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Auto-Clean Schedule")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Clean junk files automatically every week")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Auto-Clean Schedule")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Clean junk files automatically every week")}
+                </div>
               </div>
               <Toggle on={settings.autoClean} onChange={() => {}} />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("realTimeMonitoring")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("realTimeMonitoring")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Real-time Monitoring")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Alert when disk space is critically low")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Real-time Monitoring")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Alert when disk space is critically low")}
+                </div>
               </div>
               <Toggle on={settings.realTimeMonitoring} onChange={() => {}} />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("autoUpdate")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("autoUpdate")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Automatic Updates")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Install new versions silently in background")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Automatic Updates")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Install new versions silently in background")}
+                </div>
               </div>
               <Toggle on={settings.autoUpdate} onChange={() => {}} />
             </div>
@@ -361,23 +415,35 @@ export function SettingsTab({
         <Card>
           <div className="flex items-center gap-2 mb-5">
             <Bell size={16} style={{ color: P.sky }} />
-            <h3 className="text-sm font-semibold text-foreground">
-              {t("Alerts & Sounds")}
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground">{t("Alerts & Sounds")}</h3>
           </div>
           <div className="space-y-1">
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("notifications")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("notifications")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Push Notifications")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Show system tray alerts for important events")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Push Notifications")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Show system tray alerts for important events")}
+                </div>
               </div>
               <Toggle on={settings.notifications} onChange={() => {}} />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer" onClick={() => toggle("soundEffects")}>
+            <div
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
+              onClick={() => toggle("soundEffects")}
+            >
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Sound Effects")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">{t("Play sounds when scans or cleans finish")}</div>
+                <div className="text-xs font-semibold text-foreground mb-0.5">
+                  {t("Sound Effects")}
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
+                  {t("Play sounds when scans or cleans finish")}
+                </div>
               </div>
               <Toggle on={settings.soundEffects} onChange={() => {}} />
             </div>
@@ -385,12 +451,14 @@ export function SettingsTab({
         </Card>
 
         {/* ── About & Version ────────────────────────────────────────────────── */}
-        <Card style={{ background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))` }}>
+        <Card
+          style={{
+            background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))`,
+          }}
+        >
           <div className="flex items-center gap-2 mb-2">
             <Shield size={16} style={{ color: P.teal }} />
-            <h3 className="text-sm font-semibold text-foreground">
-              {t("About CPulse")}
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground">{t("About CPulse")}</h3>
           </div>
           <div className="flex flex-col items-center justify-center py-4">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-card border border-border shadow-sm overflow-hidden">

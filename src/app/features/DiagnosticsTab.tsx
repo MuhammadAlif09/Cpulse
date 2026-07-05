@@ -133,14 +133,22 @@ export function DiagnosticsTab() {
       const nextTick = prev.length > 0 ? prev[prev.length - 1].t + 1 : 1;
       return [
         ...prev.slice(1),
-        { t: nextTick, read: parseFloat(metrics.disk_read_speed.toFixed(2)), write: parseFloat(metrics.disk_write_speed.toFixed(2)) },
+        {
+          t: nextTick,
+          read: parseFloat(metrics.disk_read_speed.toFixed(2)),
+          write: parseFloat(metrics.disk_write_speed.toFixed(2)),
+        },
       ];
     });
     setNetworkHistory((prev) => {
       const nextTick = prev.length > 0 ? prev[prev.length - 1].t + 1 : 1;
       return [
         ...prev.slice(1),
-        { t: nextTick, up: parseFloat(metrics.network_up.toFixed(2)), down: parseFloat(metrics.network_down.toFixed(2)) },
+        {
+          t: nextTick,
+          up: parseFloat(metrics.network_up.toFixed(2)),
+          down: parseFloat(metrics.network_down.toFixed(2)),
+        },
       ];
     });
   }, [metrics]);
@@ -163,7 +171,13 @@ export function DiagnosticsTab() {
       const result = await invoke<string>("generate_diagnostics_report");
       setReportResult(result);
       await loadReports();
-      addHistoryLog({ type: "Diagnostics", freed: "N/A", fixed: 0, duration: ((Date.now() - t0) / 1000).toFixed(1) + "s", details: t("Generated diagnostic report") });
+      addHistoryLog({
+        type: "Diagnostics",
+        freed: "N/A",
+        fixed: 0,
+        duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
+        details: t("Generated diagnostic report"),
+      });
     } catch (err: any) {
       setReportError(err?.toString() || "Failed to generate report");
     } finally {
@@ -184,7 +198,9 @@ export function DiagnosticsTab() {
   const handleExportReport = async () => {
     if (!reportResult) return;
     try {
-      const msg = await invoke<string>("export_diagnostics_report", { reportContent: reportResult });
+      const msg = await invoke<string>("export_diagnostics_report", {
+        reportContent: reportResult,
+      });
       toast.success(t(msg));
     } catch (err: any) {
       if (err !== "Cancelled by user") toast.error(t(err?.toString() || "Failed to export report"));
@@ -211,7 +227,8 @@ export function DiagnosticsTab() {
     if (metrics.ram_usage > 90) issues.push("RAM > 90%");
     if (metrics.cpu_usage > 90) issues.push("CPU > 90%");
     if (metrics.cpu_temp > 85) issues.push("Temp > 85°C");
-    if (metrics.disks.some((d: any) => d.total > 0 && (d.total - d.used) / d.total < 0.1)) issues.push("Disk < 10% free");
+    if (metrics.disks.some((d: any) => d.total > 0 && (d.total - d.used) / d.total < 0.1))
+      issues.push("Disk < 10% free");
 
     if (issues.length === 0) return { label: t("Healthy"), color: P.good, sev: 0 };
     if (issues.length <= 1) return { label: t("Warning"), color: P.amber, sev: 1 };
@@ -240,10 +257,14 @@ export function DiagnosticsTab() {
             style={{
               borderColor: `color-mix(in srgb, ${hs.color} 30%, transparent)`,
               background: `color-mix(in srgb, ${hs.color} 10%, transparent)`,
-              color: hs.color
+              color: hs.color,
             }}
           >
-            {hs.sev === 0 ? <Check size={14} strokeWidth={3} className="animate-pulse" /> : <AlertTriangle size={14} />}
+            {hs.sev === 0 ? (
+              <Check size={14} strokeWidth={3} className="animate-pulse" />
+            ) : (
+              <AlertTriangle size={14} />
+            )}
             {hs.label}
           </div>
 
@@ -263,7 +284,11 @@ export function DiagnosticsTab() {
             className="px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm text-white disabled:opacity-50 hover:-translate-y-0.5 active:scale-95"
             style={{ background: generatingReport ? "var(--border)" : P.teal }}
           >
-            {generatingReport ? <RefreshCw className="animate-spin" size={14} /> : <FileText size={14} />}
+            {generatingReport ? (
+              <RefreshCw className="animate-spin" size={14} />
+            ) : (
+              <FileText size={14} />
+            )}
             {generatingReport ? t("Generating...") : t("Generate Report")}
           </button>
         </div>
@@ -271,18 +296,34 @@ export function DiagnosticsTab() {
 
       {/* ── Alerts ──────────────────────────────────────────────────────────── */}
       {reportResult && (
-        <Card style={{ background: `color-mix(in srgb, ${P.good} 10%, var(--card))`, borderColor: `color-mix(in srgb, ${P.good} 30%, transparent)`, padding: "12px 16px" }}>
+        <Card
+          style={{
+            background: `color-mix(in srgb, ${P.good} 10%, var(--card))`,
+            borderColor: `color-mix(in srgb, ${P.good} 30%, transparent)`,
+            padding: "12px 16px",
+          }}
+        >
           <div className="flex items-start gap-2" style={{ color: P.good }}>
             <ShieldAlert size={16} className="mt-0.5 flex-shrink-0" />
-            <div className="text-xs font-medium"><span className="font-bold">{t("Success")}:</span> {reportResult}</div>
+            <div className="text-xs font-medium">
+              <span className="font-bold">{t("Success")}:</span> {reportResult}
+            </div>
           </div>
         </Card>
       )}
       {reportError && (
-        <Card style={{ background: `color-mix(in srgb, ${P.rose} 10%, var(--card))`, borderColor: `color-mix(in srgb, ${P.rose} 30%, transparent)`, padding: "12px 16px" }}>
+        <Card
+          style={{
+            background: `color-mix(in srgb, ${P.rose} 10%, var(--card))`,
+            borderColor: `color-mix(in srgb, ${P.rose} 30%, transparent)`,
+            padding: "12px 16px",
+          }}
+        >
           <div className="flex items-start gap-2" style={{ color: P.rose }}>
             <ServerCrash size={16} className="mt-0.5 flex-shrink-0" />
-            <div className="text-xs font-medium"><span className="font-bold">{t("Error")}:</span> {reportError}</div>
+            <div className="text-xs font-medium">
+              <span className="font-bold">{t("Error")}:</span> {reportError}
+            </div>
           </div>
         </Card>
       )}
@@ -316,7 +357,9 @@ export function DiagnosticsTab() {
                 </button>
               ))
             ) : (
-              <div className="px-4 py-8 text-center text-xs text-muted-foreground">{t("No saved reports yet")}</div>
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                {t("No saved reports yet")}
+              </div>
             )}
           </div>
           <pre className="max-h-72 min-h-40 overflow-auto whitespace-pre-wrap bg-secondary/20 p-4 text-xs leading-relaxed text-muted-foreground">
@@ -345,7 +388,8 @@ export function DiagnosticsTab() {
                       background: `color-mix(in srgb, ${
                         metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky
                       } 10%, transparent)`,
-                      color: metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky,
+                      color:
+                        metrics.cpu_temp > 75 ? P.rose : metrics.cpu_temp > 55 ? P.amber : P.sky,
                     }}
                   >
                     <Thermometer size={10} />
@@ -354,7 +398,12 @@ export function DiagnosticsTab() {
                 )}
                 {metrics && metrics.cpu_cores.length > 0 && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
-                    {t("Avg Load")}: {Math.round(metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) / metrics.cpu_cores.length)}%
+                    {t("Avg Load")}:{" "}
+                    {Math.round(
+                      metrics.cpu_cores.reduce((a: number, b: number) => a + b, 0) /
+                        metrics.cpu_cores.length
+                    )}
+                    %
                   </span>
                 )}
               </div>
@@ -365,8 +414,12 @@ export function DiagnosticsTab() {
                 <Cpu size={16} style={{ color: P.sky }} />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("CPU Model")}</div>
-                <div className="text-sm font-bold text-foreground truncate">{metrics ? metrics.cpu_name : t("Fetching...")}</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t("CPU Model")}
+                </div>
+                <div className="text-sm font-bold text-foreground truncate">
+                  {metrics ? metrics.cpu_name : t("Fetching...")}
+                </div>
               </div>
             </div>
           </div>
@@ -392,7 +445,9 @@ export function DiagnosticsTab() {
               })}
             </div>
           ) : (
-            <div className="text-muted-foreground text-xs py-6 text-center">{t("Loading logical cores mapping...")}</div>
+            <div className="text-muted-foreground text-xs py-6 text-center">
+              {t("Loading logical cores mapping...")}
+            </div>
           )}
         </Card>
 
@@ -405,7 +460,9 @@ export function DiagnosticsTab() {
             <div className="flex items-start gap-3">
               <Monitor size={16} className="text-muted-foreground mt-0.5" />
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("OS")}</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t("OS")}
+                </div>
                 <div className="text-xs font-bold text-foreground truncate">
                   {systemInfo ? `${systemInfo.os_name} ${systemInfo.os_version}` : "—"}
                 </div>
@@ -414,22 +471,34 @@ export function DiagnosticsTab() {
             <div className="flex items-start gap-3">
               <Server size={16} className="text-muted-foreground mt-0.5" />
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Host")}</div>
-                <div className="text-xs font-bold text-foreground truncate">{systemInfo?.host_name || "—"}</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t("Host")}
+                </div>
+                <div className="text-xs font-bold text-foreground truncate">
+                  {systemInfo?.host_name || "—"}
+                </div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Clock size={16} className="text-muted-foreground mt-0.5" />
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Uptime")}</div>
-                <div className="text-xs font-bold text-foreground">{metrics ? formatUptime(metrics.uptime) : "—"}</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t("Uptime")}
+                </div>
+                <div className="text-xs font-bold text-foreground">
+                  {metrics ? formatUptime(metrics.uptime) : "—"}
+                </div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Layers size={16} className="text-muted-foreground mt-0.5" />
               <div className="min-w-0">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Active Processes")}</div>
-                <div className="text-xs font-bold text-foreground">{metrics ? metrics.process_count : "—"}</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t("Active Processes")}
+                </div>
+                <div className="text-xs font-bold text-foreground">
+                  {metrics ? metrics.process_count : "—"}
+                </div>
               </div>
             </div>
           </div>
@@ -455,10 +524,15 @@ export function DiagnosticsTab() {
                     background: `color-mix(in srgb, ${
                       metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good
                     } 10%, transparent)`,
-                    color: metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good,
+                    color:
+                      metrics.ram_usage > 85 ? P.rose : metrics.ram_usage > 60 ? P.amber : P.good,
                   }}
                 >
-                  {metrics.ram_usage > 85 ? t("Heavy Load") : metrics.ram_usage > 60 ? t("Normal") : t("Optimal")}
+                  {metrics.ram_usage > 85
+                    ? t("Heavy Load")
+                    : metrics.ram_usage > 60
+                      ? t("Normal")
+                      : t("Optimal")}
                 </span>
               )}
             </div>
@@ -468,7 +542,9 @@ export function DiagnosticsTab() {
               <div>
                 <div className="flex justify-between text-xs mb-1.5 font-bold">
                   <span className="text-muted-foreground">{t("RAM Utilization")}</span>
-                  <span className="text-foreground tabular-nums">{metrics ? Math.round(metrics.ram_usage) : 0}%</span>
+                  <span className="text-foreground tabular-nums">
+                    {metrics ? Math.round(metrics.ram_usage) : 0}%
+                  </span>
                 </div>
                 <div className="h-2 w-full bg-secondary border border-border rounded-full overflow-hidden relative">
                   <div
@@ -476,7 +552,11 @@ export function DiagnosticsTab() {
                     style={{
                       width: metrics ? `${metrics.ram_usage}%` : "0%",
                       background: `linear-gradient(to right, ${P.sky}, ${
-                        metrics && metrics.ram_usage > 85 ? P.rose : metrics && metrics.ram_usage > 60 ? P.amber : P.violet
+                        metrics && metrics.ram_usage > 85
+                          ? P.rose
+                          : metrics && metrics.ram_usage > 60
+                            ? P.amber
+                            : P.violet
                       })`,
                     }}
                   />
@@ -486,13 +566,17 @@ export function DiagnosticsTab() {
               {/* RAM breakdown */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Used RAM")}</div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {t("Used RAM")}
+                  </div>
                   <div className="text-sm font-extrabold text-foreground tabular-nums">
                     {metrics ? metrics.used_ram.toFixed(2) : "—"} GB
                   </div>
                 </div>
                 <div className="p-3 bg-secondary/30 border border-border/40 rounded-xl">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t("Total RAM")}</div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {t("Total RAM")}
+                  </div>
                   <div className="text-sm font-extrabold text-foreground tabular-nums">
                     {metrics ? metrics.total_ram.toFixed(1) : "—"} GB
                   </div>
@@ -524,11 +608,16 @@ export function DiagnosticsTab() {
                   };
 
                   return (
-                    <div key={idx} className="p-3 bg-secondary/30 border border-border/40 rounded-xl space-y-2">
+                    <div
+                      key={idx}
+                      className="p-3 bg-secondary/30 border border-border/40 rounded-xl space-y-2"
+                    >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="font-bold text-foreground shrink-0">{disk.name}</span>
-                          <span className="text-[10px] text-muted-foreground truncate">{disk.model || disk.disk_type}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">
+                            {disk.model || disk.disk_type}
+                          </span>
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-background border text-muted-foreground uppercase shrink-0 font-semibold">
                             {disk.disk_type}
                           </span>
@@ -551,7 +640,9 @@ export function DiagnosticsTab() {
                 })}
               </div>
             ) : (
-              <div className="text-muted-foreground text-xs py-6 text-center">{t("Loading storage topology...")}</div>
+              <div className="text-muted-foreground text-xs py-6 text-center">
+                {t("Loading storage topology...")}
+              </div>
             )}
           </div>
         </Card>
@@ -559,10 +650,30 @@ export function DiagnosticsTab() {
 
       {/* ── Stats Row ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ArrowDown size={15} />} label={t("Disk Read")} value={metrics ? `${metrics.disk_read_speed.toFixed(1)} MB/s` : "—"} color={P.teal} />
-        <StatCard icon={<ArrowUp size={15} />} label={t("Disk Write")} value={metrics ? `${metrics.disk_write_speed.toFixed(1)} MB/s` : "—"} color={P.rose} />
-        <StatCard icon={<Wifi size={15} />} label={t("Upload")} value={metrics ? `${metrics.network_up.toFixed(1)} MB/s` : "—"} color={P.sky} />
-        <StatCard icon={<ArrowDown size={15} />} label={t("Download")} value={metrics ? `${metrics.network_down.toFixed(1)} MB/s` : "—"} color={P.violet} />
+        <StatCard
+          icon={<ArrowDown size={15} />}
+          label={t("Disk Read")}
+          value={metrics ? `${metrics.disk_read_speed.toFixed(1)} MB/s` : "—"}
+          color={P.teal}
+        />
+        <StatCard
+          icon={<ArrowUp size={15} />}
+          label={t("Disk Write")}
+          value={metrics ? `${metrics.disk_write_speed.toFixed(1)} MB/s` : "—"}
+          color={P.rose}
+        />
+        <StatCard
+          icon={<Wifi size={15} />}
+          label={t("Upload")}
+          value={metrics ? `${metrics.network_up.toFixed(1)} MB/s` : "—"}
+          color={P.sky}
+        />
+        <StatCard
+          icon={<ArrowDown size={15} />}
+          label={t("Download")}
+          value={metrics ? `${metrics.network_down.toFixed(1)} MB/s` : "—"}
+          color={P.violet}
+        />
       </div>
 
       {/* ── Live Charts ────────────────────────────────────────────────────── */}
@@ -573,7 +684,11 @@ export function DiagnosticsTab() {
               <HardDrive size={14} style={{ color: P.teal }} /> {t("Disk I/O")}
             </h3>
             <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: P.teal }} /> Live
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: P.teal }}
+              />{" "}
+              Live
             </div>
           </div>
           <div className="flex-1 min-h-0 relative">
@@ -598,8 +713,30 @@ export function DiagnosticsTab() {
                 <XAxis dataKey="t" hide />
                 <YAxis hide />
                 <Tooltip content={<ChartTooltip unit="MB/s" />} />
-                <Area type="monotone" dataKey="read" name={t("Read")} stroke={P.teal} strokeWidth={2} fillOpacity={1} fill="url(#rGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
-                <Area type="monotone" dataKey="write" name={t("Write")} stroke={P.rose} strokeWidth={2} fillOpacity={1} fill="url(#wGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
+                <Area
+                  type="monotone"
+                  dataKey="read"
+                  name={t("Read")}
+                  stroke={P.teal}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#rGrad)"
+                  activeDot={<PulsingDot />}
+                  isAnimationActive={true}
+                  animationDuration={1500}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="write"
+                  name={t("Write")}
+                  stroke={P.rose}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#wGrad)"
+                  activeDot={<PulsingDot />}
+                  isAnimationActive={true}
+                  animationDuration={1500}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -611,7 +748,11 @@ export function DiagnosticsTab() {
               <Activity size={14} style={{ color: P.sky }} /> {t("Network Traffic")}
             </h3>
             <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: P.sky }} /> Live
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: P.sky }}
+              />{" "}
+              Live
             </div>
           </div>
           <div className="flex-1 min-h-0 relative">
@@ -635,8 +776,30 @@ export function DiagnosticsTab() {
                 <XAxis dataKey="t" hide />
                 <YAxis hide />
                 <Tooltip content={<ChartTooltip unit="MB/s" />} />
-                <Area type="monotone" dataKey="up" name={t("Upload")} stroke={P.sky} strokeWidth={2} fillOpacity={1} fill="url(#upGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
-                <Area type="monotone" dataKey="down" name={t("Download")} stroke={P.violet} strokeWidth={2} fillOpacity={1} fill="url(#dnGrad)" activeDot={<PulsingDot />} isAnimationActive={true} animationDuration={1500} />
+                <Area
+                  type="monotone"
+                  dataKey="up"
+                  name={t("Upload")}
+                  stroke={P.sky}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#upGrad)"
+                  activeDot={<PulsingDot />}
+                  isAnimationActive={true}
+                  animationDuration={1500}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="down"
+                  name={t("Download")}
+                  stroke={P.violet}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#dnGrad)"
+                  activeDot={<PulsingDot />}
+                  isAnimationActive={true}
+                  animationDuration={1500}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

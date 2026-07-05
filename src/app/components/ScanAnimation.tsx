@@ -86,19 +86,19 @@ export function ScanAnimation({ scanning, progress }: Props) {
   if (!scanning && logs.length === 0)
     return (
       <div className="h-32 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/10 transition-colors duration-300">
-        <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Ready to scan your system</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">
+          Ready to scan your system
+        </p>
       </div>
     );
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         y: 0,
-        boxShadow: scanning 
-          ? "0 0 15px rgba(79, 70, 229, 0.12)" 
-          : "0 0 0px rgba(0, 0, 0, 0)"
+        boxShadow: scanning ? "0 0 15px rgba(79, 70, 229, 0.12)" : "0 0 0px rgba(0, 0, 0, 0)",
       }}
       transition={{ duration: 0.4 }}
       className="rounded-xl p-4 h-36 overflow-hidden font-mono text-xs space-y-1.5 transition-all duration-300 border bg-slate-950 border-slate-800 dark:bg-black/90"
@@ -120,9 +120,9 @@ export function ScanAnimation({ scanning, progress }: Props) {
           ))}
         </AnimatePresence>
       </div>
-      
+
       {scanning && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-center gap-2 pt-1 border-t border-slate-800/60"

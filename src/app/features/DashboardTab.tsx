@@ -18,30 +18,23 @@ import {
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { RadialGauge } from "../components/RadialGauge";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { addHistoryLog } from "../utils/history";
 import { DiskRow } from "../components/ui/DiskRow";
 
 // ─── palette ──────────────────────────────────────────────────────────────────
 const P = {
-  teal:    "#0d9488",
-  tealLt:  "#14b8a6",
-  sky:     "#0ea5e9",
-  amber:   "#f59e0b",
-  rose:    "#f43f5e",
-  violet:  "#8b5cf6",
-  slate:   "#64748b",
-  good:    "#10b981",   // score ≥ 80
-  warn:    "#f59e0b",   // score 50–79
-  bad:     "#f43f5e",   // score < 50
+  teal: "#0d9488",
+  tealLt: "#14b8a6",
+  sky: "#0ea5e9",
+  amber: "#f59e0b",
+  rose: "#f43f5e",
+  violet: "#8b5cf6",
+  slate: "#64748b",
+  good: "#10b981", // score ≥ 80
+  warn: "#f59e0b", // score 50–79
+  bad: "#f43f5e", // score < 50
 };
 
 function scoreColor(score: number) {
@@ -123,8 +116,14 @@ function StatCard({
   const R = 16;
 
   // Symmetrical split paths starting from middle of the left edge (2, H/2) with 2px offset to prevent clipping
-  const topPath = W && H ? `M 2 ${H / 2} L 2 16 A 14 14 0 0 1 16 2 L ${W - 16} 2 A 14 14 0 0 1 ${W - 2} 16 L ${W - 2} ${H / 2}` : "";
-  const bottomPath = W && H ? `M 2 ${H / 2} L 2 ${H - 16} A 14 14 0 0 0 16 ${H - 2} L ${W - 16} ${H - 2} A 14 14 0 0 0 ${W - 2} ${H - 16} L ${W - 2} ${H / 2}` : "";
+  const topPath =
+    W && H
+      ? `M 2 ${H / 2} L 2 16 A 14 14 0 0 1 16 2 L ${W - 16} 2 A 14 14 0 0 1 ${W - 2} 16 L ${W - 2} ${H / 2}`
+      : "";
+  const bottomPath =
+    W && H
+      ? `M 2 ${H / 2} L 2 ${H - 16} A 14 14 0 0 0 16 ${H - 2} L ${W - 16} ${H - 2} A 14 14 0 0 0 ${W - 2} ${H - 16} L ${W - 2} ${H / 2}`
+      : "";
 
   return (
     <div
@@ -139,7 +138,10 @@ function StatCard({
     >
       {/* Tracing Border Progress Lines (Symmetrical Split) */}
       {W > 0 && H > 0 && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl" style={{ width: W, height: H }}>
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl"
+          style={{ width: W, height: H }}
+        >
           {/* Top Half Path */}
           <path
             d={topPath}
@@ -173,9 +175,7 @@ function StatCard({
       <div className="pl-3">
         <div className="flex items-center gap-2 mb-2" style={{ color }}>
           {icon}
-          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">
-            {label}
-          </span>
+          <span className="text-xs font-semibold tracking-wide uppercase opacity-80">{label}</span>
         </div>
         <div
           className="text-2xl font-bold tracking-tight"
@@ -187,11 +187,7 @@ function StatCard({
         >
           {value}
         </div>
-        {sub && (
-          <div className="text-[11px] text-muted-foreground mt-1 truncate">
-            {sub}
-          </div>
-        )}
+        {sub && <div className="text-[11px] text-muted-foreground mt-1 truncate">{sub}</div>}
       </div>
     </div>
   );
@@ -371,7 +367,9 @@ export function DashboardTab({
   const { t } = useTranslation();
   const { metrics, cpuData, ramData } = useSystemMetrics();
 
-  const [cleanState, setCleanState] = useState<"idle" | "scanning" | "cleaning" | "cleaned">("idle");
+  const [cleanState, setCleanState] = useState<"idle" | "scanning" | "cleaning" | "cleaned">(
+    "idle"
+  );
   const [cleanedSize, setCleanedSize] = useState("");
 
   const [boostState, setBoostState] = useState<"idle" | "running" | "boosted">("idle");
@@ -415,7 +413,12 @@ export function DashboardTab({
         });
       } else {
         setCleanedSize("0 MB");
-        addHistoryLog({ type: "Quick Clean", freed: "0 MB", fixed: 0, duration: ((Date.now() - t0) / 1000).toFixed(1) + "s" });
+        addHistoryLog({
+          type: "Quick Clean",
+          freed: "0 MB",
+          fixed: 0,
+          duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
+        });
       }
       setCleanState("cleaned");
       setTimeout(() => setCleanState("idle"), 4000);
@@ -454,7 +457,6 @@ export function DashboardTab({
 
   return (
     <div className="space-y-4">
-
       {/* ── Hero: health score ──────────────────────────────────────────────── */}
       <Card className="relative overflow-hidden" style={{ padding: "1.5rem" }}>
         {/* subtle teal glow top-right */}
@@ -497,10 +499,7 @@ export function DashboardTab({
               </span>
             </div>
 
-            <div
-              className="text-sm font-semibold mt-1"
-              style={{ color: sc }}
-            >
+            <div className="text-sm font-semibold mt-1" style={{ color: sc }}>
               {t(scoreLabel(score))}
             </div>
 
@@ -512,19 +511,24 @@ export function DashboardTab({
 
             {/* status pills */}
             <div className="flex flex-wrap gap-2 mt-3">
-              <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+              <span
+                className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
                 style={{
                   background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
                   color: P.good,
-                }}>
+                }}
+              >
                 <Check size={11} strokeWidth={3} /> {t("Protection active")}
               </span>
               {issues?.map((iss, i) => (
-                <span key={i} className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                <span
+                  key={i}
+                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
                   style={{
                     background: `color-mix(in srgb, ${P.warn} 12%, transparent)`,
                     color: P.warn,
-                  }}>
+                  }}
+                >
                   <AlertTriangle size={11} /> {t(iss)}
                 </span>
               ))}
@@ -571,21 +575,33 @@ export function DashboardTab({
           icon={<MemoryStick size={15} />}
           label={t("RAM")}
           value={metrics ? `${Math.round(metrics.ram_usage)}%` : "—"}
-          sub={metrics ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB` : t("Waiting for data")}
+          sub={
+            metrics
+              ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB`
+              : t("Waiting for data")
+          }
           color={P.violet}
         />
         <StatCard
           icon={<HardDrive size={15} />}
           label={t("Disk")}
           value={`${diskPct}%`}
-          sub={metrics ? `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB` : t("Waiting for data")}
+          sub={
+            metrics
+              ? `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB`
+              : t("Waiting for data")
+          }
           color={P.amber}
         />
         <StatCard
           icon={<Wifi size={15} />}
           label={t("Network")}
           value={metrics ? `${(metrics.network_up + metrics.network_down).toFixed(1)} MB/s` : "—"}
-          sub={metrics ? `↑ ${metrics.network_up.toFixed(1)}  ↓ ${metrics.network_down.toFixed(1)}` : t("Waiting for data")}
+          sub={
+            metrics
+              ? `↑ ${metrics.network_up.toFixed(1)}  ↓ ${metrics.network_down.toFixed(1)}`
+              : t("Waiting for data")
+          }
           color={P.sky}
         />
       </div>
@@ -615,9 +631,7 @@ export function DashboardTab({
           </div>
           <div className="space-y-3 max-h-24 overflow-y-auto pr-0.5">
             {metrics?.disks?.length > 0 ? (
-              metrics.disks.map((disk: any) => (
-                <DiskRow key={disk.name} disk={disk} t={t} />
-              ))
+              metrics.disks.map((disk: any) => <DiskRow key={disk.name} disk={disk} t={t} />)
             ) : (
               <div className="text-xs text-muted-foreground py-5 text-center">
                 {t("Loading disks...")}
@@ -637,15 +651,20 @@ export function DashboardTab({
           <ActionBtn
             icon={<Trash2 size={18} />}
             label={
-              cleanState === "scanning" ? t("Scanning...") :
-              cleanState === "cleaning" ? t("Cleaning...") :
-              cleanState === "cleaned" ? t("Cleaned!") :
-              t("Clean Junk")
+              cleanState === "scanning"
+                ? t("Scanning...")
+                : cleanState === "cleaning"
+                  ? t("Cleaning...")
+                  : cleanState === "cleaned"
+                    ? t("Cleaned!")
+                    : t("Clean Junk")
             }
             sub={
-              cleanState === "cleaned" ? `${t("Freed")} ${cleanedSize}` :
-              cleanState === "scanning" || cleanState === "cleaning" ? t("Please wait...") :
-              junkStr
+              cleanState === "cleaned"
+                ? `${t("Freed")} ${cleanedSize}`
+                : cleanState === "scanning" || cleanState === "cleaning"
+                  ? t("Please wait...")
+                  : junkStr
             }
             color={P.teal}
             onClick={handleClean}
@@ -655,14 +674,18 @@ export function DashboardTab({
           <ActionBtn
             icon={<Zap size={18} />}
             label={
-              boostState === "running" ? t("Optimizing...") :
-              boostState === "boosted" ? t("Boosted!") :
-              t("Boost RAM")
+              boostState === "running"
+                ? t("Optimizing...")
+                : boostState === "boosted"
+                  ? t("Boosted!")
+                  : t("Boost RAM")
             }
             sub={
-              boostState === "boosted" ? boostedSize :
-              boostState === "running" ? t("Freeing memory...") :
-              t("Optimize memory")
+              boostState === "boosted"
+                ? boostedSize
+                : boostState === "running"
+                  ? t("Freeing memory...")
+                  : t("Optimize memory")
             }
             color={P.violet}
             onClick={handleBoost}

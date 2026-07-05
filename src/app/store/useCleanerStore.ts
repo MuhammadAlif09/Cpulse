@@ -8,8 +8,6 @@ export interface JunkItem {
   size: string;
   bytes: number;
   count: number;
-  color: string;
-  icon: string;
   description: string;
   warning: string;
   requires_admin: boolean;
@@ -137,7 +135,7 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
 
       const initialSelected: Record<string, boolean> = {};
       results.forEach((c) => {
-        initialSelected[c.name] = true;
+        initialSelected[c.name] = !c.warning; // default unchecked if warning exists
       });
 
       set({

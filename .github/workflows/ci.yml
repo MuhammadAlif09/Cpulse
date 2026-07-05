@@ -1,0 +1,79 @@
+name: CI Checks
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.agents/**'
+      - '.gitignore'
+      - 'LICENSE'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.agents/**'
+      - '.gitignore'
+      - 'LICENSE'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+
+      - name: install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: lint frontend
+        run: pnpm run lint
+
+      - name: test frontend
+        run: pnpm test run
+
+      - name: check frontend build
+        run: pnpm run build
+
+      - name: rust fmt check
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: rust clippy check
+        working-directory: src-tauri
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: rust test
+        working-directory: src-tauri
+        run: cargo test

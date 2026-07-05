@@ -53,14 +53,30 @@ import {
   Pie,
   Cell,
 } from "recharts";
-const DashboardTab = lazy(() => import("./features/DashboardTab").then(m => ({ default: m.DashboardTab })));
-const CleanerTab = lazy(() => import("./features/CleanerTab").then(m => ({ default: m.CleanerTab })));
-const BoosterTab = lazy(() => import("./features/BoosterTab").then(m => ({ default: m.BoosterTab })));
-const StartupTab = lazy(() => import("./features/StartupTab").then(m => ({ default: m.StartupTab })));
-const PrivacyTab = lazy(() => import("./features/PrivacyTab").then(m => ({ default: m.PrivacyTab })));
-const HistoryTab = lazy(() => import("./features/HistoryTab").then(m => ({ default: m.HistoryTab })));
-const SettingsTab = lazy(() => import("./features/SettingsTab").then(m => ({ default: m.SettingsTab })));
-const DiagnosticsTab = lazy(() => import("./features/DiagnosticsTab").then(m => ({ default: m.DiagnosticsTab })));
+const DashboardTab = lazy(() =>
+  import("./features/DashboardTab").then((m) => ({ default: m.DashboardTab }))
+);
+const CleanerTab = lazy(() =>
+  import("./features/CleanerTab").then((m) => ({ default: m.CleanerTab }))
+);
+const BoosterTab = lazy(() =>
+  import("./features/BoosterTab").then((m) => ({ default: m.BoosterTab }))
+);
+const StartupTab = lazy(() =>
+  import("./features/StartupTab").then((m) => ({ default: m.StartupTab }))
+);
+const PrivacyTab = lazy(() =>
+  import("./features/PrivacyTab").then((m) => ({ default: m.PrivacyTab }))
+);
+const HistoryTab = lazy(() =>
+  import("./features/HistoryTab").then((m) => ({ default: m.HistoryTab }))
+);
+const SettingsTab = lazy(() =>
+  import("./features/SettingsTab").then((m) => ({ default: m.SettingsTab }))
+);
+const DiagnosticsTab = lazy(() =>
+  import("./features/DiagnosticsTab").then((m) => ({ default: m.DiagnosticsTab }))
+);
 import { useCleanerStore } from "./store/useCleanerStore";
 
 // ─── translations ──────────────────────────────────────────────────────────────────
@@ -776,7 +792,13 @@ export default function App() {
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.18, ease: "easeInOut" }}
         >
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center p-12 text-[11px] font-medium text-muted-foreground uppercase tracking-widest animate-pulse">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="flex-1 flex items-center justify-center p-12 text-[11px] font-medium text-muted-foreground uppercase tracking-widest animate-pulse">
+                Loading...
+              </div>
+            }
+          >
             {tab === "dashboard" && (
               <DashboardTab
                 lang={lang}

@@ -65,7 +65,7 @@ export function RadialGauge({
           />
         </svg>
         {showValue && (
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}

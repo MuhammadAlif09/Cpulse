@@ -129,7 +129,20 @@ const parseFreedToGB = (freedStr: string): number => {
 };
 
 const formatMonthYearShort = (date: Date) => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[date.getMonth()]} '${String(date.getFullYear()).slice(-2)}`;
 };
 
@@ -139,7 +152,20 @@ const getMonthYear = (dateStr: string) => {
   const d = new Date(cleanDateStr);
   if (!isNaN(d.getTime())) return formatMonthYearShort(d);
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   for (const m of months) {
     if (dateStr.includes(m)) {
       const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
@@ -147,7 +173,20 @@ const getMonthYear = (dateStr: string) => {
     }
   }
 
-  const idMonths: Record<string, string> = { Jan: "Jan", Peb: "Feb", Mar: "Mar", Apr: "Apr", Mei: "May", Jun: "Jun", Jul: "Jul", Agu: "Aug", Sep: "Sep", Okt: "Oct", Nov: "Nov", Des: "Dec" };
+  const idMonths: Record<string, string> = {
+    Jan: "Jan",
+    Peb: "Feb",
+    Mar: "Mar",
+    Apr: "Apr",
+    Mei: "May",
+    Jun: "Jun",
+    Jul: "Jul",
+    Agu: "Aug",
+    Sep: "Sep",
+    Okt: "Oct",
+    Nov: "Nov",
+    Des: "Dec",
+  };
   for (const [idM, enM] of Object.entries(idMonths)) {
     if (dateStr.toLowerCase().includes(idM.toLowerCase())) {
       const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
@@ -171,7 +210,10 @@ const getMonthlyFreedData = (logs: SessionLog[]) => {
       if (groups[label] !== undefined) groups[label] += val;
     }
   });
-  return Object.entries(groups).map(([name, value]) => ({ name, value: parseFloat(value.toFixed(2)) }));
+  return Object.entries(groups).map(([name, value]) => ({
+    name,
+    value: parseFloat(value.toFixed(2)),
+  }));
 };
 
 export function HistoryTab() {
@@ -203,10 +245,15 @@ export function HistoryTab() {
     if (!active || !payload?.length) return null;
     return (
       <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg font-sans tabular-nums text-xs">
-        <div className="text-[10px] font-bold uppercase text-muted-foreground mb-1.5 tracking-wider">{label}</div>
+        <div className="text-[10px] font-bold uppercase text-muted-foreground mb-1.5 tracking-wider">
+          {label}
+        </div>
         {payload.map((entry: any, idx: number) => (
           <div key={idx} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || P.teal }} />
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: entry.color || P.teal }}
+            />
             <span className="text-muted-foreground">{t("Freed")}:</span>
             <span className="font-bold text-foreground">
               {entry.value?.toFixed(2)} {unit || "GB"}
@@ -224,11 +271,16 @@ export function HistoryTab() {
       const key = parts[0];
       const val = parts.slice(1).join(":");
       const trans = t(val);
-      if (key === "Enabled") return t("Enabled {{name}}", { name: trans }).replace("{{name}}", trans);
-      if (key === "Disabled") return t("Disabled {{name}}", { name: trans }).replace("{{name}}", trans);
-      if (key === "Applied") return t("Applied {{name}}", { name: trans }).replace("{{name}}", trans);
-      if (key === "Restored") return t("Restored {{name}}", { name: trans }).replace("{{name}}", trans);
-      if (key === "DisabledHighImpact") return t("Disabled {{count}} high impact items", { count: val }).replace("{{count}}", val);
+      if (key === "Enabled")
+        return t("Enabled {{name}}", { name: trans }).replace("{{name}}", trans);
+      if (key === "Disabled")
+        return t("Disabled {{name}}", { name: trans }).replace("{{name}}", trans);
+      if (key === "Applied")
+        return t("Applied {{name}}", { name: trans }).replace("{{name}}", trans);
+      if (key === "Restored")
+        return t("Restored {{name}}", { name: trans }).replace("{{name}}", trans);
+      if (key === "DisabledHighImpact")
+        return t("Disabled {{count}} high impact items", { count: val }).replace("{{count}}", val);
     }
     if (details.includes("{{name}}")) {
       const fb = t("program");
@@ -289,13 +341,39 @@ export function HistoryTab() {
             {hasFreedData ? (
               <div className="h-[240px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} unit="GB" />
-                    <Tooltip cursor={{ fill: "var(--secondary)" }} content={<ChartTooltip unit="GB" />} />
-                    <Bar dataKey="value" fill="url(#historyFreedGrad)" radius={[4, 4, 0, 0]} maxBarSize={48}>
+                  <BarChart
+                    data={monthlyData}
+                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--muted-foreground)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="var(--muted-foreground)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      unit="GB"
+                    />
+                    <Tooltip
+                      cursor={{ fill: "var(--secondary)" }}
+                      content={<ChartTooltip unit="GB" />}
+                    />
+                    <Bar
+                      dataKey="value"
+                      fill="url(#historyFreedGrad)"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={48}
+                    >
                       {monthlyData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.value > 0 ? "url(#historyFreedGrad)" : "var(--border)"} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.value > 0 ? "url(#historyFreedGrad)" : "var(--border)"}
+                        />
                       ))}
                     </Bar>
                     <defs>
@@ -325,13 +403,25 @@ export function HistoryTab() {
             <div className="divide-y divide-border">
               {history.map((h, i) => {
                 const color = getLogColor(h.type);
-                const showFreed = h.freed && h.freed !== "N/A" && h.freed !== "" && (h.type.includes("Clean") || h.type.includes("Boost") || (!h.freed.startsWith("0") && !h.freed.startsWith("N/A")));
+                const showFreed =
+                  h.freed &&
+                  h.freed !== "N/A" &&
+                  h.freed !== "" &&
+                  (h.type.includes("Clean") ||
+                    h.type.includes("Boost") ||
+                    (!h.freed.startsWith("0") && !h.freed.startsWith("N/A")));
 
                 return (
-                  <div key={i} className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition duration-200">
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 p-4 hover:bg-secondary/50 transition duration-200"
+                  >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color: color }}
+                      style={{
+                        background: `color-mix(in srgb, ${color} 15%, transparent)`,
+                        color: color,
+                      }}
                     >
                       {getLogIcon(h.type)}
                     </div>
@@ -345,12 +435,21 @@ export function HistoryTab() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 font-medium">
-                        {h.date} {h.duration && `· ${h.duration}`} {h.fixed > 0 && `· ${h.fixed} ${t(h.fixed === 1 ? "issue fixed" : "issues fixed")}`}
+                        {h.date} {h.duration && `· ${h.duration}`}{" "}
+                        {h.fixed > 0 &&
+                          `· ${h.fixed} ${t(h.fixed === 1 ? "issue fixed" : "issues fixed")}`}
                       </div>
                     </div>
                     {showFreed && (
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm font-bold" style={{ color: P.teal, fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}>
+                        <div
+                          className="text-sm font-bold"
+                          style={{
+                            color: P.teal,
+                            fontFamily: "'Satoshi', sans-serif",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
                           {h.freed}
                         </div>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">

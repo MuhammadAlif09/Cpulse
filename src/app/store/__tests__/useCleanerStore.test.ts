@@ -22,10 +22,8 @@ const mockJunkCats = [
     size: "15.5 MB",
     bytes: 16252928,
     count: 142,
-    color: "amber",
-    icon: "trash",
     description: "Temporary files",
-    warning: "Safe to delete",
+    warning: "",
     requires_admin: false,
   },
   {
@@ -33,19 +31,17 @@ const mockJunkCats = [
     size: "1.2 GB",
     bytes: 1288490188,
     count: 24,
-    color: "red",
-    icon: "trash",
     description: "Deleted files",
     warning: "Irreversible",
     requires_admin: false,
-  }
+  },
 ];
 
 describe("useCleanerStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useCleanerStore.getState().resetCleanerState();
-    
+
     // Mock Date.now to simulate passage of time
     let time = 1000;
     vi.spyOn(Date, "now").mockImplementation(() => {
@@ -71,7 +67,10 @@ describe("useCleanerStore", () => {
 
   it("should update selected categories", () => {
     useCleanerStore.getState().setSelected({ "System Temp": true, "Recycle Bin": false });
-    expect(useCleanerStore.getState().selected).toEqual({ "System Temp": true, "Recycle Bin": false });
+    expect(useCleanerStore.getState().selected).toEqual({
+      "System Temp": true,
+      "Recycle Bin": false,
+    });
   });
 
   it("should toggle a selected category", () => {
@@ -105,7 +104,7 @@ describe("useCleanerStore", () => {
     vi.mocked(invoke).mockResolvedValue(mockJunkCats);
 
     const promise = useCleanerStore.getState().startScan();
-    
+
     // Check initial status during scan
     expect(useCleanerStore.getState().scanning).toBe(true);
     expect(useCleanerStore.getState().error).toBeNull();
@@ -119,7 +118,7 @@ describe("useCleanerStore", () => {
     expect(state.junkCats).toEqual(mockJunkCats);
     expect(state.selected).toEqual({
       "System Temp": true,
-      "Recycle Bin": true,
+      "Recycle Bin": false,
     });
     expect(state.scanDuration).not.toBe("0.0s");
     expect(invoke).toHaveBeenCalledWith("scan_junk");
@@ -154,7 +153,7 @@ describe("useCleanerStore", () => {
     vi.mocked(invoke).mockResolvedValue({ bytes_freed: 16252928, files_cleaned: 142 });
     useCleanerStore.setState({
       junkCats: mockJunkCats,
-      selected: { "System Temp": true, "Recycle Bin": false }
+      selected: { "System Temp": true, "Recycle Bin": false },
     });
 
     await useCleanerStore.getState().doClean();
@@ -165,7 +164,7 @@ describe("useCleanerStore", () => {
     expect(state.progress).toBe(100);
     expect(state.cleanedBytes).toBe(16252928);
     expect(state.cleanedFiles).toBe(142);
-    
+
     // System Temp (which was selected) should be reset to 0
     expect(state.junkCats[0].bytes).toBe(0);
     expect(state.junkCats[0].count).toBe(0);
@@ -175,18 +174,20 @@ describe("useCleanerStore", () => {
     expect(state.junkCats[1].bytes).toBe(1288490188);
 
     expect(invoke).toHaveBeenCalledWith("clean_junk", { categories: ["System Temp"] });
-    expect(addHistoryLog).toHaveBeenCalledWith(expect.objectContaining({
-      type: "Deep Clean",
-      freed: "15.5 MB",
-      fixed: 142,
-    }));
+    expect(addHistoryLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "Deep Clean",
+        freed: "15.5 MB",
+        fixed: 142,
+      })
+    );
   });
 
   it("should handle error in doClean", async () => {
     vi.mocked(invoke).mockRejectedValue("Cleaning error");
     useCleanerStore.setState({
       junkCats: mockJunkCats,
-      selected: { "System Temp": true }
+      selected: { "System Temp": true },
     });
 
     await useCleanerStore.getState().doClean();
@@ -199,7 +200,7 @@ describe("useCleanerStore", () => {
   it("should not run doClean if no categories selected", async () => {
     useCleanerStore.setState({
       junkCats: mockJunkCats,
-      selected: { "System Temp": false, "Recycle Bin": false }
+      selected: { "System Temp": false, "Recycle Bin": false },
     });
 
     await useCleanerStore.getState().doClean();

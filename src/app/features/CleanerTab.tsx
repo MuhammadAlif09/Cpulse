@@ -13,6 +13,15 @@ import {
   HardDrive,
   Files,
   Check,
+  Globe,
+  FileText,
+  Zap,
+  Image,
+  ClipboardList,
+  Type,
+  Gamepad2,
+  Package,
+  AppWindow,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
@@ -41,6 +50,59 @@ const P = {
   sky: "#0ea5e9",
   slate: "#64748b",
 };
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "Windows Temp Files": "#7971a8",
+  "Browser Cache": "#62809c",
+  "Windows Update Cache": "#569a8b",
+  "Crash Dumps & Logs": "#b56a75",
+  "Recycle Bin": "#b58c63",
+  "Windows Prefetch": "#62809c",
+  "Thumbnail Cache": "#b56a75",
+  "Windows Log Files": "#b58c63",
+  "Font Cache": "#7971a8",
+  "DirectX Shader Cache": "#569a8b",
+  "Windows Error Reports": "#b56a75",
+  "Delivery Optimization": "#569a8b",
+  "Application Cache": "#7971a8",
+};
+
+function getCategoryColor(name: string): string {
+  return CATEGORY_COLORS[name] || "#64748b";
+}
+
+function getCategoryIcon(name: string, size = 16) {
+  switch (name) {
+    case "Windows Temp Files":
+      return <Trash2 size={size} />;
+    case "Browser Cache":
+      return <Globe size={size} />;
+    case "Windows Update Cache":
+      return <RefreshCw size={size} />;
+    case "Crash Dumps & Logs":
+      return <FileText size={size} />;
+    case "Recycle Bin":
+      return <Trash2 size={size} />;
+    case "Windows Prefetch":
+      return <Zap size={size} />;
+    case "Thumbnail Cache":
+      return <Image size={size} />;
+    case "Windows Log Files":
+      return <ClipboardList size={size} />;
+    case "Font Cache":
+      return <Type size={size} />;
+    case "DirectX Shader Cache":
+      return <Gamepad2 size={size} />;
+    case "Windows Error Reports":
+      return <AlertTriangle size={size} />;
+    case "Delivery Optimization":
+      return <Package size={size} />;
+    case "Application Cache":
+      return <AppWindow size={size} />;
+    default:
+      return <Trash2 size={size} />;
+  }
+}
 
 function cn(...classes: (string | undefined | false)[]) {
   return classes.filter(Boolean).join(" ");
@@ -110,7 +172,9 @@ export function CleanerTab() {
   };
 
   const displayBytesStr = cleaned ? formatBytes(cleanedBytes) : `${totalSelectedGB} GB`;
-  const displayFilesStr = cleaned ? cleanedFiles.toLocaleString() : totalSelectedFiles.toLocaleString();
+  const displayFilesStr = cleaned
+    ? cleanedFiles.toLocaleString()
+    : totalSelectedFiles.toLocaleString();
 
   const hasSensitiveSelected = junkCats.some(
     (c) => selected[c.name] && (c.warning.length > 0 || c.requires_admin)
@@ -134,13 +198,14 @@ export function CleanerTab() {
     .map((c) => ({
       name: t(c.name),
       value: Number((c.bytes / 1_048_576).toFixed(1)),
-      color: c.color,
+      color: getCategoryColor(c.name),
     }));
 
   const customTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const sizeStr = data.value > 1024 ? (data.value / 1024).toFixed(2) + " GB" : data.value + " MB";
+      const sizeStr =
+        data.value > 1024 ? (data.value / 1024).toFixed(2) + " GB" : data.value + " MB";
       return (
         <div className="bg-card/95 backdrop-blur-sm p-3 border border-border rounded-xl shadow-lg font-sans text-xs text-foreground">
           <p className="font-semibold text-card-foreground">{data.name}</p>
@@ -171,7 +236,9 @@ export function CleanerTab() {
               </h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              {t("Deep scan for all unnecessary files — temporary data, cache, and residual clutter")}
+              {t(
+                "Deep scan for all unnecessary files — temporary data, cache, and residual clutter"
+              )}
             </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
@@ -221,7 +288,8 @@ export function CleanerTab() {
                     background: cleaning || totalSelectedBytes === 0 ? "var(--border)" : P.teal,
                   }}
                 >
-                  <Trash2 size={15} /> {cleaning ? t("Wait...") : `${t("Clean")} ${totalSelectedGB} GB`}
+                  <Trash2 size={15} />{" "}
+                  {cleaning ? t("Wait...") : `${t("Clean")} ${totalSelectedGB} GB`}
                 </button>
               </>
             )}
@@ -279,13 +347,19 @@ export function CleanerTab() {
         {(scanning || done || cleaning) && (
           <div className="space-y-1.5 mt-2">
             <div className="flex justify-between text-xs text-muted-foreground font-medium">
-              <span>{scanning ? t("Scanning...") : cleaning ? t("Cleaning...") : t("Complete")}</span>
+              <span>
+                {scanning ? t("Scanning...") : cleaning ? t("Cleaning...") : t("Complete")}
+              </span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%`, background: P.teal, boxShadow: `0 0 8px ${P.teal}` }}
+                style={{
+                  width: `${progress}%`,
+                  background: P.teal,
+                  boxShadow: `0 0 8px ${P.teal}`,
+                }}
               />
             </div>
           </div>
@@ -318,13 +392,13 @@ export function CleanerTab() {
             icon={<Files size={15} />}
             label={cleaned ? t("Files Cleaned") : t("Files Found")}
             value={displayFilesStr}
-            color={P.sky}
+            color={P.teal}
           />
           <StatCard
             icon={<Clock size={15} />}
             label={t("Scan Duration")}
             value={scanDuration}
-            color={P.amber}
+            color={P.teal}
           />
         </div>
       )}
@@ -362,8 +436,14 @@ export function CleanerTab() {
                   <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wide">
                     {cleaned ? t("Freed") : t("Selected")}
                   </span>
-                  <span className="text-lg font-bold text-foreground mt-0.5" style={{ fontFamily: "'Satoshi', sans-serif", fontVariantNumeric: "tabular-nums" }}>
-                    {displayBytesStr.split(' ')[0]}
+                  <span
+                    className="text-lg font-bold text-foreground mt-0.5"
+                    style={{
+                      fontFamily: "'Satoshi', sans-serif",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {displayBytesStr.split(" ")[0]}
                   </span>
                 </div>
               </div>
@@ -413,13 +493,24 @@ export function CleanerTab() {
                     onClick={() => toggleSelectedCategory(cat.name)}
                     className="p-3.5 rounded-xl border transition-all duration-200 cursor-pointer select-none group"
                     style={{
-                      background: isOn ? `color-mix(in srgb, ${cat.color} 8%, var(--card))` : "var(--card)",
-                      borderColor: isOn ? `color-mix(in srgb, ${cat.color} 40%, transparent)` : "var(--border)",
-                      boxShadow: isOn ? `0 0 16px -6px color-mix(in srgb, ${cat.color} 20%, transparent)` : "none",
+                      background: isOn
+                        ? `color-mix(in srgb, ${getCategoryColor(cat.name)} 8%, var(--card))`
+                        : "var(--card)",
+                      borderColor: isOn
+                        ? `color-mix(in srgb, ${getCategoryColor(cat.name)} 40%, transparent)`
+                        : "var(--border)",
+                      boxShadow: isOn
+                        ? `0 0 16px -6px color-mix(in srgb, ${getCategoryColor(cat.name)} 20%, transparent)`
+                        : "none",
                     }}
                   >
                     <div className="flex items-start gap-2.5 mb-2">
-                      <span className="text-xl mt-0.5 opacity-90 transition-transform group-hover:scale-110">{cat.icon}</span>
+                      <span
+                        className="text-xl mt-0.5 transition-transform group-hover:scale-110 flex items-center justify-center w-5 h-5"
+                        style={{ color: getCategoryColor(cat.name) }}
+                      >
+                        {getCategoryIcon(cat.name)}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[13px] font-semibold text-foreground truncate">
@@ -439,8 +530,8 @@ export function CleanerTab() {
                         className="w-[18px] h-[18px] rounded-md border transition-all flex items-center justify-center flex-shrink-0 mt-0.5"
                         style={{
                           border: isOn ? "none" : "1px solid var(--border)",
-                          background: isOn ? cat.color : "transparent",
-                          boxShadow: isOn ? `0 0 8px -2px ${cat.color}` : "none",
+                          background: isOn ? getCategoryColor(cat.name) : "transparent",
+                          boxShadow: isOn ? `0 0 8px -2px ${getCategoryColor(cat.name)}` : "none",
                         }}
                       >
                         <AnimatePresence>
@@ -451,7 +542,12 @@ export function CleanerTab() {
                               exit={{ scale: 0, opacity: 0 }}
                               transition={{ type: "spring", stiffness: 400, damping: 20 }}
                             >
-                              <Check size={11} color="white" strokeWidth={3.5} className="drop-shadow-sm" />
+                              <Check
+                                size={11}
+                                color="white"
+                                strokeWidth={3.5}
+                                className="drop-shadow-sm"
+                              />
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -469,13 +565,17 @@ export function CleanerTab() {
 
                     <div className="mt-auto">
                       <div className="flex justify-between text-[11px] text-muted-foreground mb-1.5 font-medium">
-                        <span>{cat.count.toLocaleString()} {t("files")}</span>
-                        <span style={{ color: cat.color }} className="font-bold">{cat.size}</span>
+                        <span>
+                          {cat.count.toLocaleString()} {t("files")}
+                        </span>
+                        <span style={{ color: getCategoryColor(cat.name) }} className="font-bold">
+                          {cat.size}
+                        </span>
                       </div>
                       <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, background: cat.color }}
+                          style={{ width: `${pct}%`, background: getCategoryColor(cat.name) }}
                         />
                       </div>
                     </div>
@@ -498,7 +598,9 @@ export function CleanerTab() {
               {t("Security Warning")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-muted-foreground text-sm mt-1 leading-relaxed">
-              {t("Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?")}
+              {t(
+                "Some selected categories contain critical system cache or permanent deletion flags. Are you sure you want to clean them?"
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -510,7 +612,7 @@ export function CleanerTab() {
                   key={c.name}
                   className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-xs font-semibold text-foreground"
                 >
-                  <span>{c.icon}</span>
+                  <span style={{ color: getCategoryColor(c.name) }}>{getCategoryIcon(c.name)}</span>
                   <span className="flex-1 truncate">{t(c.name)}</span>
                   <span className="text-[10px] font-bold text-amber-500 uppercase">
                     {c.requires_admin ? t("Admin") : t("Warning")}
