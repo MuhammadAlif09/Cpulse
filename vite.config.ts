@@ -24,9 +24,22 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@tauri-apps/api/core': path.resolve(__dirname, './src/mocks/tauriCore.ts'),
+      '@tauri-apps/api/event': path.resolve(__dirname, './src/mocks/tauriEvent.ts'),
+      '@tauri-apps/api/app': path.resolve(__dirname, './src/mocks/tauriApp.ts'),
+      '@tauri-apps/plugin-autostart': path.resolve(__dirname, './src/mocks/tauriAutostart.ts'),
+      '@tauri-apps/plugin-updater': path.resolve(__dirname, './src/mocks/tauriUpdater.ts'),
+      '@tauri-apps/plugin-process': path.resolve(__dirname, './src/mocks/tauriProcess.ts'),
+      '@tauri-apps/plugin-store': path.resolve(__dirname, './src/mocks/tauriStore.ts'),
+      '@tauri-apps/plugin-shell': path.resolve(__dirname, './src/mocks/tauriShell.ts'),
+      '@tauri-apps/plugin-fs': path.resolve(__dirname, './src/mocks/tauriFs.ts'),
     },
   },
 

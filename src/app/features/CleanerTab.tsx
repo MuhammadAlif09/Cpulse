@@ -22,6 +22,10 @@ import {
   Gamepad2,
   Package,
   AppWindow,
+  ArrowUpDown,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
@@ -154,6 +158,34 @@ export function CleanerTab() {
   } = useCleanerStore();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc" | "default">("desc");
+
+  const toggleSortOrder = () => {
+    if (sortOrder === "desc") setSortOrder("asc");
+    else if (sortOrder === "asc") setSortOrder("default");
+    else setSortOrder("desc");
+  };
+
+  const selectSafeCategories = () => {
+    const newSelected: Record<string, boolean> = {};
+    junkCats.forEach((c) => {
+      newSelected[c.name] = !c.warning && !c.requires_admin;
+    });
+    setSelected(newSelected);
+  };
+
+  const sortedJunkCats = [...junkCats].sort((a, b) => {
+    if (sortOrder === "desc") return b.bytes - a.bytes;
+    if (sortOrder === "asc") return a.bytes - b.bytes;
+    return 0;
+  });
+
+  const selectedCount = junkCats.filter((c) => selected[c.name]).length;
+  const isAllActive = junkCats.length > 0 && junkCats.every((c) => selected[c.name]);
+  const isSafeOnlyActive =
+    junkCats.length > 0 &&
+    junkCats.every((c) => selected[c.name] === (!c.warning && !c.requires_admin));
+  const isNoneActive = junkCats.length > 0 && junkCats.every((c) => !selected[c.name]);
 
   const totalSelectedBytes = junkCats
     .filter((c) => selected[c.name])
@@ -227,7 +259,7 @@ export function CleanerTab() {
           borderColor: `color-mix(in srgb, ${P.teal} 20%, var(--border))`,
         }}
       >
-        <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Sparkles size={16} style={{ color: P.teal }} />
@@ -241,7 +273,7 @@ export function CleanerTab() {
               )}
             </p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex flex-wrap gap-2 flex-shrink-0">
             {!scanning && !done && !cleaned && (
               <button
                 onClick={startScan}
@@ -456,42 +488,114 @@ export function CleanerTab() {
 
           {/* Categories Grid */}
           <Card className="lg:col-span-2 flex flex-col p-0 overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border bg-card">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-border bg-card gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-foreground">
-                  {cleaned ? `✅ ${t("Cleaned Successfully!")}` : t("Found targets")}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {cleaned ? `✅ ${t("Cleaned Successfully!")}` : t("Found targets")}
+                  </h3>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border/50">
+                    {selectedCount} / {junkCats.length} {t("selected")}
+                  </span>
+                </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {t("Select specific areas you want to clean")}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Sort by Size toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
+                  onClick={toggleSortOrder}
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer select-none",
+                    sortOrder !== "default"
+                      ? "bg-teal-500/15 text-teal-600 border-teal-500/40 dark:text-teal-400 dark:bg-teal-500/20"
+                      : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                  title={t("Sort categories by total disk size")}
+                >
+                  {sortOrder === "desc" && <ArrowDownWideNarrow size={13} className="text-teal-500" />}
+                  {sortOrder === "asc" && <ArrowUpNarrowWide size={13} className="text-teal-500" />}
+                  {sortOrder === "default" && <ArrowUpDown size={13} />}
+                  <span>
+                    {sortOrder === "desc"
+                      ? t("Size: High → Low")
+                      : sortOrder === "asc"
+                      ? t("Size: Low → High")
+                      : t("Sort by Size")}
+                  </span>
+                </motion.button>
+
+                <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
+
+                {/* Granular multi-select controls */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={selectAllCategories}
-                  className="text-[11px] font-medium px-2.5 py-1.5 rounded border border-border text-foreground hover:bg-secondary transition"
+                  className={cn(
+                    "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer",
+                    isAllActive
+                      ? "bg-primary/10 text-primary border-primary/30 font-semibold"
+                      : "border-border text-foreground hover:bg-secondary"
+                  )}
                 >
                   {t("All")}
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
+                  onClick={selectSafeCategories}
+                  className={cn(
+                    "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer flex items-center gap-1",
+                    isSafeOnlyActive
+                      ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/40 dark:text-emerald-400 dark:bg-emerald-500/20 font-semibold"
+                      : "border-border text-foreground hover:bg-secondary"
+                  )}
+                  title={t("Select only safe items without warnings or admin requirements")}
+                >
+                  <ShieldCheck size={12} className={isSafeOnlyActive ? "text-emerald-500" : "text-emerald-500/80"} />
+                  {t("Safe Only")}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={deselectAllCategories}
-                  className="text-[11px] font-medium px-2.5 py-1.5 rounded border border-border text-foreground hover:bg-secondary transition"
+                  className={cn(
+                    "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer",
+                    isNoneActive
+                      ? "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400 font-semibold"
+                      : "border-border text-foreground hover:bg-secondary"
+                  )}
                 >
                   {t("None")}
-                </button>
+                </motion.button>
               </div>
             </div>
 
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto">
-              {junkCats.map((cat) => {
+              {sortedJunkCats.map((cat) => {
                 const maxBytes = Math.max(...junkCats.map((c) => c.bytes), 1);
                 const pct = (cat.bytes / maxBytes) * 100;
                 const isOn = selected[cat.name];
 
                 return (
-                  <div
+                  <motion.div
                     key={cat.name}
+                    whileTap={{
+                      scale: 0.97,
+                      boxShadow: "inset 0 2px 5px rgba(0, 0, 0, 0.2)",
+                    }}
+                    transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                     onClick={() => toggleSelectedCategory(cat.name)}
-                    className="p-3.5 rounded-xl border transition-all duration-200 cursor-pointer select-none group"
+                    className="p-3.5 rounded-xl border transition-colors duration-200 cursor-pointer select-none group"
                     style={{
                       background: isOn
                         ? `color-mix(in srgb, ${getCategoryColor(cat.name)} 8%, var(--card))`
@@ -579,13 +683,68 @@ export function CleanerTab() {
                         />
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
           </Card>
         </div>
       )}
+
+      {/* ── Global Bottom Progress Bar ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {(scanning || cleaning) && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="sticky bottom-4 z-30 mt-6"
+          >
+            <div className="bg-card/95 backdrop-blur-md border border-teal-500/30 p-4 rounded-2xl shadow-xl shadow-teal-500/10 space-y-2.5">
+              <div className="flex items-center justify-between gap-3 text-xs font-semibold">
+                <div className="flex items-center gap-2 min-w-0">
+                  {scanning ? (
+                    <RefreshCw size={16} className="animate-spin text-teal-500 flex-shrink-0" />
+                  ) : (
+                    <Trash2 size={16} className="animate-pulse text-emerald-500 flex-shrink-0" />
+                  )}
+                  <span className="truncate text-foreground font-medium">
+                    {scanning
+                      ? t("Scanning system for junk files...")
+                      : t("Cleaning selected junk categories...")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="font-bold text-sm text-teal-500 tracking-tight">
+                    {Math.round(progress)}%
+                  </span>
+                  {scanning && (
+                    <button
+                      onClick={cancelScan}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition cursor-pointer"
+                    >
+                      {t("Cancel")}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Track & Fill */}
+              <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden relative border border-border/40">
+                <motion.div
+                  className="h-full rounded-full transition-all duration-300 relative"
+                  style={{
+                    width: `${Math.max(progress, 2)}%`,
+                    background: `linear-gradient(90deg, ${P.teal}, #10b981)`,
+                    boxShadow: `0 0 12px ${P.teal}`,
+                  }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Dialog Modal ──────────────────────────────────────────────────────── */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

@@ -330,5 +330,21 @@
   "No search terms found": "No search terms found",
   "No saved networks": "No saved networks",
   "No tracking cookies found": "No tracking cookies found",
-  "No run command entries": "No run command entries"
+  "No run command entries": "No run command entries",
+  "Windows License & Product Key": "Windows License & Product Key",
+  "View and save your Windows Product Key for backup and system reinstallation.": "View and save your Windows Product Key for backup and system reinstallation.",
+  "Windows Product Key": "Windows Product Key",
+  "Retrieve Key": "Retrieve Key",
+  "Retrieving Key...": "Retrieving Key...",
+  "Copy Key": "Copy Key",
+  "Key Copied!": "Key Copied!",
+  "Save to File": "Save to File",
+  "Windows Edition": "Windows Edition",
+  "License Type": "License Type",
+  "Activation Status": "Activation Status",
+  "Active / Genuine": "Active / Genuine",
+  "Mask Key": "Mask Key",
+  "Reveal Key": "Reveal Key",
+  "Write down this 25-character product key or save it in a safe place. You will need it if you reinstall Windows or change computer hardware.": "Write down this 25-character product key or save it in a safe place. You will need it if you reinstall Windows or change computer hardware.",
+  "Preview Mode (Simulated Key)": "Preview Mode (Simulated Key)"
 }

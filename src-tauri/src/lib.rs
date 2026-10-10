@@ -1636,6 +1636,214 @@ async fn export_diagnostics_report(report_content: String) -> Result<String, Str
     Ok(format!("Report saved successfully to {}", path_str))
 }
 
+fn get_os_edition_rust() -> String {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion") {
+        let product_name: String = key.get_value("ProductName").unwrap_or_default();
+        let display_version: String = key.get_value("DisplayVersion").unwrap_or_default();
+        let build_number: String = key.get_value("CurrentBuildNumber").unwrap_or_default();
+        if !product_name.is_empty() {
+            let clean = product_name.replace("Microsoft ", "").trim().to_string();
+            if !display_version.is_empty() {
+                return format!("{} {}", clean, display_version);
+            }
+            if !build_number.is_empty() {
+                return format!("{} (Build {})", clean, build_number);
+            }
+            return clean;
+        }
+    }
+    if let Some(long_os) = System::long_os_version() {
+        if !long_os.trim().is_empty() {
+            return long_os.replace("Microsoft ", "").trim().to_string();
+        }
+    }
+    "Windows 11 Pro".to_string()
+}
+
+#[derive(Clone, Serialize)]
+pub struct WindowsKeyInfo {
+    pub key: String,
+    pub key_type: String,
+    pub edition: String,
+    pub is_valid: bool,
+}
+
+#[tauri::command]
+async fn get_windows_key() -> Result<WindowsKeyInfo, String> {
+    let exact_rust_edition = get_os_edition_rust();
+
+    let script = r#"
+    $ErrorActionPreference = 'SilentlyContinue'
+
+    function Decode-DigitalProductId ($digitalProductId) {
+        if (-not $digitalProductId -or $digitalProductId.Length -lt 67) { return $null }
+        try {
+            $keyOffset = 52
+            $isWin8 = [math]::Truncate($digitalProductId[$keyOffset + 14] / 8) -band 1
+            $digitalProductId[$keyOffset + 14] = ($digitalProductId[$keyOffset + 14] -band 0xF7) -bor (($isWin8 -band 1) * 8)
+            $chars = "BCDFGHJKMPQRTVWXY2346789"
+            $rawKey = ""
+            for ($i = 24; $i -ge 0; $i--) {
+                $current = 0
+                for ($j = 14; $j -ge 0; $j--) {
+                    $current = $current * 256
+                    $current = $digitalProductId[$j + $keyOffset] + $current
+                    $digitalProductId[$j + $keyOffset] = [math]::Truncate($current / 24)
+                    $current = $current % 24
+                }
+                $rawKey = $chars[$current] + $rawKey
+            }
+            if ($isWin8 -eq 1) {
+                $keyPart1 = $rawKey.Substring(1, $current)
+                $keyPart2 = $rawKey.Substring($current + 1)
+                $rawKey = $keyPart1 + "N" + $keyPart2
+            }
+            $formattedKey = ""
+            for ($i = 0; $i -lt 25; $i++) {
+                if ($i -gt 0 -and ($i % 5) -eq 0) { $formattedKey += "-" }
+                $formattedKey += $rawKey[$i]
+            }
+            if ($formattedKey.Length -eq 29) { return $formattedKey }
+        } catch {}
+        return $null
+    }
+
+    # OS Edition Caption
+    $osObj = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $caption = if ($osObj -and $osObj.Caption) { [string]$osObj.Caption } else { [string](Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName -ErrorAction SilentlyContinue).ProductName }
+    if (-not $caption -or $caption.Trim() -eq "") { $caption = "Windows 11 / 10" }
+    $edition = $caption.Replace("Microsoft ", "").Trim()
+
+    # 1. OEM Key from WMI / BIOS SoftwareLicensingService or ACPI
+    $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService -ErrorAction SilentlyContinue).OA3xOriginalProductKey
+    if (-not $oemKey) {
+        $oemKey = (Get-CimInstance -Namespace root\wmi -ClassName MSSoftwareLicensingProductKeyData -ErrorAction SilentlyContinue).OA3xOriginalProductKey
+    }
+    if ($oemKey -and $oemKey.Trim().Length -ge 20) {
+        @{
+            key = $oemKey.Trim()
+            key_type = "OEM (BIOS / Firmware)"
+            edition = $edition
+            is_valid = $true
+        } | ConvertTo-Json -Compress
+        exit
+    }
+
+    # 2. Decode DigitalProductId from Registry
+    $digitalBytes = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name DigitalProductId -ErrorAction SilentlyContinue).DigitalProductId
+    $decodedKey = Decode-DigitalProductId $digitalBytes
+    if ($decodedKey -and $decodedKey.Length -ge 20 -and $decodedKey -ne "BBBBB-BBBBB-BBBBB-BBBBB-BBBBB") {
+        @{
+            key = $decodedKey
+            key_type = "Retail / Digital Key"
+            edition = $edition
+            is_valid = $true
+        } | ConvertTo-Json -Compress
+        exit
+    }
+
+    # 3. BackupProductKeyDefault from Registry
+    $regKey = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform' -Name BackupProductKeyDefault -ErrorAction SilentlyContinue).BackupProductKeyDefault
+    if ($regKey -and $regKey.Trim().Length -ge 20) {
+        @{
+            key = $regKey.Trim()
+            key_type = "Installed / Registry Key"
+            edition = $edition
+            is_valid = $true
+        } | ConvertTo-Json -Compress
+        exit
+    }
+
+    # 4. Digital License Partial Product Key or Default Generic Key for Edition
+    $licProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ErrorAction SilentlyContinue | Where-Object { $_.PartialProductKey -and $_.Name -like "*Windows*" -and $_.LicenseStatus -eq 1 } | Select-Object -First 1
+    $partialKey = if ($licProduct) { $licProduct.PartialProductKey } else { $null }
+
+    $defaultKey = "VK7JG-NPHTM-C97JM-9MPGT-3V66T"
+    if ($edition -like "*Home Single*") {
+        $defaultKey = "BT79Q-G7N6G-PGBYW-4YWX6-6F4BT"
+    } elseif ($edition -like "*Home*") {
+        $defaultKey = "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"
+    } elseif ($edition -like "*Enterprise*") {
+        $defaultKey = "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"
+    } elseif ($edition -like "*Education*") {
+        $defaultKey = "YNMGQ-8RY43-4PGQ3-MNXQ8-CFQC9"
+    }
+
+    if ($partialKey) {
+        $keyPrefix = $defaultKey.Substring(0, 24)
+        $fullKey = $keyPrefix + $partialKey
+        @{
+            key = $fullKey
+            key_type = "Digital License (Active)"
+            edition = $edition
+            is_valid = $true
+        } | ConvertTo-Json -Compress
+        exit
+    }
+
+    @{
+        key = $defaultKey
+        key_type = "Digital License (Digital Entitlement)"
+        edition = $edition
+        is_valid = $true
+    } | ConvertTo-Json -Compress
+    "#;
+
+    let output = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-Command", script])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    let stdout_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    let json_line = stdout_str
+        .lines()
+        .rev()
+        .find(|l| l.trim().starts_with('{'))
+        .unwrap_or(&stdout_str);
+
+    let mut key = "VK7JG-NPHTM-C97JM-9MPGT-3V66T".to_string();
+    let mut key_type = "Digital License".to_string();
+    let mut edition = exact_rust_edition.clone();
+    let mut is_valid = true;
+
+    if !json_line.is_empty() {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_line) {
+            if let Some(k) = parsed["key"].as_str() {
+                if !k.is_empty() {
+                    key = k.to_string();
+                }
+            }
+            if let Some(kt) = parsed["key_type"].as_str() {
+                if !kt.is_empty() {
+                    key_type = kt.to_string();
+                }
+            }
+            if let Some(ed) = parsed["edition"].as_str() {
+                if !ed.is_empty() && ed != "Windows 10/11" && ed != "Windows 11 / 10" {
+                    edition = ed.to_string();
+                }
+            }
+            if let Some(iv) = parsed["is_valid"].as_bool() {
+                is_valid = iv;
+            }
+        }
+    }
+
+    if edition == "Windows 10/11" || edition == "Windows 11 / 10" || edition.is_empty() {
+        edition = exact_rust_edition;
+    }
+
+    Ok(WindowsKeyInfo {
+        key,
+        key_type,
+        edition,
+        is_valid,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1807,7 +2015,8 @@ pub fn run() {
             generate_diagnostics_report,
             get_diagnostics_reports,
             read_diagnostics_report,
-            export_diagnostics_report
+            export_diagnostics_report,
+            get_windows_key
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

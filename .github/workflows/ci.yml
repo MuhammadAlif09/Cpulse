@@ -22,6 +22,9 @@ on:
       - '.gitignore'
       - 'LICENSE'
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -35,7 +38,7 @@ jobs:
       - name: install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 10
 
       - name: setup node
         uses: actions/setup-node@v4

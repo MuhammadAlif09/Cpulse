@@ -240,7 +240,7 @@ export function DiagnosticsTab() {
   return (
     <div className="space-y-4">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-1">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="animate-pulse" size={20} style={{ color: P.teal }} />
@@ -425,7 +425,7 @@ export function DiagnosticsTab() {
           </div>
 
           {metrics && metrics.cpu_cores.length > 0 ? (
-            <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
               {metrics.cpu_cores.map((usage: number, idx: number) => {
                 const val = Math.round(usage);
                 const color = val > 80 ? P.rose : val > 50 ? P.amber : P.sky;

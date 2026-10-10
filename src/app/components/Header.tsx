@@ -1,5 +1,6 @@
 import React from "react";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, Menu, X } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 // @ts-ignore
 import AppLogo from "../../assets/app-icon.png";
 
@@ -29,6 +30,8 @@ interface HeaderProps {
   setShowNotif: (v: boolean) => void;
   notifications: Notification[];
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
+  mobileMenuOpen?: boolean;
+  onToggleMobileMenu?: () => void;
 }
 
 export function Header({
@@ -45,58 +48,78 @@ export function Header({
   setShowNotif,
   notifications,
   setNotifications,
+  mobileMenuOpen,
+  onToggleMobileMenu,
 }: HeaderProps) {
   return (
-    <div className="relative z-50 flex items-center justify-between px-6 py-3 border-b bg-card/70 backdrop-blur-xl flex-shrink-0 border-border">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-800">
-          <img src={AppLogo} alt="Logo" className="w-8 h-8 object-contain" />
+    <div className="relative z-50 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 border-b bg-card/70 backdrop-blur-xl flex-shrink-0 border-border">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile menu toggle button */}
+        <button
+          onClick={onToggleMobileMenu}
+          className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex-shrink-0"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-800 flex-shrink-0">
+          <img src={AppLogo} alt="Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain" />
         </div>
-        <div>
-          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{appName}</span>
-          <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300">
+        <div className="min-w-0 truncate">
+          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{appName}</span>
+          <span className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs px-1.5 py-0.5 rounded font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 inline-block">
             v{appVersion}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         {isAdmin ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-amber-700 dark:text-amber-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            {t(lang, "Administrator Mode")}
+            <span className="hidden sm:inline">{t(lang, "Administrator Mode")}</span>
+            <span className="sm:hidden">Admin</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-950/40">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-emerald-600 dark:text-emerald-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-950/40">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {t(lang, "Standard Mode")}
+            <span className="hidden sm:inline">{t(lang, "Standard Mode")}</span>
+            <span className="sm:hidden">Standard</span>
           </div>
         )}
-        <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+        <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500 font-mono">
           {time.toLocaleTimeString()}
         </span>
 
         <div className="relative" onClick={(e) => e.stopPropagation()}>
-          <button
-            className={cn(
-              "relative w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
-              showNotif
-                ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-            onClick={() => setShowNotif(!showNotif)}
-            aria-label={showNotif ? t(lang, "Close notifications") : t(lang, "Open notifications")}
-            aria-expanded={showNotif}
-            aria-controls="notification-panel"
-          >
-            <Bell size={16} />
-            {unreadCount > 0 && (
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900"
-                aria-label={`${unreadCount} unread notifications`}
-              />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className={cn(
+                  "relative w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
+                  showNotif
+                    ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                onClick={() => setShowNotif(!showNotif)}
+                aria-label={showNotif ? t(lang, "Close notifications") : t(lang, "Open notifications")}
+                aria-expanded={showNotif}
+                aria-controls="notification-panel"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900"
+                    aria-label={`${unreadCount} unread notifications`}
+                  />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {t(lang, "Notifications")}
+            </TooltipContent>
+          </Tooltip>
 
           {showNotif && (
             <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-popover/95 backdrop-blur-xl shadow-xl border border-border overflow-hidden z-50">
@@ -169,18 +192,25 @@ export function Header({
           )}
         </div>
 
-        <button
-          className={cn(
-            "w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
-            tab === "settings"
-              ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-              : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-          )}
-          onClick={() => setTab("settings")}
-          aria-label={t(lang, "Open settings")}
-        >
-          <Settings size={16} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center transition cursor-pointer",
+                tab === "settings"
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+              onClick={() => setTab("settings")}
+              aria-label={t(lang, "Open settings")}
+            >
+              <Settings size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {t(lang, "Settings")}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

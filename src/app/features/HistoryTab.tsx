@@ -309,7 +309,7 @@ export function HistoryTab() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               icon={<HardDrive size={15} />}
               label={t("Total Freed")}

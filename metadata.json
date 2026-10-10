@@ -1,0 +1,6 @@
+{
+  "name": "Cpulse",
+  "description": "System cleaner, optimizer, and real-time performance monitoring dashboard",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

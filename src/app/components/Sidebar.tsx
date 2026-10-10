@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles, X } from "lucide-react";
 
 interface SidebarProps {
   nav: { id: string; label: string; icon: React.ReactNode; badge?: number }[];
@@ -14,6 +14,8 @@ interface SidebarProps {
   issues: string[];
   lang: string;
   t: (lang: string, text: string) => string;
+  mobileMenuOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 const P = {
@@ -42,11 +44,27 @@ export function Sidebar({
   issues,
   lang,
   t,
+  mobileMenuOpen,
+  onCloseMobile,
 }: SidebarProps) {
   const sc = scoreColor(score);
 
   return (
-    <aside className="w-56 flex-shrink-0 border-r bg-card/80 backdrop-blur-xl flex flex-col py-5 px-3 gap-1 border-border">
+    <aside className="w-full h-full flex-shrink-0 bg-card/90 backdrop-blur-xl flex flex-col py-4 px-3 gap-1 overflow-y-auto">
+      {/* Mobile Drawer Top Header */}
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-border md:hidden">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-2">
+          {t(lang, "Navigation")}
+        </span>
+        <button
+          onClick={onCloseMobile}
+          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+          aria-label="Close navigation menu"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
       <div className="flex-1 space-y-0.5">
         {nav.map((n) => {
           const active = tab === n.id;
@@ -65,7 +83,10 @@ export function Sidebar({
           return (
             <button
               key={n.id}
-              onClick={() => setTab(n.id)}
+              onClick={() => {
+                setTab(n.id);
+                if (onCloseMobile) onCloseMobile();
+              }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 cursor-pointer group"
               style={{
                 background: active
@@ -177,3 +198,4 @@ export function Sidebar({
     </aside>
   );
 }
+

@@ -299,7 +299,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
           <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.14] - 2026-08-04
+
+### Added
+- **Windows License & Product Key Detection Engine**: Implemented `get_windows_key` native Tauri Rust command querying OEM product keys from BIOS/firmware (`OA3xOriginalProductKey`), registry `DigitalProductId` binary decoding, `SoftwareProtectionPlatform`, and Digital Entitlement fallbacks.
+- **System OS Edition Resolution**: Integrated automatic OS edition retrieval from registry (`ProductName`, `DisplayVersion`, `CurrentBuildNumber`) and system telemetry (`Windows 11 Pro 23H2`, etc.), resolving generic "Windows 10/11" placeholders.
+- **Interactive License & Key Card in Settings**: Added a modern card in Settings with mask/reveal toggle, one-click clipboard copy, text file export (`.txt`), license type badge, active status indicator, and manual refresh button.
+- **Bilingual i18n Localization**: Added complete English and Indonesian (`en` / `id`) translations for all key viewer components and notifications.
+
 ## [0.16.13] - 2026-07-02
 
 ### Added

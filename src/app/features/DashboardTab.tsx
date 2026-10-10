@@ -467,7 +467,7 @@ export function DashboardTab({
           }}
         />
 
-        <div className="relative flex items-center justify-between gap-6 flex-wrap">
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           {/* left: score */}
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -479,9 +479,8 @@ export function DashboardTab({
 
             <div className="flex items-end gap-2 leading-none">
               <span
-                className="font-bold"
+                className="font-bold text-5xl sm:text-6xl"
                 style={{
-                  fontSize: "4rem",
                   lineHeight: 1,
                   fontFamily: "'Satoshi', sans-serif",
                   fontVariantNumeric: "tabular-nums",
@@ -492,7 +491,7 @@ export function DashboardTab({
                 {score}
               </span>
               <span
-                className="text-xl mb-1.5 font-medium"
+                className="text-lg sm:text-xl mb-1.5 font-medium"
                 style={{ color: "var(--muted-foreground)" }}
               >
                 /100
@@ -536,34 +535,34 @@ export function DashboardTab({
           </div>
 
           {/* right: gauges */}
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-4 items-center justify-center sm:justify-end w-full sm:w-auto">
             <RadialGauge
               value={metrics ? Math.round(metrics.cpu_usage) : 0}
               label="CPU"
               color={P.teal}
               trackColor="var(--border)"
-              size={80}
+              size={76}
             />
             <RadialGauge
               value={metrics ? Math.round(metrics.ram_usage) : 0}
               label="RAM"
               color={P.violet}
               trackColor="var(--border)"
-              size={80}
+              size={76}
             />
             <RadialGauge
               value={diskPct}
               label="Disk"
               color={P.amber}
               trackColor="var(--border)"
-              size={80}
+              size={76}
             />
           </div>
         </div>
       </Card>
 
       {/* ── Stat cards ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<Cpu size={15} />}
           label={t("CPU")}
@@ -647,7 +646,7 @@ export function DashboardTab({
           <TrendingUp size={14} className="text-muted-foreground" />
           <h3 className="text-sm font-semibold text-foreground">{t("Quick Actions")}</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <ActionBtn
             icon={<Trash2 size={18} />}
             label={

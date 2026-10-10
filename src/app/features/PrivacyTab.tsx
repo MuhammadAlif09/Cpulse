@@ -217,7 +217,7 @@ export function PrivacyTab({
           borderColor: `color-mix(in srgb, ${P.teal} 15%, var(--border))`,
         }}
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="flex items-start gap-3">
             {/* Animated fingerprint privacy icon */}
             <div

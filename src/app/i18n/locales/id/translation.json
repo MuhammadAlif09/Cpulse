@@ -346,5 +346,21 @@
   "DirectX graphics compilation pipeline cache": "Cache alur kompilasi grafis DirectX",
   "System crash reporting data sent to MS": "Data pelaporan kegagalan sistem yang dikirim ke MS",
   "Shared update files previously downloaded": "Berkas pembaruan bersama yang diunduh sebelumnya",
-  "Third-party application local cached data": "Data cache lokal aplikasi pihak ketiga"
+  "Third-party application local cached data": "Data cache lokal aplikasi pihak ketiga",
+  "Windows License & Product Key": "Lisensi & Kunci Produk Windows",
+  "View and save your Windows Product Key for backup and system reinstallation.": "Lihat dan catat Kunci Produk Windows Anda untuk cadangan dan re-instalasi sistem.",
+  "Windows Product Key": "Kunci Produk Windows",
+  "Retrieve Key": "Tampilkan Key",
+  "Retrieving Key...": "Mengambil Key...",
+  "Copy Key": "Salin Key",
+  "Key Copied!": "Key Disalin!",
+  "Save to File": "Simpan ke File",
+  "Windows Edition": "Edisi Windows",
+  "License Type": "Tipe Lisensi",
+  "Activation Status": "Status Aktivasi",
+  "Active / Genuine": "Aktif / Asli",
+  "Mask Key": "Sembunyikan Key",
+  "Reveal Key": "Tampilkan Key",
+  "Write down this 25-character product key or save it in a safe place. You will need it if you reinstall Windows or change computer hardware.": "Catat 25 karakter kunci produk ini atau simpan di tempat yang aman. Anda membutuhkannya jika melakukan instalasi ulang Windows atau mengganti perangkat keras.",
+  "Preview Mode (Simulated Key)": "Mode Pratinjau (Key Simulasi)"
 }
