@@ -238,6 +238,141 @@ pub const EXTRACTION_SHOW_FILES_VALUE_NAME: &str = "ShowFiles";
 
 pub const SHOW_SYNC_PROVIDER_NOTIFICATIONS_VALUE_NAME: &str = "ShowSyncProviderNotifications";
 
+// --- Batch 6 (System & Superuser) Constants ---
+pub const SHOW_SECONDS_IN_SYSTEM_CLOCK_VALUE_NAME: &str = "ShowSecondsInSystemClock";
+
+pub const CLIPBOARD_PATH: &str = r"SOFTWARE\Microsoft\Clipboard";
+pub const ENABLE_CLIPBOARD_HISTORY_VALUE_NAME: &str = "EnableClipboardHistory";
+
+pub const CONTROL_PANEL_KEYBOARD_PATH: &str = r"Control Panel\Keyboard";
+pub const PRINT_SCREEN_SNIPPING_VALUE_NAME: &str = "PrintScreenKeyForSnippingEnabled";
+
+pub const CONTROL_PANEL_MOUSE_PATH: &str = r"Control Panel\Mouse";
+pub const MOUSE_SPEED_VALUE_NAME: &str = "MouseSpeed";
+pub const MOUSE_THRESHOLD1_VALUE_NAME: &str = "MouseThreshold1";
+pub const MOUSE_THRESHOLD2_VALUE_NAME: &str = "MouseThreshold2";
+
+pub const DEFAULT_USER_KEYBOARD_PATH: &str = r".DEFAULT\Control Panel\Keyboard";
+pub const INITIAL_KEYBOARD_INDICATORS_VALUE_NAME: &str = "InitialKeyboardIndicators";
+
+pub const DO_NOT_SHOW_FEEDBACK_NOTIFICATIONS_VALUE_NAME: &str = "DoNotShowFeedbackNotifications";
+
+pub const MULTITASKING_ALT_TAB_FILTER_VALUE_NAME: &str = "MultiTaskingAltTabFilter";
+
+pub const DMA_JSON_PATH: &str = r"C:\Windows\System32\IntegratedServicesRegionPolicySet.json";
+pub const INTERNATIONAL_GEO_PATH: &str = r"Control Panel\International\Geo";
+pub const INTERNATIONAL_GEO_NAME_VALUE_NAME: &str = "Name";
+pub const EDGE_UNINSTALL_WOW6432_PATH: &str =
+    r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge";
+pub const EDGE_NO_REMOVE_VALUE_NAME: &str = "NoRemove";
+pub const EEA_REGION_CODES: [&str; 36] = [
+    "AT", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GF", "GP", "GR", "HR",
+    "HU", "IE", "IS", "IT", "LI", "LT", "LU", "LV", "MT", "MQ", "NL", "NO", "PL", "PT", "RE", "RO",
+    "SE", "SI", "SK", "YT",
+];
+
+pub const USER_SHELL_FOLDERS_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders";
+pub const SHELL_FOLDERS_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders";
+pub const DESKTOP_FOLDER_VALUE_NAME: &str = "Desktop";
+pub const GOD_MODE_FOLDER_NAME: &str = "GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}";
+
+pub const APP_MODEL_UNLOCK_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock";
+pub const ALLOW_DEV_WITHOUT_LICENSE_VALUE_NAME: &str = "AllowDevelopmentWithoutDevLicense";
+
+pub const SYSTEM_POLICIES_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+pub const PROMPT_ON_SECURE_DESKTOP_VALUE_NAME: &str = "PromptOnSecureDesktop";
+pub const ENABLE_LUA_VALUE_NAME: &str = "EnableLUA";
+pub const CONSENT_PROMPT_BEHAVIOR_ADMIN_VALUE_NAME: &str = "ConsentPromptBehaviorAdmin";
+
+pub const UCPD_SERVICE_REG_PATH: &str = r"SYSTEM\CurrentControlSet\Services\UCPD";
+pub const UCPD_START_VALUE_NAME: &str = "Start";
+pub const UCPD_SERVICE_NAME: &str = "ucpd";
+pub const UCPD_VELOCITY_TASK_PATH: &str = r"\Microsoft\Windows\AppxDeploymentClient\UCPD velocity";
+
+// --- Batch 7 (Optimizations / Boost & Gaming) Constants ---
+pub const UBR_VALUE_NAME: &str = "UBR";
+
+pub const ULTIMATE_PERFORMANCE_GUID: &str = "e9a42b02-d5df-448d-aa00-03f14749eb61";
+pub const BALANCED_POWER_PLAN_GUID: &str = "381b4222-f694-41f0-9685-ff5bb260df2e";
+
+pub const GRAPHICS_DRIVERS_PATH: &str = r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers";
+pub const HW_SCH_MODE_VALUE_NAME: &str = "HwSchMode";
+
+pub const HVCI_SCENARIO_PATH: &str =
+    r"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity";
+pub const HVCI_ENABLED_VALUE_NAME: &str = "Enabled";
+pub const DEVICE_GUARD_PATH: &str = r"SYSTEM\CurrentControlSet\Control\DeviceGuard";
+pub const ENABLE_VBS_VALUE_NAME: &str = "EnableVirtualizationBasedSecurity";
+
+pub const EXPLORER_SERIALIZE_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize";
+pub const STARTUP_DELAY_IN_MSEC_VALUE_NAME: &str = "StartupDelayInMSec";
+pub const WAIT_FOR_IDLE_STATE_VALUE_NAME: &str = "WaitforIdleState";
+
+pub const NOTIFY_STARTUP_APP_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.StartupApp";
+pub const NOTIFY_STARTUP_APP_ENABLED_VALUE_NAME: &str = "Enabled";
+
+pub const WINLOGON_PATH: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
+pub const RESTART_APPS_VALUE_NAME: &str = "RestartApps";
+
+pub const BACKGROUND_ACCESS_APPS_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications";
+pub const GLOBAL_USER_DISABLED_VALUE_NAME: &str = "GlobalUserDisabled";
+pub const BACKGROUND_APP_GLOBAL_TOGGLE_VALUE_NAME: &str = "BackgroundAppGlobalToggle";
+
+pub const SYSTEM_POLICY_PATH: &str = r"SOFTWARE\Policies\Microsoft\Windows\System";
+pub const ENABLE_ACTIVITY_FEED_VALUE_NAME: &str = "EnableActivityFeed";
+pub const PUBLISH_USER_ACTIVITIES_VALUE_NAME: &str = "PublishUserActivities";
+pub const UPLOAD_USER_ACTIVITIES_VALUE_NAME: &str = "UploadUserActivities";
+
+pub const VISUAL_EFFECTS_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects";
+pub const VISUAL_FX_SETTING_VALUE_NAME: &str = "VisualFXSetting";
+pub const USER_PREFERENCES_MASK_VALUE_NAME: &str = "UserPreferencesMask";
+pub const DRAG_FULL_WINDOWS_VALUE_NAME: &str = "DragFullWindows";
+pub const FONT_SMOOTHING_VALUE_NAME: &str = "FontSmoothing";
+pub const WINDOW_METRICS_PATH: &str = r"Control Panel\Desktop\WindowMetrics";
+pub const MIN_ANIMATE_VALUE_NAME: &str = "MinAnimate";
+pub const LISTVIEW_ALPHA_SELECT_VALUE_NAME: &str = "ListviewAlphaSelect";
+pub const ICONS_ONLY_VALUE_NAME: &str = "IconsOnly";
+pub const DWM_PATH: &str = r"SOFTWARE\Microsoft\Windows\DWM";
+pub const ALWAYS_HIBERNATE_THUMBNAILS_VALUE_NAME: &str = "AlwaysHibernateThumbnails";
+pub const ENABLE_AERO_PEEK_VALUE_NAME: &str = "EnableAeroPeek";
+
+pub const THEMES_PERSONALIZE_PATH: &str =
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+pub const ENABLE_TRANSPARENCY_VALUE_NAME: &str = "EnableTransparency";
+
+pub const GAME_BAR_PATH: &str = r"SOFTWARE\Microsoft\GameBar";
+pub const AUTO_GAME_MODE_ENABLED_VALUE_NAME: &str = "AutoGameModeEnabled";
+
+pub const DIRECTX_USER_GPU_PREFERENCES_PATH: &str =
+    r"SOFTWARE\Microsoft\DirectX\UserGpuPreferences";
+pub const DIRECTX_USER_GLOBAL_SETTINGS_VALUE_NAME: &str = "DirectXUserGlobalSettings";
+pub const SWAP_EFFECT_UPGRADE_KEY: &str = "SwapEffectUpgradeEnable";
+
+pub const GAME_DVR_PATH: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR";
+pub const HISTORICAL_CAPTURE_ENABLED_VALUE_NAME: &str = "HistoricalCaptureEnabled";
+
+pub const SYSMAIN_SERVICE_NAME: &str = "sysmain";
+
+pub const WINDOWS_SEARCH_POLICY_PATH: &str =
+    r"SOFTWARE\Policies\Microsoft\Windows\Windows Search";
+pub const PREVENT_ADVANCED_INDEXING_VALUE_NAME: &str = "PreventUsingAdvancedIndexingOptions";
+pub const WSEARCH_SERVICE_NAME: &str = "wsearch";
+
+pub const DELIVERY_OPTIMIZATION_SETTINGS_PATH: &str =
+    r"S-1-5-20\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings";
+pub const DOWNLOAD_MODE_VALUE_NAME: &str = "DownloadMode";
+
+pub const TCPIP_PARAMETERS_PATH: &str = r"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters";
+pub const DISABLE_TASK_OFFLOAD_VALUE_NAME: &str = "DisableTaskOffload";
+
 // =============================================================================
 // RestartHint & Trait Kontrak Tweak
 // =============================================================================
@@ -250,6 +385,7 @@ pub enum RestartHint {
     ReopenExplorerWindows,
     RestartExplorer,
     SignOut,
+    Reboot,
 }
 
 /// Kontrak seragam untuk setiap controller Tweak Wintoys.
@@ -299,6 +435,17 @@ pub fn windows_build_number() -> Option<u32> {
 /// Mengembalikan `true` bila sistem operasi adalah Windows 11 (`CurrentBuildNumber >= 22000`).
 pub fn is_windows_11() -> bool {
     windows_build_number().map_or(false, |b| b >= 22000)
+}
+
+/// Membaca Update Build Revision (`UBR`, `REG_DWORD`) dari `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion`.
+pub fn windows_ubr() -> Option<u32> {
+    get_dword_opt(
+        HKEY_LOCAL_MACHINE,
+        WINDOWS_NT_CURRENT_VERSION_PATH,
+        UBR_VALUE_NAME,
+    )
+    .ok()
+    .flatten()
 }
 
 /// Menulis nilai `REG_DWORD` (`u32`) pada hive dan subkey tertentu (membuat subkey bila belum ada).
@@ -482,8 +629,11 @@ pub fn generate_blank_32x32_ico() -> Vec<u8> {
     ico.extend_from_slice(&0u32.to_le_bytes()); // biClrUsed = 0
     ico.extend_from_slice(&0u32.to_le_bytes()); // biClrImportant = 0
 
-    // 4. Piksel BGRA nol (4096 bytes) + 5. AND mask (128 bytes)
-    ico.resize((IMAGE_OFFSET + IMAGE_RES_BYTES) as usize, 0u8);
+    // 4. Piksel BGRA nol (4096 bytes = 0x00)
+    ico.resize((IMAGE_OFFSET + BMP_HEADER_BYTES + XOR_MASK_BYTES) as usize, 0x00);
+
+    // 5. AND mask transparansi (128 bytes = 0xFF agar mask transparansi valid di semua versi Windows shell)
+    ico.resize((IMAGE_OFFSET + IMAGE_RES_BYTES) as usize, 0xFF);
 
     ico
 }
@@ -643,7 +793,7 @@ pub struct EndTask;
 
 impl EndTask {
     pub fn is_available() -> bool {
-        <Self as TweakController>::is_available()
+        windows_build_number().map_or(false, |b| b >= 22621)
     }
 
     pub fn enable() -> TweakResult {
@@ -664,6 +814,10 @@ impl EndTask {
 impl TweakController for EndTask {
     const KEY: &'static str = "EndTask";
     const REQUIRES_ADMIN: bool = false;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
 
     fn enable() -> TweakResult { Self::enable() }
     fn disable() -> TweakResult { Self::disable() }
@@ -3967,5 +4121,2592 @@ pub mod sync_provider_notifications {
     pub fn disable() -> TweakResult { SyncProviderNotifications::disable() }
     pub fn is_enabled() -> TweakResult { SyncProviderNotifications::is_enabled() }
 }
+
+// =============================================================================
+// BATCH 6: System & Superuser (12 Item: 10 TweakController + 2 API Enum)
+// =============================================================================
+
+// --- KATEGORI SYSTEM ---
+
+// -----------------------------------------------------------------------------
+// 50. ClockWithSeconds (Tampilkan detik pada jam taskbar)
+// -----------------------------------------------------------------------------
+
+/// **ClockWithSeconds** (`Tweaks.System`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced` -> `ShowSecondsInSystemClock`
+/// - **enable**: `1`, **disable**: `0`, **is_enabled**: `val == Some(1)`
+/// - **is_available**: `build < 22000 || build >= 22621` (Win 10 atau Win 11 22H2+)
+/// - **RESTART_HINT**: `RestartExplorer` (pada Win 10 butuh restart Explorer, pada Win 11 langsung berlaku)
+pub struct ClockWithSeconds;
+
+impl ClockWithSeconds {
+    pub fn is_available() -> bool {
+        windows_build_number().map_or(false, |b| b < 22000 || b >= 22621)
+    }
+
+    /// Mengembalikan `RestartHint` dinamis berdasarkan versi Windows (`RestartExplorer` di Win 10, `None` di Win 11).
+    pub fn restart_hint() -> RestartHint {
+        if is_windows_11() {
+            RestartHint::None
+        } else {
+            RestartHint::RestartExplorer
+        }
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            SHOW_SECONDS_IN_SYSTEM_CLOCK_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            SHOW_SECONDS_IN_SYSTEM_CLOCK_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            SHOW_SECONDS_IN_SYSTEM_CLOCK_VALUE_NAME,
+        )? == Some(1))
+    }
+}
+
+impl TweakController for ClockWithSeconds {
+    const KEY: &'static str = "ClockWithSeconds";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::RestartExplorer;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod clock_with_seconds {
+    use super::{ClockWithSeconds, TweakResult};
+    pub fn is_available() -> bool { ClockWithSeconds::is_available() }
+    pub fn enable() -> TweakResult { ClockWithSeconds::enable() }
+    pub fn disable() -> TweakResult { ClockWithSeconds::disable() }
+    pub fn is_enabled() -> TweakResult { ClockWithSeconds::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 51. Clipboard (Aktifkan Clipboard History Win+V)
+// -----------------------------------------------------------------------------
+
+/// **Clipboard** (`Tweaks.System`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Clipboard` -> `EnableClipboardHistory` (`REG_DWORD`)
+/// - **enable**: `1`, **disable**: `0`, **is_enabled**: `val == Some(1)`
+pub struct Clipboard;
+
+impl Clipboard {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            CLIPBOARD_PATH,
+            ENABLE_CLIPBOARD_HISTORY_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            CLIPBOARD_PATH,
+            ENABLE_CLIPBOARD_HISTORY_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_CURRENT_USER,
+            CLIPBOARD_PATH,
+            ENABLE_CLIPBOARD_HISTORY_VALUE_NAME,
+        )? == Some(1))
+    }
+}
+
+impl TweakController for Clipboard {
+    const KEY: &'static str = "Clipboard";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod clipboard {
+    use super::{Clipboard, TweakResult};
+    pub fn is_available() -> bool { Clipboard::is_available() }
+    pub fn enable() -> TweakResult { Clipboard::enable() }
+    pub fn disable() -> TweakResult { Clipboard::disable() }
+    pub fn is_enabled() -> TweakResult { Clipboard::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 52. SnippingKey (Gunakan tombol Print Screen untuk membuka Snipping Tool)
+// -----------------------------------------------------------------------------
+
+/// **SnippingKey** (`Tweaks.System`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\Control Panel\Keyboard` -> `PrintScreenKeyForSnippingEnabled` (`REG_DWORD`)
+/// - **enable**: `1`, **disable**: `0`
+/// - **is_enabled**:
+///   * Windows 10 (`build < 22000`): `val == Some(1)`
+///   * Windows 11 (`build >= 22000`): `val != Some(0)` (default aktif di Win 11 saat value belum ada)
+/// - **RESTART_HINT**: `Reboot`
+pub struct SnippingKey;
+
+impl SnippingKey {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_KEYBOARD_PATH,
+            PRINT_SCREEN_SNIPPING_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_KEYBOARD_PATH,
+            PRINT_SCREEN_SNIPPING_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let val = get_dword_opt(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_KEYBOARD_PATH,
+            PRINT_SCREEN_SNIPPING_VALUE_NAME,
+        )?;
+        if is_windows_11() {
+            Ok(val != Some(0))
+        } else {
+            Ok(val == Some(1))
+        }
+    }
+}
+
+impl TweakController for SnippingKey {
+    const KEY: &'static str = "SnippingKey";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod snipping_key {
+    use super::{SnippingKey, TweakResult};
+    pub fn is_available() -> bool { SnippingKey::is_available() }
+    pub fn enable() -> TweakResult { SnippingKey::enable() }
+    pub fn disable() -> TweakResult { SnippingKey::disable() }
+    pub fn is_enabled() -> TweakResult { SnippingKey::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 53. MouseAcceleration (Matikan Mouse Acceleration / Enhance Pointer Precision)
+// -----------------------------------------------------------------------------
+
+/// **MouseAcceleration** (`Tweaks.System`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\Control Panel\Mouse` -> `"MouseSpeed"`, `"MouseThreshold1"`, `"MouseThreshold2"` (`REG_SZ`)
+/// - **enable** (tweak aktif = akselerasi MATI): `("0", "0", "0")`
+/// - **disable** (akselerasi NYALA / default Windows): `("1", "6", "10")`
+/// - **is_enabled**: ketiganya `== "0"` (bukan `("1", "6", "10")`)
+/// - **RESTART_HINT**: `Reboot`
+pub struct MouseAcceleration;
+
+impl MouseAcceleration {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_SPEED_VALUE_NAME, "0")?;
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD1_VALUE_NAME, "0")?;
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD2_VALUE_NAME, "0")?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_SPEED_VALUE_NAME, "1")?;
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD1_VALUE_NAME, "6")?;
+        set_string(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD2_VALUE_NAME, "10")?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let speed = get_string_opt(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_SPEED_VALUE_NAME)?;
+        let t1 = get_string_opt(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD1_VALUE_NAME)?;
+        let t2 = get_string_opt(HKEY_CURRENT_USER, CONTROL_PANEL_MOUSE_PATH, MOUSE_THRESHOLD2_VALUE_NAME)?;
+
+        Ok(speed.as_deref() == Some("0")
+            && t1.as_deref() == Some("0")
+            && t2.as_deref() == Some("0"))
+    }
+}
+
+impl TweakController for MouseAcceleration {
+    const KEY: &'static str = "MouseAcceleration";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod mouse_acceleration {
+    use super::{MouseAcceleration, TweakResult};
+    pub fn is_available() -> bool { MouseAcceleration::is_available() }
+    pub fn enable() -> TweakResult { MouseAcceleration::enable() }
+    pub fn disable() -> TweakResult { MouseAcceleration::disable() }
+    pub fn is_enabled() -> TweakResult { MouseAcceleration::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 54. Numlock (Aktifkan NumLock otomatis saat layar login/startup) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **Numlock** (`Tweaks.System`) — **MEMBUTUHKAN ADMINISTRATOR (HKEY_USERS\.DEFAULT / UAC)**
+/// - **Path**: `HKEY_USERS\.DEFAULT\Control Panel\Keyboard` -> `InitialKeyboardIndicators` (`REG_SZ`)
+/// - **enable**: `"2147483650"`, **disable**: `"2147483648"`
+/// - **is_enabled**: `matches!(val.as_deref(), Some("2147483650" | "2147483654" | "2147483655"))`
+pub struct Numlock;
+
+impl Numlock {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_string(
+            HKEY_USERS,
+            DEFAULT_USER_KEYBOARD_PATH,
+            INITIAL_KEYBOARD_INDICATORS_VALUE_NAME,
+            "2147483650",
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_string(
+            HKEY_USERS,
+            DEFAULT_USER_KEYBOARD_PATH,
+            INITIAL_KEYBOARD_INDICATORS_VALUE_NAME,
+            "2147483648",
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let val = get_string_opt(
+            HKEY_USERS,
+            DEFAULT_USER_KEYBOARD_PATH,
+            INITIAL_KEYBOARD_INDICATORS_VALUE_NAME,
+        )?;
+        Ok(matches!(
+            val.as_deref(),
+            Some("2147483650" | "2147483654" | "2147483655")
+        ))
+    }
+}
+
+impl TweakController for Numlock {
+    const KEY: &'static str = "Numlock";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod numlock {
+    use super::{Numlock, TweakResult};
+    pub fn is_available() -> bool { Numlock::is_available() }
+    pub fn enable() -> TweakResult { Numlock::enable() }
+    pub fn disable() -> TweakResult { Numlock::disable() }
+    pub fn is_enabled() -> TweakResult { Numlock::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 55. FeedbackNotify (Matikan pop-up permintaan Feedback Windows) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **FeedbackNotify** (`Tweaks.System`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection` -> `DoNotShowFeedbackNotifications` (`REG_DWORD`)
+/// - **enable** (matikan feedback): set `1`
+/// - **disable**: hapus value `DoNotShowFeedbackNotifications`
+/// - **is_enabled**: `val == Some(1)`
+pub struct FeedbackNotify;
+
+impl FeedbackNotify {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            DATA_COLLECTION_POLICY_PATH,
+            DO_NOT_SHOW_FEEDBACK_NOTIFICATIONS_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        delete_reg_value(
+            HKEY_LOCAL_MACHINE,
+            DATA_COLLECTION_POLICY_PATH,
+            DO_NOT_SHOW_FEEDBACK_NOTIFICATIONS_VALUE_NAME,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            DATA_COLLECTION_POLICY_PATH,
+            DO_NOT_SHOW_FEEDBACK_NOTIFICATIONS_VALUE_NAME,
+        )? == Some(1))
+    }
+}
+
+impl TweakController for FeedbackNotify {
+    const KEY: &'static str = "FeedbackNotify";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod feedback_notify {
+    use super::{FeedbackNotify, TweakResult};
+    pub fn is_available() -> bool { FeedbackNotify::is_available() }
+    pub fn enable() -> TweakResult { FeedbackNotify::enable() }
+    pub fn disable() -> TweakResult { FeedbackNotify::disable() }
+    pub fn is_enabled() -> TweakResult { FeedbackNotify::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 56. AltTab (Filter jumlah tab Microsoft Edge di Alt+Tab — API Terpisah)
+// -----------------------------------------------------------------------------
+
+/// Pilihan filter jumlah tab Microsoft Edge yang ditampilkan saat menekan `Alt + Tab`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum AltTabFilter {
+    AllTabs = 0,
+    FiveTabs = 1,
+    ThreeTabs = 2,
+    NoTabs = 3,
+}
+
+/// **AltTab** (`Tweaks.System`) — API Non-Boolean (`HKCU`, Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced` -> `MultiTaskingAltTabFilter` (`REG_DWORD`)
+/// - **RESTART_HINT**: `RestartExplorer`
+pub struct AltTab;
+
+impl AltTab {
+    pub const KEY: &'static str = "AltTab";
+    pub const REQUIRES_ADMIN: bool = false;
+    pub const RESTART_HINT: RestartHint = RestartHint::RestartExplorer;
+
+    pub fn is_available() -> bool {
+        true
+    }
+
+    /// Membaca konfigurasi `MultiTaskingAltTabFilter` saat ini (fallback ke `AltTabFilter::AllTabs`).
+    pub fn get() -> Result<AltTabFilter, Box<dyn Error>> {
+        match get_dword_opt(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            MULTITASKING_ALT_TAB_FILTER_VALUE_NAME,
+        )? {
+            Some(1) => Ok(AltTabFilter::FiveTabs),
+            Some(2) => Ok(AltTabFilter::ThreeTabs),
+            Some(3) => Ok(AltTabFilter::NoTabs),
+            _ => Ok(AltTabFilter::AllTabs),
+        }
+    }
+
+    /// Mengatur filter tab Microsoft Edge pada `Alt + Tab`.
+    pub fn set(filter: AltTabFilter) -> Result<(), Box<dyn Error>> {
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            MULTITASKING_ALT_TAB_FILTER_VALUE_NAME,
+            filter as u32,
+        )
+    }
+}
+
+pub mod alt_tab {
+    use super::{AltTab, AltTabFilter};
+    use std::error::Error;
+    pub fn is_available() -> bool { AltTab::is_available() }
+    pub fn get() -> Result<AltTabFilter, Box<dyn Error>> { AltTab::get() }
+    pub fn set(filter: AltTabFilter) -> Result<(), Box<dyn Error>> { AltTab::set(filter) }
+}
+
+// -----------------------------------------------------------------------------
+// 57. DigitalMarketsAct (DMA — Aktifkan mode Digital Markets Act) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// Mengambil kode negara 2-huruf ISO-3166 user saat ini (misal `"ID"` atau `"US"`):
+/// 1. Baca `HKCU\Control Panel\International\Geo` value `Name` (`REG_SZ`).
+/// 2. Fallback ke Win32 API `GetUserGeoID(GEOCLASS_NATION)` + `GetGeoInfoW(..., GEO_ISO2, ...)`.
+pub fn current_user_region() -> Option<String> {
+    if let Ok(Some(name)) = get_string_opt(
+        HKEY_CURRENT_USER,
+        INTERNATIONAL_GEO_PATH,
+        INTERNATIONAL_GEO_NAME_VALUE_NAME,
+    ) {
+        let trimmed = name.trim().to_uppercase();
+        if trimmed.len() == 2 && trimmed.chars().all(|c| c.is_ascii_alphabetic()) {
+            return Some(trimmed);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        const GEOCLASS_NATION: u32 = 16;
+        const GEO_ISO2: u32 = 4;
+        const GEODATA_NOT_AVAILABLE: i32 = -1;
+
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn GetUserGeoID(geo_class: u32) -> i32;
+            fn GetGeoInfoW(
+                location: i32,
+                geo_type: u32,
+                lp_geo_data: *mut u16,
+                cch_data: i32,
+                lang_id: u16,
+            ) -> i32;
+        }
+
+        unsafe {
+            let geo_id = GetUserGeoID(GEOCLASS_NATION);
+            if geo_id != GEODATA_NOT_AVAILABLE {
+                let mut buf = [0u16; 8];
+                let len = GetGeoInfoW(geo_id, GEO_ISO2, buf.as_mut_ptr(), buf.len() as i32, 0);
+                if len > 1 {
+                    let s = String::from_utf16_lossy(&buf[..(len as usize - 1)])
+                        .trim()
+                        .to_uppercase();
+                    if s.len() == 2 {
+                        return Some(s);
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Menjalankan perintah kepemilikan file (`takeown.exe` / `icacls.exe`) secara tersembunyi (`CREATE_NO_WINDOW`).
+fn run_hidden_command(program: &str, args: &[&str]) -> Result<(), Box<dyn Error>> {
+    let mut cmd = Command::new(program);
+    cmd.args(args);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd.output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("{} gagal dijalankan: {}", program, stderr.trim()).into());
+    }
+    Ok(())
+}
+
+/// **DigitalMarketsAct** (`DMA` / `Tweaks.System`) — **MEMBUTUHKAN ADMINISTRATOR (File Sistem & HKLM / UAC)**
+/// - **Target JSON**: `C:\Windows\System32\IntegratedServicesRegionPolicySet.json`
+/// - **Target Registry**: `HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge` -> `NoRemove`
+/// - **RESTART_HINT**: `Reboot`
+pub struct DigitalMarketsAct;
+
+/// Alias singkat sesuai nama kunci pada tabel spesifikasi Wintoys (`DMA`).
+pub type DMA = DigitalMarketsAct;
+
+impl DigitalMarketsAct {
+    /// Tersedia jika file `IntegratedServicesRegionPolicySet.json` ada DAN kode negara user
+    /// saat ini BUKAN bagian dari 36 negara EEA.
+    pub fn is_available() -> bool {
+        if !std::path::Path::new(DMA_JSON_PATH).is_file() {
+            return false;
+        }
+        match current_user_region() {
+            Some(region) => !EEA_REGION_CODES
+                .iter()
+                .any(|code| code.eq_ignore_ascii_case(&region)),
+            None => false,
+        }
+    }
+
+    /// Mengubah daftar region di `IntegratedServicesRegionPolicySet.json` (menambahkan atau menghapus `current_region`
+    /// pada setiap policy yang memiliki panjang array `enabled >= 36` atau `disabled >= 36`).
+    fn modify_policy_json(add_region: bool) -> Result<(), Box<dyn Error>> {
+        let region = current_user_region()
+            .ok_or("Tidak dapat mendeteksi kode negara (region) user saat ini")?;
+
+        // a) Ambil kepemilikan & izin tulis penuh untuk grup Administrators (*S-1-5-32-544:F)
+        run_hidden_command("takeown.exe", &["/f", DMA_JSON_PATH])?;
+        run_hidden_command("icacls.exe", &[DMA_JSON_PATH, "/grant", "*S-1-5-32-544:F"])?;
+
+        let result = (|| -> Result<(), Box<dyn Error>> {
+            let raw_json = fs::read_to_string(DMA_JSON_PATH)?;
+            let mut root: serde_json::Value = serde_json::from_str(&raw_json)?;
+
+            if let Some(policies) = root.get_mut("policies").and_then(|p| p.as_array_mut()) {
+                for policy in policies {
+                    let Some(region_obj) = policy
+                        .get_mut("conditions")
+                        .and_then(|c| c.get_mut("region"))
+                        .and_then(|r| r.as_object_mut())
+                    else {
+                        continue;
+                    };
+
+                    let enabled_len = region_obj
+                        .get("enabled")
+                        .and_then(|v| v.as_array())
+                        .map_or(0, |a| a.len());
+                    let disabled_len = region_obj
+                        .get("disabled")
+                        .and_then(|v| v.as_array())
+                        .map_or(0, |a| a.len());
+
+                    if enabled_len >= 36 || disabled_len >= 36 {
+                        if add_region {
+                            if let Some(enabled_arr) =
+                                region_obj.get_mut("enabled").and_then(|v| v.as_array_mut())
+                            {
+                                if !enabled_arr.is_empty()
+                                    && !enabled_arr.iter().any(|x| {
+                                        x.as_str()
+                                            .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                                    })
+                                {
+                                    enabled_arr.push(serde_json::Value::String(region.clone()));
+                                }
+                            }
+                            if let Some(disabled_arr) =
+                                region_obj.get_mut("disabled").and_then(|v| v.as_array_mut())
+                            {
+                                if !disabled_arr.is_empty()
+                                    && !disabled_arr.iter().any(|x| {
+                                        x.as_str()
+                                            .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                                    })
+                                {
+                                    disabled_arr.push(serde_json::Value::String(region.clone()));
+                                }
+                            }
+                        } else {
+                            if let Some(enabled_arr) =
+                                region_obj.get_mut("enabled").and_then(|v| v.as_array_mut())
+                            {
+                                enabled_arr.retain(|x| {
+                                    !x.as_str()
+                                        .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                                });
+                            }
+                            if let Some(disabled_arr) =
+                                region_obj.get_mut("disabled").and_then(|v| v.as_array_mut())
+                            {
+                                disabled_arr.retain(|x| {
+                                    !x.as_str()
+                                        .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            let formatted = serde_json::to_string_pretty(&root)?;
+            fs::write(DMA_JSON_PATH, formatted)?;
+            Ok(())
+        })();
+
+        // d) Kembalikan kepemilikan file ke NT SERVICE\TrustedInstaller
+        let _ = run_hidden_command(
+            "icacls.exe",
+            &[DMA_JSON_PATH, "/setowner", r"NT SERVICE\TrustedInstaller"],
+        );
+
+        result
+    }
+
+    pub fn enable() -> TweakResult {
+        Self::modify_policy_json(true)?;
+        // e) Izinkan uninstall Microsoft Edge (NoRemove = 0)
+        let _ = set_dword(
+            HKEY_LOCAL_MACHINE,
+            EDGE_UNINSTALL_WOW6432_PATH,
+            EDGE_NO_REMOVE_VALUE_NAME,
+            0,
+        );
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        Self::modify_policy_json(false)?;
+        // Kembalikan proteksi uninstall Microsoft Edge (NoRemove = 1)
+        let _ = set_dword(
+            HKEY_LOCAL_MACHINE,
+            EDGE_UNINSTALL_WOW6432_PATH,
+            EDGE_NO_REMOVE_VALUE_NAME,
+            1,
+        );
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let Some(region) = current_user_region() else {
+            return Ok(false);
+        };
+        if !std::path::Path::new(DMA_JSON_PATH).is_file() {
+            return Ok(false);
+        }
+
+        let raw_json = fs::read_to_string(DMA_JSON_PATH)?;
+        let root: serde_json::Value = serde_json::from_str(&raw_json)?;
+
+        let Some(policies) = root.get("policies").and_then(|p| p.as_array()) else {
+            return Ok(false);
+        };
+
+        let mut qualifying_count = 0usize;
+        for policy in policies {
+            let Some(region_obj) = policy
+                .get("conditions")
+                .and_then(|c| c.get("region"))
+                .and_then(|r| r.as_object())
+            else {
+                continue;
+            };
+
+            let enabled_arr = region_obj.get("enabled").and_then(|v| v.as_array());
+            let disabled_arr = region_obj.get("disabled").and_then(|v| v.as_array());
+
+            let enabled_len = enabled_arr.map_or(0, |a| a.len());
+            let disabled_len = disabled_arr.map_or(0, |a| a.len());
+
+            if enabled_len >= 36 || disabled_len >= 36 {
+                qualifying_count += 1;
+                let in_enabled = enabled_arr.map_or(false, |arr| {
+                    arr.iter().any(|x| {
+                        x.as_str()
+                            .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                    })
+                });
+                let in_disabled = disabled_arr.map_or(false, |arr| {
+                    arr.iter().any(|x| {
+                        x.as_str()
+                            .map_or(false, |s| s.eq_ignore_ascii_case(&region))
+                    })
+                });
+
+                if !in_enabled && !in_disabled {
+                    return Ok(false);
+                }
+            }
+        }
+
+        Ok(qualifying_count > 0)
+    }
+}
+
+impl TweakController for DigitalMarketsAct {
+    const KEY: &'static str = "DMA";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod digital_markets_act {
+    use super::{DigitalMarketsAct, TweakResult};
+    pub fn is_available() -> bool { DigitalMarketsAct::is_available() }
+    pub fn enable() -> TweakResult { DigitalMarketsAct::enable() }
+    pub fn disable() -> TweakResult { DigitalMarketsAct::disable() }
+    pub fn is_enabled() -> TweakResult { DigitalMarketsAct::is_enabled() }
+}
+
+// --- KATEGORI SUPERUSER ---
+
+// -----------------------------------------------------------------------------
+// 58. GodMode (Buat shortcut folder God Mode di Desktop)
+// -----------------------------------------------------------------------------
+
+/// Mengambil path folder Desktop user saat ini dari Registry `User Shell Folders`
+/// (dengan ekspansi `%USERPROFILE%`) atau fallback ke `%USERPROFILE%\Desktop`.
+fn resolve_user_desktop_dir() -> Result<std::path::PathBuf, Box<dyn Error>> {
+    let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+
+    if let Ok(Some(raw_desktop)) = get_string_opt(
+        HKEY_CURRENT_USER,
+        USER_SHELL_FOLDERS_PATH,
+        DESKTOP_FOLDER_VALUE_NAME,
+    ) {
+        let expanded = if !user_profile.is_empty() && raw_desktop.contains("%USERPROFILE%") {
+            raw_desktop.replace("%USERPROFILE%", &user_profile)
+        } else {
+            raw_desktop
+        };
+        let path = std::path::PathBuf::from(expanded);
+        if !path.as_os_str().is_empty() {
+            return Ok(path);
+        }
+    }
+
+    if let Ok(Some(shell_desktop)) = get_string_opt(
+        HKEY_CURRENT_USER,
+        SHELL_FOLDERS_PATH,
+        DESKTOP_FOLDER_VALUE_NAME,
+    ) {
+        let path = std::path::PathBuf::from(shell_desktop);
+        if !path.as_os_str().is_empty() {
+            return Ok(path);
+        }
+    }
+
+    if !user_profile.is_empty() {
+        return Ok(std::path::PathBuf::from(user_profile).join("Desktop"));
+    }
+
+    Err("Tidak dapat menemukan path folder Desktop user".into())
+}
+
+/// **GodMode** (`Tweaks.Superuser`) — Folder khusus di Desktop (Tidak butuh Admin)
+/// - **Path**: `<UserDesktop>\GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}`
+pub struct GodMode;
+
+impl GodMode {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    fn god_mode_path() -> Result<std::path::PathBuf, Box<dyn Error>> {
+        Ok(resolve_user_desktop_dir()?.join(GOD_MODE_FOLDER_NAME))
+    }
+
+    pub fn enable() -> TweakResult {
+        let path = Self::god_mode_path()?;
+        fs::create_dir_all(&path)?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        let path = Self::god_mode_path()?;
+        if path.exists() {
+            fs::remove_dir_all(&path)?;
+        }
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let path = Self::god_mode_path()?;
+        Ok(path.is_dir())
+    }
+}
+
+impl TweakController for GodMode {
+    const KEY: &'static str = "GodMode";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod god_mode {
+    use super::{GodMode, TweakResult};
+    pub fn is_available() -> bool { GodMode::is_available() }
+    pub fn enable() -> TweakResult { GodMode::enable() }
+    pub fn disable() -> TweakResult { GodMode::disable() }
+    pub fn is_enabled() -> TweakResult { GodMode::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 59. DeveloperMode (Aktifkan Windows Developer Mode / sideloading) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **DeveloperMode** (`Tweaks.Superuser`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock` -> `AllowDevelopmentWithoutDevLicense` (`REG_DWORD`)
+/// - **enable**: `1`, **disable**: `0`, **is_enabled**: `val == Some(1)`
+pub struct DeveloperMode;
+
+impl DeveloperMode {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            APP_MODEL_UNLOCK_PATH,
+            ALLOW_DEV_WITHOUT_LICENSE_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            APP_MODEL_UNLOCK_PATH,
+            ALLOW_DEV_WITHOUT_LICENSE_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            APP_MODEL_UNLOCK_PATH,
+            ALLOW_DEV_WITHOUT_LICENSE_VALUE_NAME,
+        )? == Some(1))
+    }
+}
+
+impl TweakController for DeveloperMode {
+    const KEY: &'static str = "DeveloperMode";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod developer_mode {
+    use super::{DeveloperMode, TweakResult};
+    pub fn is_available() -> bool { DeveloperMode::is_available() }
+    pub fn enable() -> TweakResult { DeveloperMode::enable() }
+    pub fn disable() -> TweakResult { DeveloperMode::disable() }
+    pub fn is_enabled() -> TweakResult { DeveloperMode::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 60. UserAccountControl (UAC — Konfigurasi Level User Account Control) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// Tingkat proteksi User Account Control (UAC) Windows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum UacLevel {
+    /// Selalu beri tahu saya (`PromptOnSecureDesktop=1, EnableLUA=1, ConsentPromptBehaviorAdmin=2`).
+    Always = 0,
+    /// Beri tahu saya hanya saat aplikasi mencoba membuat perubahan (redupkan desktop — Default Windows: `(1, 1, 5)`).
+    OnlyChangesDim = 1,
+    /// Beri tahu saya hanya saat aplikasi mencoba membuat perubahan (jangan redupkan desktop: `(0, 1, 5)`).
+    OnlyChanges = 2,
+    /// Jangan pernah beri tahu saya (`(0, 1, 0)`).
+    Never = 3,
+}
+
+/// **UserAccountControl** (`UAC` / `Tweaks.Superuser`) — API Non-Boolean — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`
+/// - **Values**: `(PromptOnSecureDesktop, EnableLUA, ConsentPromptBehaviorAdmin)`
+pub struct UserAccountControl;
+
+/// Alias singkat sesuai nama kunci pada tabel spesifikasi Wintoys (`UAC`).
+pub type UAC = UserAccountControl;
+
+impl UserAccountControl {
+    pub const KEY: &'static str = "UAC";
+    pub const REQUIRES_ADMIN: bool = true;
+    pub const RESTART_HINT: RestartHint = RestartHint::None;
+
+    pub fn is_available() -> bool {
+        true
+    }
+
+    /// Membaca level UAC saat ini dari tuple `(PromptOnSecureDesktop, EnableLUA, ConsentPromptBehaviorAdmin)`.
+    /// Bila kombinasi tidak cocok dengan salah satu preset, fallback ke `UacLevel::Always`.
+    pub fn get() -> Result<UacLevel, Box<dyn Error>> {
+        let prompt = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            PROMPT_ON_SECURE_DESKTOP_VALUE_NAME,
+        )?;
+        let lua = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            ENABLE_LUA_VALUE_NAME,
+        )?;
+        let consent = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            CONSENT_PROMPT_BEHAVIOR_ADMIN_VALUE_NAME,
+        )?;
+
+        match (prompt, lua, consent) {
+            (Some(1), Some(1), Some(2)) => Ok(UacLevel::Always),
+            (Some(1), Some(1), Some(5)) => Ok(UacLevel::OnlyChangesDim),
+            (Some(0), Some(1), Some(5)) => Ok(UacLevel::OnlyChanges),
+            (Some(0), Some(1), Some(0)) => Ok(UacLevel::Never),
+            _ => Ok(UacLevel::Always),
+        }
+    }
+
+    /// Menetapkan level UAC dengan menulis ketiga nilai `REG_DWORD`.
+    pub fn set(level: UacLevel) -> Result<(), Box<dyn Error>> {
+        let (prompt, lua, consent) = match level {
+            UacLevel::Always => (1u32, 1u32, 2u32),
+            UacLevel::OnlyChangesDim => (1u32, 1u32, 5u32),
+            UacLevel::OnlyChanges => (0u32, 1u32, 5u32),
+            UacLevel::Never => (0u32, 1u32, 0u32),
+        };
+
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            PROMPT_ON_SECURE_DESKTOP_VALUE_NAME,
+            prompt,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            ENABLE_LUA_VALUE_NAME,
+            lua,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICIES_PATH,
+            CONSENT_PROMPT_BEHAVIOR_ADMIN_VALUE_NAME,
+            consent,
+        )?;
+
+        Ok(())
+    }
+}
+
+pub mod user_account_control {
+    use super::{UacLevel, UserAccountControl};
+    use std::error::Error;
+    pub fn is_available() -> bool { UserAccountControl::is_available() }
+    pub fn get() -> Result<UacLevel, Box<dyn Error>> { UserAccountControl::get() }
+    pub fn set(level: UacLevel) -> Result<(), Box<dyn Error>> { UserAccountControl::set(level) }
+}
+
+// -----------------------------------------------------------------------------
+// 61. UserChoiceProtectionDriver (UCPD — Matikan driver proteksi asosiasi default) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **UserChoiceProtectionDriver** (`UCPD` / `Tweaks.Superuser`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM & Task / UAC)**
+/// - **Path**: `HKLM\SYSTEM\CurrentControlSet\Services\UCPD` -> `Start` (`REG_DWORD`)
+/// - **Scheduled Task**: `\Microsoft\Windows\AppxDeploymentClient\UCPD velocity`
+/// - **enable** (matikan UCPD): `Start = 4` (Disabled) + disable scheduled task
+/// - **disable** (default Windows): `Start = 1` (System) + enable scheduled task
+/// - **is_enabled**: `Start == Some(4)` ATAU service `ucpd` tidak sedang running
+/// - **is_available**: subkey `SYSTEM\CurrentControlSet\Services\UCPD` ada di `HKLM`
+/// - **RESTART_HINT**: `Reboot`
+pub struct UserChoiceProtectionDriver;
+
+/// Alias singkat sesuai nama kunci pada tabel spesifikasi Wintoys (`UCPD`).
+pub type UCPD = UserChoiceProtectionDriver;
+
+impl UserChoiceProtectionDriver {
+    pub fn is_available() -> bool {
+        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+        hklm.open_subkey_with_flags(UCPD_SERVICE_REG_PATH, KEY_READ)
+            .is_ok()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            UCPD_SERVICE_REG_PATH,
+            UCPD_START_VALUE_NAME,
+            4,
+        )?;
+        set_scheduled_task_enabled(UCPD_VELOCITY_TASK_PATH, false);
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            UCPD_SERVICE_REG_PATH,
+            UCPD_START_VALUE_NAME,
+            1,
+        )?;
+        set_scheduled_task_enabled(UCPD_VELOCITY_TASK_PATH, true);
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let start_val = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            UCPD_SERVICE_REG_PATH,
+            UCPD_START_VALUE_NAME,
+        )?;
+        let service_running = services::is_running(UCPD_SERVICE_NAME).unwrap_or(true);
+        Ok(start_val == Some(4) || !service_running)
+    }
+}
+
+impl TweakController for UserChoiceProtectionDriver {
+    const KEY: &'static str = "UCPD";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod user_choice_protection_driver {
+    use super::{TweakResult, UserChoiceProtectionDriver};
+    pub fn is_available() -> bool { UserChoiceProtectionDriver::is_available() }
+    pub fn enable() -> TweakResult { UserChoiceProtectionDriver::enable() }
+    pub fn disable() -> TweakResult { UserChoiceProtectionDriver::disable() }
+    pub fn is_enabled() -> TweakResult { UserChoiceProtectionDriver::is_enabled() }
+}
+
+// =============================================================================
+// BATCH 7: Optimizations / Boost & Gaming (17 Struct TweakController Boolean)
+// =============================================================================
+
+/// Mengekstrak GUID 36-karakter (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) dari sebaris teks output `powercfg`.
+fn extract_guid_from_text(text: &str) -> Option<String> {
+    for token in text.split(|c: char| !c.is_ascii_hexdigit() && c != '-') {
+        let t = token.trim_matches('-');
+        if t.len() == 36 {
+            let parts: Vec<&str> = t.split('-').collect();
+            if parts.len() == 5
+                && parts[0].len() == 8
+                && parts[1].len() == 4
+                && parts[2].len() == 4
+                && parts[3].len() == 4
+                && parts[4].len() == 12
+                && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_hexdigit()))
+            {
+                return Some(t.to_ascii_lowercase());
+            }
+        }
+    }
+    None
+}
+
+/// Menjalankan `powercfg.exe` dengan argumen tertentu secara tersembunyi (`CREATE_NO_WINDOW`) dan mengembalikan stdout.
+fn run_powercfg(args: &[&str]) -> Result<String, Box<dyn Error>> {
+    let mut cmd = Command::new("powercfg.exe");
+    cmd.args(args);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd.output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        return Err(format!(
+            "powercfg {:?} gagal: {} {}",
+            args,
+            stdout.trim(),
+            stderr.trim()
+        )
+        .into());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+// -----------------------------------------------------------------------------
+// 62. UltimatePerformance (Aktifkan Power Plan Ultimate Performance) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **UltimatePerformance** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (`powercfg.exe` / UAC)**
+/// - **GUID Ultimate Performance**: `e9a42b02-d5df-448d-aa00-03f14749eb61`
+/// - **GUID Balanced**: `381b4222-f694-41f0-9685-ff5bb260df2e`
+/// - **enable**: Cari skema Ultimate Performance di `powercfg /list` (atau `powercfg /duplicatescheme` bila belum ada), lalu `powercfg /setactive <guid>`.
+/// - **disable**: `powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e` (Balanced).
+/// - **is_enabled**: Cek `powercfg /getactivescheme` apakah memuat GUID/nama Ultimate Performance.
+/// - **is_available**: Panggil Win32 `GetPwrCapabilities` (`!AoAc` / Modern Standby S0 tidak aktif; fallback `true`).
+pub struct UltimatePerformance;
+
+impl UltimatePerformance {
+    pub fn is_available() -> bool {
+        #[cfg(target_os = "windows")]
+        {
+            // SYSTEM_POWER_CAPABILITIES berukuran 76 byte; field BOOLEAN `AoAc` berada di offset 20.
+            #[repr(C)]
+            struct SystemPowerCapabilities {
+                bytes: [u8; 76],
+            }
+
+            #[link(name = "powrprof")]
+            extern "system" {
+                fn GetPwrCapabilities(lpspc: *mut SystemPowerCapabilities) -> u8;
+            }
+
+            unsafe {
+                let mut caps = SystemPowerCapabilities { bytes: [0u8; 76] };
+                if GetPwrCapabilities(&mut caps) != 0 {
+                    let aoac = caps.bytes[20] != 0;
+                    return !aoac;
+                }
+            }
+        }
+        true
+    }
+
+    pub fn enable() -> TweakResult {
+        let list_out = run_powercfg(&["/list"])?;
+        let mut target_guid: Option<String> = None;
+
+        for line in list_out.lines() {
+            let lower = line.to_ascii_lowercase();
+            if lower.contains(ULTIMATE_PERFORMANCE_GUID)
+                || lower.contains("ultimate performance")
+            {
+                if let Some(guid) = extract_guid_from_text(line) {
+                    target_guid = Some(guid);
+                    break;
+                }
+            }
+        }
+
+        let scheme_guid = match target_guid {
+            Some(guid) => guid,
+            None => {
+                let dup_out = run_powercfg(&["/duplicatescheme", ULTIMATE_PERFORMANCE_GUID])?;
+                extract_guid_from_text(&dup_out)
+                    .unwrap_or_else(|| ULTIMATE_PERFORMANCE_GUID.to_string())
+            }
+        };
+
+        run_powercfg(&["/setactive", &scheme_guid])?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        run_powercfg(&["/setactive", BALANCED_POWER_PLAN_GUID])?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let active_out = run_powercfg(&["/getactivescheme"])?;
+        let lower = active_out.to_ascii_lowercase();
+        Ok(lower.contains(ULTIMATE_PERFORMANCE_GUID) || lower.contains("ultimate performance"))
+    }
+}
+
+impl TweakController for UltimatePerformance {
+    const KEY: &'static str = "UltimatePerformance";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod ultimate_performance {
+    use super::{TweakResult, UltimatePerformance};
+    pub fn is_available() -> bool { UltimatePerformance::is_available() }
+    pub fn enable() -> TweakResult { UltimatePerformance::enable() }
+    pub fn disable() -> TweakResult { UltimatePerformance::disable() }
+    pub fn is_enabled() -> TweakResult { UltimatePerformance::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 63. GPUScheduling (Aktifkan HAGS / Hardware-Accelerated GPU Scheduling) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **GPUScheduling** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers` -> `HwSchMode` (`REG_DWORD`)
+/// - **enable** (HAGS ON): `2`, **disable** (HAGS OFF): `1`, **is_enabled**: `val == Some(2)`
+/// - **is_available**: `build >= 19041`
+/// - **RESTART_HINT**: `Reboot`
+pub struct GPUScheduling;
+
+impl GPUScheduling {
+    pub fn is_available() -> bool {
+        windows_build_number().map_or(false, |b| b >= 19041)
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            GRAPHICS_DRIVERS_PATH,
+            HW_SCH_MODE_VALUE_NAME,
+            2,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            GRAPHICS_DRIVERS_PATH,
+            HW_SCH_MODE_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            GRAPHICS_DRIVERS_PATH,
+            HW_SCH_MODE_VALUE_NAME,
+        )? == Some(2))
+    }
+}
+
+impl TweakController for GPUScheduling {
+    const KEY: &'static str = "GPUScheduling";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod gpu_scheduling {
+    use super::{GPUScheduling, TweakResult};
+    pub fn is_available() -> bool { GPUScheduling::is_available() }
+    pub fn enable() -> TweakResult { GPUScheduling::enable() }
+    pub fn disable() -> TweakResult { GPUScheduling::disable() }
+    pub fn is_enabled() -> TweakResult { GPUScheduling::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 64. VirtualBasedSecurity (VBS — Matikan VBS & HVCI Memory Integrity) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **VirtualBasedSecurity** (`VBS` / `Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM & `bcdedit.exe` / UAC)**
+/// - **Key A**: `HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity` -> `Enabled`
+/// - **Key B**: `HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard` -> `EnableVirtualizationBasedSecurity`
+/// - **Boot Config**: `bcdedit.exe /set hypervisorlaunchtype <off|auto>`
+/// - **enable** (matikan VBS): `A = 0`, `B = 0`, `bcdedit /set hypervisorlaunchtype off`
+/// - **disable** (aktifkan VBS kembali): `A = 1`, `B = 1`, `bcdedit /set hypervisorlaunchtype auto`
+/// - **is_enabled** (VBS sedang mati): `!(A == Some(1) && B == Some(1))` && output `bcdedit /enum` tidak memuat `hypervisorlaunchtype` bernilai `Auto`
+/// - **RESTART_HINT**: `Reboot`
+pub struct VirtualBasedSecurity;
+
+/// Alias singkat sesuai nama kunci pada tabel spesifikasi Wintoys (`VBS`).
+pub type VBS = VirtualBasedSecurity;
+
+impl VirtualBasedSecurity {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    fn is_hypervisor_launch_auto() -> bool {
+        let mut cmd = Command::new("bcdedit.exe");
+        cmd.arg("/enum");
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        if let Ok(output) = cmd.output() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                let lower = line.to_ascii_lowercase();
+                if lower.contains("hypervisorlaunchtype") {
+                    let tokens: Vec<&str> = lower.split_whitespace().collect();
+                    if tokens.last().copied() == Some("auto") {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            HVCI_SCENARIO_PATH,
+            HVCI_ENABLED_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            DEVICE_GUARD_PATH,
+            ENABLE_VBS_VALUE_NAME,
+            0,
+        )?;
+        let _ = run_hidden_command("bcdedit.exe", &["/set", "hypervisorlaunchtype", "off"]);
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            HVCI_SCENARIO_PATH,
+            HVCI_ENABLED_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            DEVICE_GUARD_PATH,
+            ENABLE_VBS_VALUE_NAME,
+            1,
+        )?;
+        let _ = run_hidden_command("bcdedit.exe", &["/set", "hypervisorlaunchtype", "auto"]);
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let a = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            HVCI_SCENARIO_PATH,
+            HVCI_ENABLED_VALUE_NAME,
+        )?;
+        let b = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            DEVICE_GUARD_PATH,
+            ENABLE_VBS_VALUE_NAME,
+        )?;
+
+        Ok(!(a == Some(1) && b == Some(1)) && !Self::is_hypervisor_launch_auto())
+    }
+}
+
+impl TweakController for VirtualBasedSecurity {
+    const KEY: &'static str = "VBS";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod virtual_based_security {
+    use super::{TweakResult, VirtualBasedSecurity};
+    pub fn is_available() -> bool { VirtualBasedSecurity::is_available() }
+    pub fn enable() -> TweakResult { VirtualBasedSecurity::enable() }
+    pub fn disable() -> TweakResult { VirtualBasedSecurity::disable() }
+    pub fn is_enabled() -> TweakResult { VirtualBasedSecurity::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 65. DelayStartupApps (Matikan delay 10 detik startup apps)
+// -----------------------------------------------------------------------------
+
+/// **DelayStartupApps** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Serialize`
+/// - **Values**: `StartupDelayInMSec` & `WaitforIdleState` (`REG_DWORD`)
+/// - **enable** (hapus delay): `StartupDelayInMSec = 1`, `WaitforIdleState = 0`
+/// - **disable** (default Windows): hapus kedua value tersebut
+/// - **is_enabled**: `StartupDelayInMSec == Some(1) && WaitforIdleState == Some(0)`
+pub struct DelayStartupApps;
+
+impl DelayStartupApps {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            STARTUP_DELAY_IN_MSEC_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            WAIT_FOR_IDLE_STATE_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        delete_reg_value(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            STARTUP_DELAY_IN_MSEC_VALUE_NAME,
+        )?;
+        delete_reg_value(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            WAIT_FOR_IDLE_STATE_VALUE_NAME,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let delay = get_dword_opt(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            STARTUP_DELAY_IN_MSEC_VALUE_NAME,
+        )?;
+        let wait_idle = get_dword_opt(
+            HKEY_CURRENT_USER,
+            EXPLORER_SERIALIZE_PATH,
+            WAIT_FOR_IDLE_STATE_VALUE_NAME,
+        )?;
+        Ok(delay == Some(1) && wait_idle == Some(0))
+    }
+}
+
+impl TweakController for DelayStartupApps {
+    const KEY: &'static str = "DelayStartupApps";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod delay_startup_apps {
+    use super::{DelayStartupApps, TweakResult};
+    pub fn is_available() -> bool { DelayStartupApps::is_available() }
+    pub fn enable() -> TweakResult { DelayStartupApps::enable() }
+    pub fn disable() -> TweakResult { DelayStartupApps::disable() }
+    pub fn is_enabled() -> TweakResult { DelayStartupApps::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 66. NotifyStartupApps (Matikan notifikasi aplikasi startup)
+// -----------------------------------------------------------------------------
+
+/// **NotifyStartupApps** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.StartupApp` -> `Enabled`
+/// - **enable** (matikan notifikasi): `0`, **disable**: `1`, **is_enabled**: `val == Some(0)`
+/// - **is_available**: `build >= 22000` (Windows 11)
+pub struct NotifyStartupApps;
+
+impl NotifyStartupApps {
+    pub fn is_available() -> bool {
+        windows_build_number().map_or(false, |b| b >= 22000)
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            NOTIFY_STARTUP_APP_PATH,
+            NOTIFY_STARTUP_APP_ENABLED_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            NOTIFY_STARTUP_APP_PATH,
+            NOTIFY_STARTUP_APP_ENABLED_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_CURRENT_USER,
+            NOTIFY_STARTUP_APP_PATH,
+            NOTIFY_STARTUP_APP_ENABLED_VALUE_NAME,
+        )? == Some(0))
+    }
+}
+
+impl TweakController for NotifyStartupApps {
+    const KEY: &'static str = "NotifyStartupApps";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod notify_startup_apps {
+    use super::{NotifyStartupApps, TweakResult};
+    pub fn is_available() -> bool { NotifyStartupApps::is_available() }
+    pub fn enable() -> TweakResult { NotifyStartupApps::enable() }
+    pub fn disable() -> TweakResult { NotifyStartupApps::disable() }
+    pub fn is_enabled() -> TweakResult { NotifyStartupApps::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 67. RelaunchApps (Matikan fitur buka ulang aplikasi otomatis setelah restart)
+// -----------------------------------------------------------------------------
+
+/// **RelaunchApps** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon` -> `RestartApps` (`REG_DWORD`)
+/// - **enable** (matikan relaunch): `0`, **disable**: `1`, **is_enabled**: `val != Some(1)`
+pub struct RelaunchApps;
+
+impl RelaunchApps {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            WINLOGON_PATH,
+            RESTART_APPS_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            WINLOGON_PATH,
+            RESTART_APPS_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let val = get_dword_opt(
+            HKEY_CURRENT_USER,
+            WINLOGON_PATH,
+            RESTART_APPS_VALUE_NAME,
+        )?;
+        Ok(val != Some(1))
+    }
+}
+
+impl TweakController for RelaunchApps {
+    const KEY: &'static str = "RelaunchApps";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod relaunch_apps {
+    use super::{RelaunchApps, TweakResult};
+    pub fn is_available() -> bool { RelaunchApps::is_available() }
+    pub fn enable() -> TweakResult { RelaunchApps::enable() }
+    pub fn disable() -> TweakResult { RelaunchApps::disable() }
+    pub fn is_enabled() -> TweakResult { RelaunchApps::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 68. BackgroundApps (Matikan Background Apps secara global)
+// -----------------------------------------------------------------------------
+
+/// **BackgroundApps** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Key A**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications` -> `GlobalUserDisabled`
+/// - **Key B**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search` -> `BackgroundAppGlobalToggle`
+/// - **enable** (matikan background apps): `A = 1`, `B = 0`
+/// - **disable** (izinkan background apps): hapus `A` dan hapus `B`
+/// - **is_enabled**: `A == Some(1) || B == Some(0)`
+pub struct BackgroundApps;
+
+impl BackgroundApps {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            BACKGROUND_ACCESS_APPS_PATH,
+            GLOBAL_USER_DISABLED_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            WINDOWS_SEARCH_PATH,
+            BACKGROUND_APP_GLOBAL_TOGGLE_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        delete_reg_value(
+            HKEY_CURRENT_USER,
+            BACKGROUND_ACCESS_APPS_PATH,
+            GLOBAL_USER_DISABLED_VALUE_NAME,
+        )?;
+        delete_reg_value(
+            HKEY_CURRENT_USER,
+            WINDOWS_SEARCH_PATH,
+            BACKGROUND_APP_GLOBAL_TOGGLE_VALUE_NAME,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let a = get_dword_opt(
+            HKEY_CURRENT_USER,
+            BACKGROUND_ACCESS_APPS_PATH,
+            GLOBAL_USER_DISABLED_VALUE_NAME,
+        )?;
+        let b = get_dword_opt(
+            HKEY_CURRENT_USER,
+            WINDOWS_SEARCH_PATH,
+            BACKGROUND_APP_GLOBAL_TOGGLE_VALUE_NAME,
+        )?;
+        Ok(a == Some(1) || b == Some(0))
+    }
+}
+
+impl TweakController for BackgroundApps {
+    const KEY: &'static str = "BackgroundApps";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod background_apps {
+    use super::{BackgroundApps, TweakResult};
+    pub fn is_available() -> bool { BackgroundApps::is_available() }
+    pub fn enable() -> TweakResult { BackgroundApps::enable() }
+    pub fn disable() -> TweakResult { BackgroundApps::disable() }
+    pub fn is_enabled() -> TweakResult { BackgroundApps::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 69. ActivityHistory (Matikan pelacakan Activity History) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **ActivityHistory** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SOFTWARE\Policies\Microsoft\Windows\System`
+/// - **Values**: `EnableActivityFeed`, `PublishUserActivities`, `UploadUserActivities` (`REG_DWORD`)
+/// - **enable** (matikan activity history): ketiganya = `0`
+/// - **disable** (aktifkan kembali): ketiganya = `1`
+/// - **is_enabled**: ketiganya `== Some(0)`
+/// - **is_available**: `build < 22000 || ((build == 22621 || build == 22631) && ubr <= 3085)`
+/// - **RESTART_HINT**: `Reboot`
+pub struct ActivityHistory;
+
+impl ActivityHistory {
+    pub fn is_available() -> bool {
+        let Some(build) = windows_build_number() else {
+            return false;
+        };
+        if build < 22000 {
+            return true;
+        }
+        if build == 22621 || build == 22631 {
+            let ubr = windows_ubr().unwrap_or(0);
+            return ubr <= 3085;
+        }
+        false
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            ENABLE_ACTIVITY_FEED_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            PUBLISH_USER_ACTIVITIES_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            UPLOAD_USER_ACTIVITIES_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            ENABLE_ACTIVITY_FEED_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            PUBLISH_USER_ACTIVITIES_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            UPLOAD_USER_ACTIVITIES_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let feed = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            ENABLE_ACTIVITY_FEED_VALUE_NAME,
+        )?;
+        let publish = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            PUBLISH_USER_ACTIVITIES_VALUE_NAME,
+        )?;
+        let upload = get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            SYSTEM_POLICY_PATH,
+            UPLOAD_USER_ACTIVITIES_VALUE_NAME,
+        )?;
+
+        Ok(feed == Some(0) && publish == Some(0) && upload == Some(0))
+    }
+}
+
+impl TweakController for ActivityHistory {
+    const KEY: &'static str = "ActivityHistory";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod activity_history {
+    use super::{ActivityHistory, TweakResult};
+    pub fn is_available() -> bool { ActivityHistory::is_available() }
+    pub fn enable() -> TweakResult { ActivityHistory::enable() }
+    pub fn disable() -> TweakResult { ActivityHistory::disable() }
+    pub fn is_enabled() -> TweakResult { ActivityHistory::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 70. VisualEffects (Atur Visual Effects ke mode Best Performance)
+// -----------------------------------------------------------------------------
+
+/// **VisualEffects** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **enable** (Best Performance): `VisualFXSetting = 2`, `UserPreferencesMask = [158, 18, 3, 128, 16, 0, 0, 0]`, dll.
+/// - **disable** (Best Appearance): `VisualFXSetting = 1`, `UserPreferencesMask = [158, 62, 7, 128, 18, 0, 0, 0]`, dll.
+/// - **is_enabled**: `VisualFXSetting == Some(2)`
+/// - **RESTART_HINT**: `Reboot`
+pub struct VisualEffects;
+
+impl VisualEffects {
+    const MASK_PERFORMANCE: [u8; 8] = [158, 18, 3, 128, 16, 0, 0, 0];
+    const MASK_APPEARANCE: [u8; 8] = [158, 62, 7, 128, 18, 0, 0, 0];
+
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            VISUAL_EFFECTS_PATH,
+            VISUAL_FX_SETTING_VALUE_NAME,
+            2,
+        )?;
+
+        set_binary(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            USER_PREFERENCES_MASK_VALUE_NAME,
+            &Self::MASK_PERFORMANCE,
+        )?;
+        set_string(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            DRAG_FULL_WINDOWS_VALUE_NAME,
+            "0",
+        )?;
+        set_string(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            FONT_SMOOTHING_VALUE_NAME,
+            "0",
+        )?;
+
+        set_string(
+            HKEY_CURRENT_USER,
+            WINDOW_METRICS_PATH,
+            MIN_ANIMATE_VALUE_NAME,
+            "0",
+        )?;
+
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            LISTVIEW_ALPHA_SELECT_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            ICONS_ONLY_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            LISTVIEW_SHADOW_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            DISABLE_PREVIEW_DESKTOP_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            FONT_SMOOTHING_VALUE_NAME,
+            0,
+        )?;
+
+        set_dword(
+            HKEY_CURRENT_USER,
+            DWM_PATH,
+            ALWAYS_HIBERNATE_THUMBNAILS_VALUE_NAME,
+            0,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            DWM_PATH,
+            ENABLE_AERO_PEEK_VALUE_NAME,
+            0,
+        )?;
+
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            VISUAL_EFFECTS_PATH,
+            VISUAL_FX_SETTING_VALUE_NAME,
+            1,
+        )?;
+
+        set_binary(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            USER_PREFERENCES_MASK_VALUE_NAME,
+            &Self::MASK_APPEARANCE,
+        )?;
+        set_string(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            DRAG_FULL_WINDOWS_VALUE_NAME,
+            "1",
+        )?;
+        set_string(
+            HKEY_CURRENT_USER,
+            CONTROL_PANEL_DESKTOP_PATH,
+            FONT_SMOOTHING_VALUE_NAME,
+            "2",
+        )?;
+
+        set_string(
+            HKEY_CURRENT_USER,
+            WINDOW_METRICS_PATH,
+            MIN_ANIMATE_VALUE_NAME,
+            "1",
+        )?;
+
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            LISTVIEW_ALPHA_SELECT_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            ICONS_ONLY_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            LISTVIEW_SHADOW_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            DISABLE_PREVIEW_DESKTOP_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            EXPLORER_ADVANCED_PATH,
+            FONT_SMOOTHING_VALUE_NAME,
+            1,
+        )?;
+
+        set_dword(
+            HKEY_CURRENT_USER,
+            DWM_PATH,
+            ALWAYS_HIBERNATE_THUMBNAILS_VALUE_NAME,
+            1,
+        )?;
+        set_dword(
+            HKEY_CURRENT_USER,
+            DWM_PATH,
+            ENABLE_AERO_PEEK_VALUE_NAME,
+            1,
+        )?;
+
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_CURRENT_USER,
+            VISUAL_EFFECTS_PATH,
+            VISUAL_FX_SETTING_VALUE_NAME,
+        )? == Some(2))
+    }
+}
+
+impl TweakController for VisualEffects {
+    const KEY: &'static str = "VisualEffects";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod visual_effects {
+    use super::{TweakResult, VisualEffects};
+    pub fn is_available() -> bool { VisualEffects::is_available() }
+    pub fn enable() -> TweakResult { VisualEffects::enable() }
+    pub fn disable() -> TweakResult { VisualEffects::disable() }
+    pub fn is_enabled() -> TweakResult { VisualEffects::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 71. Transparency (Matikan efek transparansi jendela/taskbar)
+// -----------------------------------------------------------------------------
+
+/// **Transparency** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize` -> `EnableTransparency` (`REG_DWORD`)
+/// - **enable** (matikan transparansi): `0`, **disable** (nyalakan): `1`, **is_enabled**: `val == Some(0)`
+pub struct Transparency;
+
+impl Transparency {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            THEMES_PERSONALIZE_PATH,
+            ENABLE_TRANSPARENCY_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            THEMES_PERSONALIZE_PATH,
+            ENABLE_TRANSPARENCY_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_CURRENT_USER,
+            THEMES_PERSONALIZE_PATH,
+            ENABLE_TRANSPARENCY_VALUE_NAME,
+        )? == Some(0))
+    }
+}
+
+impl TweakController for Transparency {
+    const KEY: &'static str = "Transparency";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod transparency {
+    use super::{Transparency, TweakResult};
+    pub fn is_available() -> bool { Transparency::is_available() }
+    pub fn enable() -> TweakResult { Transparency::enable() }
+    pub fn disable() -> TweakResult { Transparency::disable() }
+    pub fn is_enabled() -> TweakResult { Transparency::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 72. GameMode (Aktifkan Windows Game Mode)
+// -----------------------------------------------------------------------------
+
+/// **GameMode** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\GameBar` -> `AutoGameModeEnabled` (`REG_DWORD`)
+/// - **enable** (Game Mode ON): `1`, **disable** (Game Mode OFF): `0`, **is_enabled**: `val != Some(0)`
+pub struct GameMode;
+
+impl GameMode {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            GAME_BAR_PATH,
+            AUTO_GAME_MODE_ENABLED_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            GAME_BAR_PATH,
+            AUTO_GAME_MODE_ENABLED_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let val = get_dword_opt(
+            HKEY_CURRENT_USER,
+            GAME_BAR_PATH,
+            AUTO_GAME_MODE_ENABLED_VALUE_NAME,
+        )?;
+        Ok(val != Some(0))
+    }
+}
+
+impl TweakController for GameMode {
+    const KEY: &'static str = "GameMode";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod game_mode {
+    use super::{GameMode, TweakResult};
+    pub fn is_available() -> bool { GameMode::is_available() }
+    pub fn enable() -> TweakResult { GameMode::enable() }
+    pub fn disable() -> TweakResult { GameMode::disable() }
+    pub fn is_enabled() -> TweakResult { GameMode::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 73. WindowedOptimizations (Aktifkan Optimizations for Windowed Games DX10/DX11)
+// -----------------------------------------------------------------------------
+
+/// **WindowedOptimizations** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\DirectX\UserGpuPreferences` -> `DirectXUserGlobalSettings` (`REG_SZ`, dipisahkan `;`)
+/// - **enable** (ON): set/update `SwapEffectUpgradeEnable=1` tanpa menghapus entri lain
+/// - **disable** (OFF): set/update `SwapEffectUpgradeEnable=0` tanpa menghapus entri lain
+/// - **is_enabled**: bila subkey belum ada => `true`; bila ada => memuat token `SwapEffectUpgradeEnable=1`
+/// - **is_available**: `build >= 22557`
+pub struct WindowedOptimizations;
+
+impl WindowedOptimizations {
+    pub fn is_available() -> bool {
+        windows_build_number().map_or(false, |b| b >= 22557)
+    }
+
+    fn set_swap_effect_flag(enabled: bool) -> Result<(), Box<dyn Error>> {
+        let desired_token = if enabled {
+            "SwapEffectUpgradeEnable=1"
+        } else {
+            "SwapEffectUpgradeEnable=0"
+        };
+
+        let current = get_string_opt(
+            HKEY_CURRENT_USER,
+            DIRECTX_USER_GPU_PREFERENCES_PATH,
+            DIRECTX_USER_GLOBAL_SETTINGS_VALUE_NAME,
+        )?
+        .unwrap_or_default();
+
+        let mut tokens: Vec<String> = Vec::new();
+        let mut replaced = false;
+
+        for part in current.split(';') {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if let Some((k, _v)) = trimmed.split_once('=') {
+                if k.trim().eq_ignore_ascii_case(SWAP_EFFECT_UPGRADE_KEY) {
+                    if !replaced {
+                        tokens.push(desired_token.to_string());
+                        replaced = true;
+                    }
+                    continue;
+                }
+            }
+            tokens.push(trimmed.to_string());
+        }
+
+        if !replaced {
+            tokens.push(desired_token.to_string());
+        }
+
+        let mut new_val = tokens.join(";");
+        new_val.push(';');
+
+        set_string(
+            HKEY_CURRENT_USER,
+            DIRECTX_USER_GPU_PREFERENCES_PATH,
+            DIRECTX_USER_GLOBAL_SETTINGS_VALUE_NAME,
+            &new_val,
+        )
+    }
+
+    pub fn enable() -> TweakResult {
+        Self::set_swap_effect_flag(true)?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        Self::set_swap_effect_flag(false)?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = match hkcu.open_subkey_with_flags(DIRECTX_USER_GPU_PREFERENCES_PATH, KEY_READ) {
+            Ok(k) => k,
+            Err(e) if e.kind() == ErrorKind::NotFound => return Ok(true),
+            Err(e) => return Err(Box::new(e)),
+        };
+
+        match key.get_value::<String, _>(DIRECTX_USER_GLOBAL_SETTINGS_VALUE_NAME) {
+            Ok(val) => {
+                let has_enabled = val.split(';').any(|part| {
+                    part.trim()
+                        .eq_ignore_ascii_case("SwapEffectUpgradeEnable=1")
+                });
+                Ok(has_enabled)
+            }
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(Box::new(e)),
+        }
+    }
+}
+
+impl TweakController for WindowedOptimizations {
+    const KEY: &'static str = "WindowedOptimizations";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn is_available() -> bool {
+        Self::is_available()
+    }
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod windowed_optimizations {
+    use super::{TweakResult, WindowedOptimizations};
+    pub fn is_available() -> bool { WindowedOptimizations::is_available() }
+    pub fn enable() -> TweakResult { WindowedOptimizations::enable() }
+    pub fn disable() -> TweakResult { WindowedOptimizations::disable() }
+    pub fn is_enabled() -> TweakResult { WindowedOptimizations::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 74. RecordHighlights (Matikan GameDVR Background Recording / Historical Capture)
+// -----------------------------------------------------------------------------
+
+/// **RecordHighlights** (`Optimizations`) — `HKCU` (Tidak butuh Admin)
+/// - **Path**: `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR` -> `HistoricalCaptureEnabled` (`REG_DWORD`)
+/// - **enable** (matikan recording): `0`, **disable** (nyalakan): `1`, **is_enabled**: `val != Some(1)`
+pub struct RecordHighlights;
+
+impl RecordHighlights {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            GAME_DVR_PATH,
+            HISTORICAL_CAPTURE_ENABLED_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_CURRENT_USER,
+            GAME_DVR_PATH,
+            HISTORICAL_CAPTURE_ENABLED_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        let val = get_dword_opt(
+            HKEY_CURRENT_USER,
+            GAME_DVR_PATH,
+            HISTORICAL_CAPTURE_ENABLED_VALUE_NAME,
+        )?;
+        Ok(val != Some(1))
+    }
+}
+
+impl TweakController for RecordHighlights {
+    const KEY: &'static str = "RecordHighlights";
+    const REQUIRES_ADMIN: bool = false;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod record_highlights {
+    use super::{RecordHighlights, TweakResult};
+    pub fn is_available() -> bool { RecordHighlights::is_available() }
+    pub fn enable() -> TweakResult { RecordHighlights::enable() }
+    pub fn disable() -> TweakResult { RecordHighlights::disable() }
+    pub fn is_enabled() -> TweakResult { RecordHighlights::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 75. Superfetch (Matikan service SysMain / Superfetch) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **Superfetch** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (Windows Service `sysmain` / UAC)**
+/// - **enable** (matikan Superfetch): `set_start_mode("sysmain", Disabled)` + `stop("sysmain")`
+/// - **disable** (aktifkan Superfetch): `set_start_mode("sysmain", Automatic)` + `start("sysmain")`
+/// - **is_enabled**: `!services::is_running("sysmain").unwrap_or(false)`
+pub struct Superfetch;
+
+impl Superfetch {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        services::set_start_mode(SYSMAIN_SERVICE_NAME, ServiceStartMode::Disabled)?;
+        services::stop(SYSMAIN_SERVICE_NAME)?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        services::set_start_mode(SYSMAIN_SERVICE_NAME, ServiceStartMode::Automatic)?;
+        services::start(SYSMAIN_SERVICE_NAME)?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(!services::is_running(SYSMAIN_SERVICE_NAME).unwrap_or(false))
+    }
+}
+
+impl TweakController for Superfetch {
+    const KEY: &'static str = "Superfetch";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod superfetch {
+    use super::{Superfetch, TweakResult};
+    pub fn is_available() -> bool { Superfetch::is_available() }
+    pub fn enable() -> TweakResult { Superfetch::enable() }
+    pub fn disable() -> TweakResult { Superfetch::disable() }
+    pub fn is_enabled() -> TweakResult { Superfetch::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 76. SearchIndexing (Matikan service Windows Search Indexing di background) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **SearchIndexing** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM & Service `wsearch` / UAC)**
+/// - **Path**: `HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search` -> `PreventUsingAdvancedIndexingOptions` (`REG_DWORD`)
+/// - **Service**: `"wsearch"`
+/// - **enable** (matikan indexing): set `PreventUsingAdvancedIndexingOptions = 1` + `set_start_mode("wsearch", Disabled)` + `stop("wsearch")`
+/// - **disable** (aktifkan indexing): hapus `PreventUsingAdvancedIndexingOptions` + `set_start_mode("wsearch", Automatic)` + `start("wsearch")`
+/// - **is_enabled**: `PreventUsingAdvancedIndexingOptions.is_some()`
+pub struct SearchIndexing;
+
+impl SearchIndexing {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            WINDOWS_SEARCH_POLICY_PATH,
+            PREVENT_ADVANCED_INDEXING_VALUE_NAME,
+            1,
+        )?;
+        services::set_start_mode(WSEARCH_SERVICE_NAME, ServiceStartMode::Disabled)?;
+        services::stop(WSEARCH_SERVICE_NAME)?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        delete_reg_value(
+            HKEY_LOCAL_MACHINE,
+            WINDOWS_SEARCH_POLICY_PATH,
+            PREVENT_ADVANCED_INDEXING_VALUE_NAME,
+        )?;
+        services::set_start_mode(WSEARCH_SERVICE_NAME, ServiceStartMode::Automatic)?;
+        services::start(WSEARCH_SERVICE_NAME)?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            WINDOWS_SEARCH_POLICY_PATH,
+            PREVENT_ADVANCED_INDEXING_VALUE_NAME,
+        )?
+        .is_some())
+    }
+}
+
+impl TweakController for SearchIndexing {
+    const KEY: &'static str = "SearchIndexing";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod search_indexing {
+    use super::{SearchIndexing, TweakResult};
+    pub fn is_available() -> bool { SearchIndexing::is_available() }
+    pub fn enable() -> TweakResult { SearchIndexing::enable() }
+    pub fn disable() -> TweakResult { SearchIndexing::disable() }
+    pub fn is_enabled() -> TweakResult { SearchIndexing::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 77. DeliveryOptimization (Matikan P2P Windows Update Delivery Optimization) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **DeliveryOptimization** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (`HKEY_USERS\S-1-5-20` / UAC)**
+/// - **Path**: `HKEY_USERS\S-1-5-20\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings` -> `DownloadMode` (`REG_DWORD`)
+/// - **enable** (matikan P2P): `0`, **disable** (aktifkan P2P): `1`, **is_enabled**: `val == Some(0)`
+pub struct DeliveryOptimization;
+
+impl DeliveryOptimization {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_USERS,
+            DELIVERY_OPTIMIZATION_SETTINGS_PATH,
+            DOWNLOAD_MODE_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_USERS,
+            DELIVERY_OPTIMIZATION_SETTINGS_PATH,
+            DOWNLOAD_MODE_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_USERS,
+            DELIVERY_OPTIMIZATION_SETTINGS_PATH,
+            DOWNLOAD_MODE_VALUE_NAME,
+        )? == Some(0))
+    }
+}
+
+impl TweakController for DeliveryOptimization {
+    const KEY: &'static str = "DeliveryOptimization";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::None;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod delivery_optimization {
+    use super::{DeliveryOptimization, TweakResult};
+    pub fn is_available() -> bool { DeliveryOptimization::is_available() }
+    pub fn enable() -> TweakResult { DeliveryOptimization::enable() }
+    pub fn disable() -> TweakResult { DeliveryOptimization::disable() }
+    pub fn is_enabled() -> TweakResult { DeliveryOptimization::is_enabled() }
+}
+
+// -----------------------------------------------------------------------------
+// 78. NetworkAdapter (Aktifkan Network Adapter Onboard Processor / Task Offload) — ADMIN
+// -----------------------------------------------------------------------------
+
+/// **NetworkAdapter** (`Optimizations`) — **MEMBUTUHKAN ADMINISTRATOR (HKLM / UAC)**
+/// - **Path**: `HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters` -> `DisableTaskOffload` (`REG_DWORD`)
+/// - **enable** (task offload ON): `0`, **disable** (task offload OFF): `1`, **is_enabled**: `val == Some(0)`
+/// - **RESTART_HINT**: `Reboot`
+pub struct NetworkAdapter;
+
+impl NetworkAdapter {
+    pub fn is_available() -> bool {
+        <Self as TweakController>::is_available()
+    }
+
+    pub fn enable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            TCPIP_PARAMETERS_PATH,
+            DISABLE_TASK_OFFLOAD_VALUE_NAME,
+            0,
+        )?;
+        Ok(true)
+    }
+
+    pub fn disable() -> TweakResult {
+        set_dword(
+            HKEY_LOCAL_MACHINE,
+            TCPIP_PARAMETERS_PATH,
+            DISABLE_TASK_OFFLOAD_VALUE_NAME,
+            1,
+        )?;
+        Ok(true)
+    }
+
+    pub fn is_enabled() -> TweakResult {
+        Ok(get_dword_opt(
+            HKEY_LOCAL_MACHINE,
+            TCPIP_PARAMETERS_PATH,
+            DISABLE_TASK_OFFLOAD_VALUE_NAME,
+        )? == Some(0))
+    }
+}
+
+impl TweakController for NetworkAdapter {
+    const KEY: &'static str = "NetworkAdapter";
+    const REQUIRES_ADMIN: bool = true;
+    const RESTART_HINT: RestartHint = RestartHint::Reboot;
+
+    fn enable() -> TweakResult { Self::enable() }
+    fn disable() -> TweakResult { Self::disable() }
+    fn is_enabled() -> TweakResult { Self::is_enabled() }
+}
+
+pub mod network_adapter {
+    use super::{NetworkAdapter, TweakResult};
+    pub fn is_available() -> bool { NetworkAdapter::is_available() }
+    pub fn enable() -> TweakResult { NetworkAdapter::enable() }
+    pub fn disable() -> TweakResult { NetworkAdapter::disable() }
+    pub fn is_enabled() -> TweakResult { NetworkAdapter::is_enabled() }
+}
+
+
 
 
