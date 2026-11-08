@@ -11,6 +11,7 @@ pub mod charts;
 pub mod cleaner;
 pub mod i18n;
 pub mod icons;
+pub mod tweaks;
 
 use backend::{
     add_startup_item_sync, apply_boost_sync, clean_ram_sync, cleanup_typeperf,
