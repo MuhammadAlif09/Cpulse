@@ -11,6 +11,7 @@ pub mod charts;
 pub mod cleaner;
 pub mod i18n;
 pub mod icons;
+pub mod services;
 pub mod tweaks;
 
 use backend::{

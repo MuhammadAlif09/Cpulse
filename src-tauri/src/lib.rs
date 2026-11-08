@@ -1,4 +1,5 @@
 pub mod cleaner;
+pub mod services;
 pub mod tweaks;
 
 use serde::Serialize;
