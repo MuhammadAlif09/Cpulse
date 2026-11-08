@@ -45,34 +45,11 @@ import {
   AlertDialogAction,
 } from "../components/ui/alert-dialog";
 import { StatCard } from "../components/ui/StatCard";
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
 
-// Teal-based palette consistent with Dashboard
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  slate: "#64748b",
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "Windows Temp Files": "#7971a8",
-  "Browser Cache": "#62809c",
-  "Windows Update Cache": "#569a8b",
-  "Crash Dumps & Logs": "#b56a75",
-  "Recycle Bin": "#b58c63",
-  "Windows Prefetch": "#62809c",
-  "Thumbnail Cache": "#b56a75",
-  "Windows Log Files": "#b58c63",
-  "Font Cache": "#7971a8",
-  "DirectX Shader Cache": "#569a8b",
-  "Windows Error Reports": "#b56a75",
-  "Delivery Optimization": "#569a8b",
-  "Application Cache": "#7971a8",
-};
-
-function getCategoryColor(name: string): string {
-  return CATEGORY_COLORS[name] || "#64748b";
+function getCategoryColor(_name: string): string {
+  return P.teal;
 }
 
 function getCategoryIcon(name: string, size = 16) {
@@ -83,33 +60,29 @@ function getCategoryIcon(name: string, size = 16) {
       return <Globe size={size} />;
     case "Windows Update Cache":
       return <RefreshCw size={size} />;
-    case "Crash Dumps & Logs":
-      return <FileText size={size} />;
-    case "Recycle Bin":
-      return <Trash2 size={size} />;
-    case "Windows Prefetch":
-      return <Zap size={size} />;
+    case "System Log Files":
+      return <ClipboardList size={size} />;
     case "Thumbnail Cache":
       return <Image size={size} />;
-    case "Windows Log Files":
-      return <ClipboardList size={size} />;
-    case "Font Cache":
-      return <Type size={size} />;
-    case "DirectX Shader Cache":
-      return <Gamepad2 size={size} />;
     case "Windows Error Reports":
       return <AlertTriangle size={size} />;
-    case "Delivery Optimization":
+    case "Delivery Optimization Files":
       return <Package size={size} />;
-    case "Application Cache":
-      return <AppWindow size={size} />;
+    case "Temporary Setup Files":
+      return <Files size={size} />;
+    case "Prefetch Cache":
+      return <Zap size={size} />;
+    case "DirectX Shader Cache":
+      return <Gamepad2 size={size} />;
+    case "Recycle Bin":
+      return <Trash2 size={size} />;
+    case "Memory Dumps":
+      return <FileText size={size} />;
+    case "Font Cache":
+      return <Type size={size} />;
     default:
       return <Trash2 size={size} />;
   }
-}
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
 }
 
 function Card({
@@ -124,7 +97,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 border border-border/40 shadow-sm relative overflow-hidden transition-all duration-300 bg-card/80 backdrop-blur-md",
+        "rounded-2xl p-5 border border-border relative overflow-hidden transition-all duration-300 bg-card",
         className
       )}
       style={style}
@@ -227,21 +200,27 @@ export function CleanerTab() {
 
   const chartData = junkCats
     .filter((c) => selected[c.name] && c.bytes > 0)
-    .map((c) => ({
+    .map((c, idx) => ({
       name: t(c.name),
       value: Number((c.bytes / 1_048_576).toFixed(1)),
-      color: getCategoryColor(c.name),
+      color: idx % 2 === 0 ? P.teal : P.muted,
     }));
 
-  const customTooltip = ({ active, payload }: any) => {
+  const customTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: { name: string; value: number; color: string } }>;
+  }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       const sizeStr =
         data.value > 1024 ? (data.value / 1024).toFixed(2) + " GB" : data.value + " MB";
       return (
-        <div className="bg-card/95 backdrop-blur-sm p-3 border border-border rounded-xl shadow-lg font-sans text-xs text-foreground">
+        <div className="bg-popover p-3 border border-border rounded-xl font-sans text-xs text-foreground">
           <p className="font-semibold text-card-foreground">{data.name}</p>
-          <p className="font-medium mt-0.5" style={{ color: data.color }}>
+          <p className="font-medium mt-0.5" style={{ color: P.teal }}>
             {sizeStr}
           </p>
         </div>
@@ -253,12 +232,7 @@ export function CleanerTab() {
   return (
     <div className="space-y-4">
       {/* ── Scan Controller ──────────────────────────────────────────────────────── */}
-      <Card
-        style={{
-          background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))`,
-          borderColor: `color-mix(in srgb, ${P.teal} 20%, var(--border))`,
-        }}
-      >
+      <Card>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -277,8 +251,8 @@ export function CleanerTab() {
             {!scanning && !done && !cleaned && (
               <button
                 onClick={startScan}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-95 cursor-pointer"
-                style={{ background: P.teal, boxShadow: `0 4px 14px -4px ${P.teal}` }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                style={{ background: P.teal, color: P.bg }}
               >
                 <Sparkles size={15} /> {t("Start Scan")}
               </button>
@@ -308,16 +282,17 @@ export function CleanerTab() {
               <>
                 <button
                   onClick={startScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-secondary transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-background transition cursor-pointer"
                 >
                   <RotateCcw size={12} /> {t("Rescan")}
                 </button>
                 <button
                   onClick={handleCleanClick}
                   disabled={cleaning || totalSelectedBytes === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                   style={{
                     background: cleaning || totalSelectedBytes === 0 ? "var(--border)" : P.teal,
+                    color: cleaning || totalSelectedBytes === 0 ? "var(--muted-foreground)" : P.bg,
                   }}
                 >
                   <Trash2 size={15} />{" "}
@@ -337,26 +312,27 @@ export function CleanerTab() {
                       toast.error(t(e));
                     }
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-secondary transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-background transition cursor-pointer"
                 >
                   {t("Audit Log")}
                 </button>
                 <button
                   onClick={startScan}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-secondary transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-border text-foreground hover:bg-background transition cursor-pointer"
                 >
                   <RotateCcw size={12} /> {t("Scan Again")}
                 </button>
                 <div
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-500"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
                   style={{
-                    background: "color-mix(in srgb, #10b981 12%, transparent)",
-                    border: "1px solid color-mix(in srgb, #10b981 25%, transparent)",
-                    boxShadow: "0 0 25px -5px rgba(16, 185, 129, 0.4)",
+                    color: P.good,
+                    background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${P.good} 30%, transparent)`,
                   }}
                 >
                   <motion.svg
-                    className="w-4 h-4 stroke-emerald-500"
+                    className="w-4 h-4"
+                    style={{ stroke: P.good }}
                     viewBox="0 0 24 24"
                     fill="none"
                     strokeWidth="3"
@@ -384,13 +360,12 @@ export function CleanerTab() {
               </span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div className="w-full h-1.5 rounded-full bg-background overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
                   width: `${progress}%`,
                   background: P.teal,
-                  boxShadow: `0 0 8px ${P.teal}`,
                 }}
               />
             </div>
@@ -494,7 +469,7 @@ export function CleanerTab() {
                   <h3 className="text-sm font-semibold text-foreground">
                     {cleaned ? `✅ ${t("Cleaned Successfully!")}` : t("Found targets")}
                   </h3>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border/50">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-background text-muted-foreground border border-border">
                     {selectedCount} / {junkCats.length} {t("selected")}
                   </span>
                 </div>
@@ -507,19 +482,19 @@ export function CleanerTab() {
                 {/* Sort by Size toggle */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={toggleSortOrder}
                   className={cn(
                     "flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer select-none",
                     sortOrder !== "default"
-                      ? "bg-teal-500/15 text-teal-600 border-teal-500/40 dark:text-teal-400 dark:bg-teal-500/20"
-                      : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-primary/15 text-primary border-primary/40"
+                      : "border-border text-muted-foreground hover:bg-background hover:text-foreground"
                   )}
                   title={t("Sort categories by total disk size")}
                 >
-                  {sortOrder === "desc" && <ArrowDownWideNarrow size={13} className="text-teal-500" />}
-                  {sortOrder === "asc" && <ArrowUpNarrowWide size={13} className="text-teal-500" />}
+                  {sortOrder === "desc" && <ArrowDownWideNarrow size={13} className="text-primary" />}
+                  {sortOrder === "asc" && <ArrowUpNarrowWide size={13} className="text-primary" />}
                   {sortOrder === "default" && <ArrowUpDown size={13} />}
                   <span>
                     {sortOrder === "desc"
@@ -535,44 +510,53 @@ export function CleanerTab() {
                 {/* Granular multi-select controls */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={selectAllCategories}
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer",
                     isAllActive
-                      ? "bg-primary/10 text-primary border-primary/30 font-semibold"
-                      : "border-border text-foreground hover:bg-secondary"
+                      ? "bg-primary/15 text-primary border-primary/40 font-semibold"
+                      : "border-border text-foreground hover:bg-background"
                   )}
                 >
                   {t("All")}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={selectSafeCategories}
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer flex items-center gap-1",
                     isSafeOnlyActive
-                      ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/40 dark:text-emerald-400 dark:bg-emerald-500/20 font-semibold"
-                      : "border-border text-foreground hover:bg-secondary"
+                      ? "font-semibold"
+                      : "border-border text-foreground hover:bg-background"
                   )}
+                  style={
+                    isSafeOnlyActive
+                      ? {
+                          color: P.good,
+                          backgroundColor: `${P.good}18`,
+                          borderColor: `${P.good}40`,
+                        }
+                      : undefined
+                  }
                   title={t("Select only safe items without warnings or admin requirements")}
                 >
-                  <ShieldCheck size={12} className={isSafeOnlyActive ? "text-emerald-500" : "text-emerald-500/80"} />
+                  <ShieldCheck size={12} style={{ color: P.good }} />
                   {t("Safe Only")}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97, boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.15)" }}
+                  whileTap={{ scale: 0.97 }}
                   transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                   onClick={deselectAllCategories}
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors duration-200 cursor-pointer",
                     isNoneActive
-                      ? "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400 font-semibold"
-                      : "border-border text-foreground hover:bg-secondary"
+                      ? "bg-primary/15 text-primary border-primary/40 font-semibold"
+                      : "border-border text-foreground hover:bg-background"
                   )}
                 >
                   {t("None")}
@@ -585,33 +569,30 @@ export function CleanerTab() {
                 const maxBytes = Math.max(...junkCats.map((c) => c.bytes), 1);
                 const pct = (cat.bytes / maxBytes) * 100;
                 const isOn = selected[cat.name];
+                const catColor = getCategoryColor(cat.name);
 
                 return (
                   <motion.div
                     key={cat.name}
                     whileTap={{
-                      scale: 0.97,
-                      boxShadow: "inset 0 2px 5px rgba(0, 0, 0, 0.2)",
+                      scale: 0.98,
                     }}
                     transition={{ type: "tween", duration: 0.1, ease: "easeOut" }}
                     onClick={() => toggleSelectedCategory(cat.name)}
                     className="p-3.5 rounded-xl border transition-colors duration-200 cursor-pointer select-none group"
                     style={{
                       background: isOn
-                        ? `color-mix(in srgb, ${getCategoryColor(cat.name)} 8%, var(--card))`
+                        ? `color-mix(in srgb, ${catColor} 8%, var(--card))`
                         : "var(--card)",
                       borderColor: isOn
-                        ? `color-mix(in srgb, ${getCategoryColor(cat.name)} 40%, transparent)`
+                        ? `color-mix(in srgb, ${catColor} 35%, var(--border))`
                         : "var(--border)",
-                      boxShadow: isOn
-                        ? `0 0 16px -6px color-mix(in srgb, ${getCategoryColor(cat.name)} 20%, transparent)`
-                        : "none",
                     }}
                   >
                     <div className="flex items-start gap-2.5 mb-2">
                       <span
-                        className="text-xl mt-0.5 transition-transform group-hover:scale-110 flex items-center justify-center w-5 h-5"
-                        style={{ color: getCategoryColor(cat.name) }}
+                        className="text-xl mt-0.5 transition-transform flex items-center justify-center w-5 h-5"
+                        style={{ color: isOn ? catColor : "var(--muted-foreground)" }}
                       >
                         {getCategoryIcon(cat.name)}
                       </span>
@@ -621,7 +602,14 @@ export function CleanerTab() {
                             {t(cat.name)}
                           </span>
                           {cat.requires_admin && (
-                            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold border"
+                              style={{
+                                color: P.warn,
+                                backgroundColor: `${P.warn}15`,
+                                borderColor: `${P.warn}30`,
+                              }}
+                            >
                               <Shield size={9} /> {t("Admin")}
                             </span>
                           )}
@@ -634,8 +622,7 @@ export function CleanerTab() {
                         className="w-[18px] h-[18px] rounded-md border transition-all flex items-center justify-center flex-shrink-0 mt-0.5"
                         style={{
                           border: isOn ? "none" : "1px solid var(--border)",
-                          background: isOn ? getCategoryColor(cat.name) : "transparent",
-                          boxShadow: isOn ? `0 0 8px -2px ${getCategoryColor(cat.name)}` : "none",
+                          background: isOn ? catColor : "transparent",
                         }}
                       >
                         <AnimatePresence>
@@ -648,9 +635,8 @@ export function CleanerTab() {
                             >
                               <Check
                                 size={11}
-                                color="white"
+                                color={P.bg}
                                 strokeWidth={3.5}
-                                className="drop-shadow-sm"
                               />
                             </motion.div>
                           )}
@@ -659,9 +645,22 @@ export function CleanerTab() {
                     </div>
 
                     {isOn && cat.warning && (
-                      <div className="mb-2.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-1.5">
-                        <AlertTriangle className="text-amber-500 mt-0.5 flex-shrink-0" size={12} />
-                        <p className="text-[10px] leading-relaxed text-amber-700 dark:text-amber-400 font-medium">
+                      <div
+                        className="mb-2.5 p-2 rounded-lg border flex items-start gap-1.5"
+                        style={{
+                          backgroundColor: `${P.warn}12`,
+                          borderColor: `${P.warn}30`,
+                        }}
+                      >
+                        <AlertTriangle
+                          className="mt-0.5 flex-shrink-0"
+                          style={{ color: P.warn }}
+                          size={12}
+                        />
+                        <p
+                          className="text-[10px] leading-relaxed font-medium"
+                          style={{ color: P.warn }}
+                        >
                           {t(cat.warning)}
                         </p>
                       </div>
@@ -672,14 +671,14 @@ export function CleanerTab() {
                         <span>
                           {cat.count.toLocaleString()} {t("files")}
                         </span>
-                        <span style={{ color: getCategoryColor(cat.name) }} className="font-bold">
+                        <span style={{ color: isOn ? catColor : "var(--foreground)" }} className="font-bold">
                           {cat.size}
                         </span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-background overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, background: getCategoryColor(cat.name) }}
+                          style={{ width: `${pct}%`, background: isOn ? catColor : "var(--muted-foreground)" }}
                         />
                       </div>
                     </div>
@@ -701,13 +700,13 @@ export function CleanerTab() {
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
             className="sticky bottom-4 z-30 mt-6"
           >
-            <div className="bg-card/95 backdrop-blur-md border border-teal-500/30 p-4 rounded-2xl shadow-xl shadow-teal-500/10 space-y-2.5">
+            <div className="bg-card border border-border p-4 rounded-2xl space-y-2.5">
               <div className="flex items-center justify-between gap-3 text-xs font-semibold">
                 <div className="flex items-center gap-2 min-w-0">
                   {scanning ? (
-                    <RefreshCw size={16} className="animate-spin text-teal-500 flex-shrink-0" />
+                    <RefreshCw size={16} className="animate-spin text-primary flex-shrink-0" />
                   ) : (
-                    <Trash2 size={16} className="animate-pulse text-emerald-500 flex-shrink-0" />
+                    <Trash2 size={16} className="text-primary flex-shrink-0" />
                   )}
                   <span className="truncate text-foreground font-medium">
                     {scanning
@@ -716,7 +715,7 @@ export function CleanerTab() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-bold text-sm text-teal-500 tracking-tight">
+                  <span className="font-bold text-sm text-primary tracking-tight">
                     {Math.round(progress)}%
                   </span>
                   {scanning && (
@@ -731,13 +730,12 @@ export function CleanerTab() {
               </div>
 
               {/* Progress Track & Fill */}
-              <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden relative border border-border/40">
+              <div className="w-full h-2.5 rounded-full bg-background overflow-hidden relative border border-border">
                 <motion.div
                   className="h-full rounded-full transition-all duration-300 relative"
                   style={{
                     width: `${Math.max(progress, 2)}%`,
-                    background: `linear-gradient(90deg, ${P.teal}, #10b981)`,
-                    boxShadow: `0 0 12px ${P.teal}`,
+                    background: P.teal,
                   }}
                 />
               </div>
@@ -750,7 +748,14 @@ export function CleanerTab() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="sm:max-w-md bg-card border-border">
           <AlertDialogHeader>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+            <div
+              className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border"
+              style={{
+                color: P.warn,
+                backgroundColor: `${P.warn}15`,
+                borderColor: `${P.warn}30`,
+              }}
+            >
               <ShieldAlert className="h-6 w-6" />
             </div>
             <AlertDialogTitle className="text-center text-foreground mt-2">
@@ -769,11 +774,11 @@ export function CleanerTab() {
               .map((c) => (
                 <div
                   key={c.name}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-secondary text-xs font-semibold text-foreground"
+                  className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border text-xs font-semibold text-foreground"
                 >
-                  <span style={{ color: getCategoryColor(c.name) }}>{getCategoryIcon(c.name)}</span>
+                  <span style={{ color: P.teal }}>{getCategoryIcon(c.name)}</span>
                   <span className="flex-1 truncate">{t(c.name)}</span>
-                  <span className="text-[10px] font-bold text-amber-500 uppercase">
+                  <span className="text-[10px] font-bold uppercase" style={{ color: P.warn }}>
                     {c.requires_admin ? t("Admin") : t("Warning")}
                   </span>
                 </div>
@@ -781,13 +786,13 @@ export function CleanerTab() {
           </div>
 
           <AlertDialogFooter className="mt-4 gap-2 flex-col sm:flex-row">
-            <AlertDialogCancel className="w-full sm:w-auto font-semibold border-border bg-transparent hover:bg-secondary cursor-pointer">
+            <AlertDialogCancel className="w-full sm:w-auto font-semibold border-border bg-transparent hover:bg-background cursor-pointer">
               {t("Cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmClean}
-              className="w-full sm:w-auto font-semibold text-white cursor-pointer"
-              style={{ background: P.rose }}
+              className="w-full sm:w-auto font-semibold cursor-pointer"
+              style={{ background: P.bad, color: P.bg }}
             >
               {t("Proceed with Cleanup")}
             </AlertDialogAction>

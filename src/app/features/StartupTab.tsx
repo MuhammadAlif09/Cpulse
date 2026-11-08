@@ -6,19 +6,9 @@ import { addHistoryLog } from "../utils/history";
 import { StatCard } from "../components/ui/StatCard";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 
-// Teal-based palette
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  slate: "#64748b",
-  good: "#10b981",
-};
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { isTauri } from "../utils/tauri";
 
 // Crisp Brand SVG Icons
 function DiscordIcon({ size = 20 }: { size?: number }) {
@@ -120,20 +110,21 @@ function getAppBrandInfo(name: string, publisher: string = ""): BrandInfo | null
   try {
     const n = (name || "").toLowerCase();
     const p = (publisher || "").toLowerCase();
+    const bg = `${P.teal}18`;
 
-    if (n.includes("discord")) return { Icon: DiscordIcon, color: "#5865F2", bg: "rgba(88, 101, 242, 0.15)" };
-    if (n.includes("spotify")) return { Icon: SpotifyIcon, color: "#1DB954", bg: "rgba(29, 185, 84, 0.15)" };
-    if (n.includes("steam")) return { Icon: SteamIcon, color: "#3892e0", bg: "rgba(56, 146, 224, 0.15)" };
-    if (n.includes("onedrive") || n.includes("skydrive")) return { Icon: OneDriveIcon, color: "#0078D4", bg: "rgba(0, 120, 212, 0.15)" };
-    if (n.includes("teams") || n.includes("zoom") || n.includes("slack")) return { Icon: Users, color: "#6264A7", bg: "rgba(98, 100, 167, 0.15)" };
-    if (p.includes("google") || n.includes("chrome")) return { Icon: ChromeIcon, color: "#4285F4", bg: "rgba(66, 133, 244, 0.15)" };
-    if (p.includes("adobe") || n.includes("photoshop") || n.includes("creative cloud")) return { Icon: AdobeIcon, color: "#FF0000", bg: "rgba(255, 0, 0, 0.15)" };
-    if (n.includes("nvidia")) return { Icon: NvidiaIcon, color: "#76B900", bg: "rgba(118, 185, 0, 0.15)" };
-    if (n.includes("realtek") || p.includes("realtek") || n.includes("audio")) return { Icon: Volume2, color: "#005596", bg: "rgba(0, 85, 150, 0.15)" };
-    if (p.includes("microsoft") || p.includes("windows") || n.includes("explorer")) return { Icon: MicrosoftIcon, color: "#0078D4", bg: "rgba(0, 120, 212, 0.15)" };
-    if (n.includes("firefox")) return { Icon: FirefoxIcon, color: "#FF7139", bg: "rgba(255, 113, 57, 0.15)" };
-    if (n.includes("vscode") || n.includes("visual studio")) return { Icon: VSCodeIcon, color: "#007ACC", bg: "rgba(0, 122, 204, 0.15)" };
-    if (n.includes("github") || p.includes("github")) return { Icon: GithubIcon, color: "#24292e", bg: "rgba(100, 100, 100, 0.15)" };
+    if (n.includes("discord")) return { Icon: DiscordIcon, color: P.teal, bg };
+    if (n.includes("spotify")) return { Icon: SpotifyIcon, color: P.teal, bg };
+    if (n.includes("steam")) return { Icon: SteamIcon, color: P.teal, bg };
+    if (n.includes("onedrive") || n.includes("skydrive")) return { Icon: OneDriveIcon, color: P.teal, bg };
+    if (n.includes("teams") || n.includes("zoom") || n.includes("slack")) return { Icon: Users, color: P.teal, bg };
+    if (p.includes("google") || n.includes("chrome")) return { Icon: ChromeIcon, color: P.teal, bg };
+    if (p.includes("adobe") || n.includes("photoshop") || n.includes("creative cloud")) return { Icon: AdobeIcon, color: P.teal, bg };
+    if (n.includes("nvidia")) return { Icon: NvidiaIcon, color: P.teal, bg };
+    if (n.includes("realtek") || p.includes("realtek") || n.includes("audio")) return { Icon: Volume2, color: P.teal, bg };
+    if (p.includes("microsoft") || p.includes("windows") || n.includes("explorer")) return { Icon: MicrosoftIcon, color: P.teal, bg };
+    if (n.includes("firefox")) return { Icon: FirefoxIcon, color: P.teal, bg };
+    if (n.includes("vscode") || n.includes("visual studio")) return { Icon: VSCodeIcon, color: P.teal, bg };
+    if (n.includes("github") || p.includes("github")) return { Icon: GithubIcon, color: P.teal, bg };
 
     return null;
   } catch (err) {
@@ -142,38 +133,15 @@ function getAppBrandInfo(name: string, publisher: string = ""): BrandInfo | null
   }
 }
 
-// Priority 3: Initial Avatar with Hash-Based Color Generation
+// Priority 3: Initial Avatar with Centralized Palette Tokens
 function getInitialAvatar(name: string): { letter: string; color: string; bg: string } {
   try {
     const raw = (name || "App").trim();
     const clean = raw.replace(/^[^a-zA-Z0-9]+/, "");
     const letter = (clean.charAt(0) || raw.charAt(0) || "A").toUpperCase();
-
-    let hash = 0;
-    for (let i = 0; i < raw.length; i++) {
-      hash = raw.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const safeHash = Math.abs(hash);
-
-    const AVATAR_PALETTES = [
-      { color: "#0d9488", bg: "rgba(13, 148, 136, 0.16)" }, // Teal
-      { color: "#6366f1", bg: "rgba(99, 102, 241, 0.16)" }, // Indigo
-      { color: "#ec4899", bg: "rgba(236, 72, 153, 0.16)" }, // Pink
-      { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.16)" }, // Amber
-      { color: "#10b981", bg: "rgba(16, 185, 129, 0.16)" }, // Emerald
-      { color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.16)" }, // Purple
-      { color: "#0ea5e9", bg: "rgba(14, 165, 233, 0.16)" }, // Sky
-      { color: "#f43f5e", bg: "rgba(244, 63, 94, 0.16)" }, // Rose
-      { color: "#14b8a6", bg: "rgba(20, 184, 166, 0.16)" }, // Cyan
-      { color: "#a855f7", bg: "rgba(168, 85, 247, 0.16)" }, // Violet
-      { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.16)" }, // Blue
-      { color: "#84cc16", bg: "rgba(132, 204, 22, 0.16)" }, // Lime
-    ];
-
-    const palette = AVATAR_PALETTES[safeHash % AVATAR_PALETTES.length];
-    return { letter, color: palette.color, bg: palette.bg };
+    return { letter, color: P.teal, bg: `${P.teal}18` };
   } catch {
-    return { letter: "A", color: "#0d9488", bg: "rgba(13, 148, 136, 0.16)" };
+    return { letter: "A", color: P.teal, bg: `${P.teal}18` };
   }
 }
 
@@ -202,9 +170,9 @@ function AppBrandIcon({
     const Icon = brandInfo.Icon;
     return (
       <div
-        className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 border border-border/30 shadow-xs"
+        className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 border border-border"
         style={{
-          backgroundColor: enabled ? brandInfo.bg : "var(--secondary)",
+          backgroundColor: enabled ? brandInfo.bg : "var(--background)",
           color: enabled ? brandInfo.color : "var(--muted-foreground)",
           filter: !enabled ? "grayscale(75%) opacity(0.6)" : "none",
         }}
@@ -218,7 +186,7 @@ function AppBrandIcon({
   if (icon && !exeImgFailed) {
     return (
       <div
-        className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 border border-border/30 shadow-xs bg-secondary/40 overflow-hidden"
+        className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 border border-border bg-background overflow-hidden"
         style={{
           filter: !enabled ? "grayscale(75%) opacity(0.6)" : "none",
         }}
@@ -233,13 +201,13 @@ function AppBrandIcon({
     );
   }
 
-  // Priority 3: Initial avatar with hash-generated consistent color
+  // Priority 3: Initial avatar with centralized token color
   const avatar = getInitialAvatar(name);
   return (
     <div
-      className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm select-none transition-all duration-200 border border-border/30 shadow-xs"
+      className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm select-none transition-all duration-200 border border-border"
       style={{
-        backgroundColor: enabled ? avatar.bg : "var(--secondary)",
+        backgroundColor: enabled ? avatar.bg : "var(--background)",
         color: enabled ? avatar.color : "var(--muted-foreground)",
         filter: !enabled ? "grayscale(75%) opacity(0.6)" : "none",
       }}
@@ -261,7 +229,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
+        "rounded-2xl p-5 bg-card border border-border transition-all duration-200",
         className
       )}
       style={style}
@@ -274,17 +242,17 @@ function Card({
 function PillBadge({ label }: { label: string }) {
   const { t } = useTranslation();
   let color = P.slate;
-  let bg = "var(--secondary)";
+  let bg = "var(--background)";
 
   if (label === "High") {
-    color = P.rose;
-    bg = `color-mix(in srgb, ${P.rose} 15%, transparent)`;
+    color = P.bad;
+    bg = `color-mix(in srgb, ${P.bad} 15%, transparent)`;
   } else if (label === "Medium") {
-    color = P.amber;
-    bg = `color-mix(in srgb, ${P.amber} 15%, transparent)`;
+    color = P.warn;
+    bg = `color-mix(in srgb, ${P.warn} 15%, transparent)`;
   } else if (label === "Low") {
-    color = P.teal;
-    bg = `color-mix(in srgb, ${P.teal} 15%, transparent)`;
+    color = P.good;
+    bg = `color-mix(in srgb, ${P.good} 15%, transparent)`;
   }
 
   return (
@@ -307,13 +275,16 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
       onClick={onChange}
       className="relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 cursor-pointer border"
       style={{
-        background: on ? P.teal : "var(--secondary)",
+        background: on ? P.teal : "var(--background)",
         borderColor: on ? "transparent" : "var(--border)",
       }}
     >
       <span
-        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300"
-        style={{ left: on ? "calc(100% - 19px)" : "3px" }}
+        className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300"
+        style={{
+          left: on ? "calc(100% - 19px)" : "3px",
+          backgroundColor: on ? P.bg : P.muted,
+        }}
       />
     </button>
   );
@@ -330,11 +301,6 @@ interface StartupItem {
   publisher?: string;
   icon?: string;
 }
-
-const isTauri =
-  typeof window !== "undefined" &&
-  ((window as any).__TAURI_INTERNALS__ !== undefined ||
-    (window as any).__TAURI_IPC__ !== undefined);
 
 export function StartupTab() {
   const { t } = useTranslation();
@@ -354,6 +320,15 @@ export function StartupTab() {
     }
   }, []);
 
+  const refreshItems = async () => {
+    try {
+      const res = await invoke<StartupItem[]>("get_startup_items");
+      setItems(res);
+    } catch (e) {
+      console.error("Failed to refresh startup items:", e);
+    }
+  };
+
   const toggle = async (name: string, is_hkcu: boolean, current_enabled: boolean) => {
     try {
       await invoke("toggle_startup_item", { name, isHkcu: is_hkcu, enable: !current_enabled });
@@ -369,6 +344,7 @@ export function StartupTab() {
       });
     } catch (e) {
       console.error("Failed to toggle:", e);
+      await refreshItems();
     }
   };
 
@@ -376,33 +352,35 @@ export function StartupTab() {
     const highImpactEnabled = items.filter((i) => i.impact === "High" && i.enabled);
     if (highImpactEnabled.length === 0) return;
     const startTime = Date.now();
+    let disabledCount = 0;
     try {
       for (const item of highImpactEnabled) {
-        await invoke("toggle_startup_item", {
-          name: item.name,
-          isHkcu: item.is_hkcu,
-          enable: false,
+        try {
+          await invoke("toggle_startup_item", {
+            name: item.name,
+            isHkcu: item.is_hkcu,
+            enable: false,
+          });
+          disabledCount++;
+        } catch (itemErr) {
+          console.error(`Failed to disable ${item.name}:`, itemErr);
+        }
+      }
+      await refreshItems();
+      if (disabledCount > 0) {
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+        addHistoryLog({
+          type: "Startup Optimizer",
+          freed: "N/A",
+          fixed: disabledCount,
+          duration,
+          details: `DisabledHighImpact:${disabledCount}`,
         });
       }
-      setItems((prev) =>
-        prev.map((item) => (item.impact === "High" ? { ...item, enabled: false } : item))
-      );
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
-      addHistoryLog({
-        type: "Startup Optimizer",
-        freed: "N/A",
-        fixed: highImpactEnabled.length,
-        duration,
-        details: `DisabledHighImpact:${highImpactEnabled.length}`,
-      });
     } catch (e) {
       console.error("Failed to disable high impact:", e);
+      await refreshItems();
     }
-  };
-
-  const refreshItems = async () => {
-    const res = await invoke<StartupItem[]>("get_startup_items");
-    setItems(res);
   };
 
   const handleDelete = async (name: string, is_hkcu: boolean) => {
@@ -419,6 +397,7 @@ export function StartupTab() {
       });
     } catch (e) {
       console.error("Failed to delete startup item:", e);
+      await refreshItems();
     }
   };
 
@@ -473,7 +452,7 @@ export function StartupTab() {
           label={t("Est. Boot Time")}
           value={`${bootTime}s`}
           sub={t("With enabled items")}
-          color={P.sky}
+          color={P.teal}
         />
         <StatCard
           icon={<TrendingUp size={15} />}
@@ -487,31 +466,31 @@ export function StartupTab() {
           label={t("High Impact")}
           value={`${items.filter((i) => i.impact === "High" && i.enabled).length}`}
           sub={t("Items still enabled")}
-          color={P.rose}
+          color={items.filter((i) => i.impact === "High" && i.enabled).length > 0 ? P.bad : P.good}
         />
       </div>
 
       <form
         onSubmit={handleAdd}
-        className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm"
+        className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] gap-3 rounded-2xl border border-border bg-card p-4"
       >
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder={t("Program name")}
-          className="min-w-0 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-500"
+          className="min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
         />
         <input
           value={newPath}
           onChange={(e) => setNewPath(e.target.value)}
           placeholder={t("Executable path")}
-          className="min-w-0 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-teal-500"
+          className="min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary"
         />
         <button
           type="submit"
           disabled={adding || !newName.trim() || !newPath.trim()}
-          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          style={{ background: P.teal }}
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all hover:-translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={{ background: P.teal, color: P.bg }}
         >
           {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           {adding ? t("Adding...") : t("Add Startup Item")}
@@ -521,7 +500,7 @@ export function StartupTab() {
       {/* ── Manager ────────────────────────────────────────────────────────── */}
       <Card className="p-0 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-card">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/50 border border-border">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border">
             <Search size={14} className="text-muted-foreground" />
             <input
               value={search}
@@ -532,8 +511,8 @@ export function StartupTab() {
           </div>
           <button
             onClick={handleDisableAllHighImpact}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm whitespace-nowrap cursor-pointer"
-            style={{ background: P.teal }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-0.5 active:scale-95 whitespace-nowrap cursor-pointer"
+            style={{ background: P.teal, color: P.bg }}
           >
             {t("Disable All High Impact")}
           </button>
@@ -547,8 +526,8 @@ export function StartupTab() {
                 className={cn(
                   "flex items-center gap-4 p-4 transition-colors duration-200",
                   item.enabled
-                    ? "bg-card hover:bg-secondary/30"
-                    : "bg-secondary/20 hover:bg-secondary/50 opacity-80"
+                    ? "bg-card hover:bg-background/50"
+                    : "bg-background/40 hover:bg-background/70 opacity-80"
                 )}
               >
                 <AppBrandIcon
@@ -586,7 +565,7 @@ export function StartupTab() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => handleDelete(item.name, item.is_hkcu)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-rose-400 hover:text-rose-500 active:scale-95"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-destructive hover:text-destructive active:scale-95"
                         aria-label={t("Delete startup item")}
                       >
                         <Trash2 size={14} />

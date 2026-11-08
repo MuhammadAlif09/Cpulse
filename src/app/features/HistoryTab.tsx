@@ -16,17 +16,9 @@ import {
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { StatCard } from "../components/ui/StatCard";
-
-// Teal-based palette consistent with the rest of the app
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  violet: "#8b5cf6",
-  slate: "#64748b",
-  good: "#10b981",
-};
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { isTauri } from "../utils/tauri";
 
 interface SessionLog {
   date: string;
@@ -35,10 +27,6 @@ interface SessionLog {
   duration: string;
   type: string;
   details?: string;
-}
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
 }
 
 function Card({
@@ -53,7 +41,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
+        "rounded-2xl p-5 bg-card border border-border transition-all duration-200",
         className
       )}
       style={style}
@@ -62,12 +50,6 @@ function Card({
     </div>
   );
 }
-
-const isTauri =
-  typeof window !== "undefined" &&
-  ((window as any).__TAURI_INTERNALS__ !== undefined ||
-    (window as any).__TAURI_IPC__ !== undefined ||
-    (window as any).process?.env?.NODE_ENV === "test");
 
 const getLogIcon = (type: string) => {
   switch (type) {
@@ -93,26 +75,8 @@ const getLogIcon = (type: string) => {
 };
 
 const getLogColor = (type: string) => {
-  switch (type) {
-    case "Deep Clean":
-    case "Quick Clean":
-      return P.teal;
-    case "RAM Boost":
-      return P.violet;
-    case "Privacy Sweep":
-      return P.rose;
-    case "Diagnostics":
-      return P.amber;
-    case "Booster Applied":
-      return P.good;
-    case "Booster Restored":
-      return P.slate;
-    case "Startup Toggled":
-    case "Startup Optimizer":
-      return P.sky;
-    default:
-      return P.teal;
-  }
+  if (type === "Booster Restored") return P.slate;
+  return P.teal;
 };
 
 const parseFreedToGB = (freedStr: string): number => {
@@ -128,22 +92,32 @@ const parseFreedToGB = (freedStr: string): number => {
   return num / 1024; // Default assume MB
 };
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+] as const;
+
+const MONTH_ALIAS_MAP: Record<string, string> = {
+  jan: "Jan",
+  peb: "Feb",
+  feb: "Feb",
+  mar: "Mar",
+  apr: "Apr",
+  mei: "May",
+  may: "May",
+  jun: "Jun",
+  jul: "Jul",
+  agu: "Aug",
+  aug: "Aug",
+  sep: "Sep",
+  okt: "Oct",
+  oct: "Oct",
+  nov: "Nov",
+  des: "Dec",
+  dec: "Dec",
+};
+
 const formatMonthYearShort = (date: Date) => {
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[date.getMonth()]} '${String(date.getFullYear()).slice(-2)}`;
+  return `${MONTH_NAMES[date.getMonth()]} '${String(date.getFullYear()).slice(-2)}`;
 };
 
 const getMonthYear = (dateStr: string) => {
@@ -152,47 +126,17 @@ const getMonthYear = (dateStr: string) => {
   const d = new Date(cleanDateStr);
   if (!isNaN(d.getTime())) return formatMonthYearShort(d);
 
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  for (const m of months) {
-    if (dateStr.includes(m)) {
-      const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
-      return `${m} '${yrMatch ? yrMatch[2] : "26"}`;
+  const lower = dateStr.toLowerCase();
+  const currentYrShort = String(new Date().getFullYear()).slice(-2);
+  const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
+  const yr = yrMatch ? yrMatch[2] : currentYrShort;
+
+  for (const [alias, canonical] of Object.entries(MONTH_ALIAS_MAP)) {
+    if (lower.includes(alias)) {
+      return `${canonical} '${yr}`;
     }
   }
 
-  const idMonths: Record<string, string> = {
-    Jan: "Jan",
-    Peb: "Feb",
-    Mar: "Mar",
-    Apr: "Apr",
-    Mei: "May",
-    Jun: "Jun",
-    Jul: "Jul",
-    Agu: "Aug",
-    Sep: "Sep",
-    Okt: "Oct",
-    Nov: "Nov",
-    Des: "Dec",
-  };
-  for (const [idM, enM] of Object.entries(idMonths)) {
-    if (dateStr.toLowerCase().includes(idM.toLowerCase())) {
-      const yrMatch = dateStr.match(/\b(20)?(2\d)\b/);
-      return `${enM} '${yrMatch ? yrMatch[2] : "26"}`;
-    }
-  }
   return "Other";
 };
 
@@ -241,14 +185,24 @@ export function HistoryTab() {
   const monthlyData = getMonthlyFreedData(history);
   const hasFreedData = monthlyData.some((d) => d.value > 0);
 
-  const ChartTooltip = ({ active, payload, label, unit }: any) => {
+  const ChartTooltip = ({
+    active,
+    payload,
+    label,
+    unit,
+  }: {
+    active?: boolean;
+    payload?: Array<{ color?: string; value?: number }>;
+    label?: string;
+    unit?: string;
+  }) => {
     if (!active || !payload?.length) return null;
     return (
       <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl p-3 shadow-lg font-sans tabular-nums text-xs">
         <div className="text-[10px] font-bold uppercase text-muted-foreground mb-1.5 tracking-wider">
           {label}
         </div>
-        {payload.map((entry: any, idx: number) => (
+        {payload.map((entry, idx: number) => (
           <div key={idx} className="flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full"
@@ -322,14 +276,14 @@ export function HistoryTab() {
               label={t("Scans Run")}
               value={history.length.toString()}
               sub={t("Recorded sessions")}
-              color={P.sky}
+              color={P.teal}
             />
             <StatCard
               icon={<Star size={15} />}
               label={t("Issues Fixed")}
               value={history.reduce((acc, curr) => acc + curr.fixed, 0).toString()}
               sub={t("All time")}
-              color={P.amber}
+              color={P.teal}
             />
           </div>
 
@@ -379,12 +333,8 @@ export function HistoryTab() {
                     <defs>
                       <linearGradient id="historyFreedGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={P.teal} stopOpacity={0.9} />
-                        <stop offset="100%" stopColor={P.teal} stopOpacity={0.2} />
+                        <stop offset="100%" stopColor={P.teal} stopOpacity={0.25} />
                       </linearGradient>
-                      <filter id="barGlow" x="-20%" y="-10%" width="140%" height="120%">
-                        <feGaussianBlur stdDeviation="2" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
                     </defs>
                   </BarChart>
                 </ResponsiveContainer>

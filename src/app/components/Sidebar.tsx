@@ -1,7 +1,8 @@
 import React from "react";
 import { Shield, Sparkles, X } from "lucide-react";
+import { P, scoreColor } from "../../design/tokens";
 
-interface SidebarProps {
+export interface SidebarProps {
   nav: { id: string; label: string; icon: React.ReactNode; badge?: number }[];
   tab: string;
   setTab: (tab: string) => void;
@@ -16,19 +17,6 @@ interface SidebarProps {
   t: (lang: string, text: string) => string;
   mobileMenuOpen?: boolean;
   onCloseMobile?: () => void;
-}
-
-const P = {
-  good: "#10b981", // score ≥ 80
-  warn: "#f59e0b", // score 50–79
-  bad: "#f43f5e", // score < 50
-  teal: "#0d9488",
-};
-
-function scoreColor(score: number) {
-  if (score >= 80) return P.good;
-  if (score >= 50) return P.warn;
-  return P.bad;
 }
 
 export function Sidebar({
@@ -50,7 +38,7 @@ export function Sidebar({
   const sc = scoreColor(score);
 
   return (
-    <aside className="w-full h-full flex-shrink-0 bg-card/90 backdrop-blur-xl flex flex-col py-4 px-3 gap-1 overflow-y-auto">
+    <aside className="w-full h-full flex-shrink-0 bg-card flex flex-col py-4 px-3 gap-1 overflow-y-auto">
       {/* Mobile Drawer Top Header */}
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-border md:hidden">
         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-2">
@@ -58,7 +46,7 @@ export function Sidebar({
         </span>
         <button
           onClick={onCloseMobile}
-          className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+          className="p-1 rounded-lg text-muted-foreground hover:bg-secondary transition cursor-pointer"
           aria-label="Close navigation menu"
         >
           <X size={18} />
@@ -93,9 +81,9 @@ export function Sidebar({
                   ? `color-mix(in srgb, ${P.teal} 12%, transparent)`
                   : "transparent",
                 color: active ? P.teal : "var(--muted-foreground)",
-                boxShadow: active
-                  ? `inset 0 0 0 1px color-mix(in srgb, ${P.teal} 15%, transparent), 0 0 12px -4px color-mix(in srgb, ${P.teal} 20%, transparent)`
-                  : "none",
+                border: active
+                  ? `1px solid color-mix(in srgb, ${P.teal} 25%, transparent)`
+                  : "1px solid transparent",
               }}
               onMouseEnter={(e) => {
                 if (!active) {
@@ -113,7 +101,7 @@ export function Sidebar({
               <span
                 className="flex-shrink-0 transition-transform duration-200"
                 style={{
-                  transform: active ? "scale(1.1)" : "scale(1)",
+                  transform: active ? "scale(1.05)" : "scale(1)",
                   color: active ? P.teal : "inherit",
                 }}
               >
@@ -124,8 +112,9 @@ export function Sidebar({
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded-full font-bold tracking-wide"
                   style={{
-                    background: active ? P.teal : "var(--muted)",
-                    color: active ? "#ffffff" : "var(--muted-foreground)",
+                    background: active ? P.teal : "var(--background)",
+                    color: active ? P.bg : "var(--muted-foreground)",
+                    border: active ? "none" : "1px solid var(--border)",
                   }}
                 >
                   {badgeCount}
@@ -139,17 +128,15 @@ export function Sidebar({
       <div className="mt-auto pt-4 transition-all duration-500 ease-in-out">
         {/* Score Card */}
         <div
-          className="rounded-2xl p-4 mb-3 border relative overflow-hidden backdrop-blur-md"
+          className="rounded-2xl p-4 mb-3 border relative overflow-hidden bg-background"
           style={{
-            borderColor: `color-mix(in srgb, ${sc} 15%, var(--border))`,
-            background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${sc} 4%, transparent))`,
-            boxShadow: `0 0 20px -6px color-mix(in srgb, ${sc} 12%, transparent)`,
+            borderColor: "var(--border)",
           }}
         >
           <div className="flex items-center gap-1.5 mb-2">
             <Shield size={14} style={{ color: sc }} />
             <span
-              className="text-[11px] font-bold uppercase tracking-wide opacity-80"
+              className="text-[11px] font-bold uppercase tracking-wide"
               style={{ color: sc }}
             >
               {t(lang, "Health Score")}
@@ -177,17 +164,17 @@ export function Sidebar({
           {/* Progress bar */}
           <div
             className="w-full h-1.5 rounded-full mt-3 overflow-hidden"
-            style={{ background: "var(--secondary)" }}
+            style={{ background: "var(--border)" }}
           >
             <div
               className="h-full rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${score}%`, background: sc, boxShadow: `0 0 8px ${sc}` }}
+              style={{ width: `${score}%`, background: sc }}
             />
           </div>
         </div>
 
         {/* Last Scan Info */}
-        <div className="rounded-xl p-3 bg-secondary/40 backdrop-blur-sm border border-border/30 text-[11px]">
+        <div className="rounded-xl p-3 bg-background border border-border text-[11px]">
           <div className="flex items-center gap-1.5 text-muted-foreground font-medium mb-1">
             <Sparkles size={12} />
             <span>{t(lang, "Last cleaned")}</span>

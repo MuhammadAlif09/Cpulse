@@ -22,26 +22,9 @@ import { useTranslation } from "react-i18next";
 import { addHistoryLog } from "../utils/history";
 import { motion, AnimatePresence } from "motion/react";
 
-// Teal-based palette
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  slate: "#64748b",
-  good: "#10b981",
-  violet: "#8b5cf6",
-};
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-const isTauri =
-  typeof window !== "undefined" &&
-  ((window as any).__TAURI_INTERNALS__ !== undefined ||
-    (window as any).__TAURI_IPC__ !== undefined ||
-    (window as any).process?.env?.NODE_ENV === "test");
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { isTauri } from "../utils/tauri";
 
 export function PrivacyTab({
   privacySwept,
@@ -54,6 +37,7 @@ export function PrivacyTab({
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanning, setScanning] = useState(true);
   const [sweeping, setSweeping] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({
     chrome_hist: true,
     edge_hist: true,
@@ -67,11 +51,13 @@ export function PrivacyTab({
 
   const runScan = async () => {
     setScanning(true);
+    setErrorMsg(null);
     try {
       const result = await invoke("scan_privacy");
       setScanResult(result);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Scan failed:", e);
+      setErrorMsg(typeof e === "string" ? e : e?.message || "Privacy scan failed");
     } finally {
       setScanning(false);
     }
@@ -86,6 +72,7 @@ export function PrivacyTab({
 
   const doSweep = async () => {
     setSweeping(true);
+    setErrorMsg(null);
     const t0 = Date.now();
     try {
       const selectedItems = Object.keys(selected).filter((k) => selected[k]);
@@ -104,8 +91,9 @@ export function PrivacyTab({
         duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
       });
       await runScan();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Sweep failed:", e);
+      setErrorMsg(typeof e === "string" ? e : e?.message || "Privacy sweep failed");
     } finally {
       setSweeping(false);
     }
@@ -210,24 +198,16 @@ export function PrivacyTab({
   return (
     <div className="space-y-4">
       {/* ── Scanner Header ──────────────────────────────────────────────────── */}
-      <div
-        className="rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm relative overflow-hidden transition-all duration-200"
-        style={{
-          background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 4%, transparent))`,
-          borderColor: `color-mix(in srgb, ${P.teal} 15%, var(--border))`,
-        }}
-      >
+      <div className="rounded-2xl p-5 bg-card border border-border relative overflow-hidden transition-all duration-200">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="flex items-start gap-3">
-            {/* Animated fingerprint privacy icon */}
+            {/* Privacy icon */}
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
               style={{
-                background: P.teal,
-                color: "#ffffff",
-                boxShadow: scanning
-                  ? `0 0 16px 2px rgba(13, 148, 136, 0.5)`
-                  : `0 4px 12px -2px rgba(13, 148, 136, 0.4)`,
+                background: `${P.teal}18`,
+                color: P.teal,
+                border: `1px solid ${P.teal}35`,
               }}
             >
               {scanning ? (
@@ -248,10 +228,10 @@ export function PrivacyTab({
               {/* Scan status line */}
               {scanning && (
                 <div className="flex items-center gap-2 mt-2">
-                  <div className="w-16 h-1 rounded-full bg-secondary overflow-hidden">
+                  <div className="w-16 h-1 rounded-full bg-background overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-teal-500/60 animate-pulse"
-                      style={{ width: "60%" }}
+                      className="h-full rounded-full"
+                      style={{ width: "60%", backgroundColor: P.teal }}
                     />
                   </div>
                   <span className="text-[10px] text-muted-foreground font-medium">
@@ -261,7 +241,16 @@ export function PrivacyTab({
               )}
               {!scanning && scanResult && !privacySwept && (
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-teal-500/10 text-teal-600 border border-teal-500/20">
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                    style={{
+                      color: items.filter((i) => i.found).length > 0 ? P.warn : P.good,
+                      backgroundColor:
+                        items.filter((i) => i.found).length > 0 ? `${P.warn}15` : `${P.good}15`,
+                      borderColor:
+                        items.filter((i) => i.found).length > 0 ? `${P.warn}30` : `${P.good}30`,
+                    }}
+                  >
                     {items.filter((i) => i.found).length} {t("traces found")}
                   </span>
                 </div>
@@ -273,7 +262,7 @@ export function PrivacyTab({
             <button
               onClick={runScan}
               disabled={scanning || sweeping}
-              className="flex items-center justify-center w-10 h-10 rounded-xl bg-card/80 backdrop-blur-sm border border-border/60 text-foreground hover:bg-secondary transition active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-background border border-border text-foreground hover:bg-secondary transition active:scale-95 disabled:opacity-50 cursor-pointer"
               title={t("Scan Again")}
             >
               <RefreshCw
@@ -285,13 +274,13 @@ export function PrivacyTab({
               <button
                 onClick={doSweep}
                 disabled={sweeping || scanning || selectedCount === 0}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
                 style={{
-                  background: sweeping ? "var(--border)" : P.rose,
-                  boxShadow:
-                    !sweeping && !scanning && selectedCount > 0
-                      ? `0 4px 14px -4px ${P.rose}`
-                      : "none",
+                  background: sweeping || scanning || selectedCount === 0 ? "var(--border)" : P.teal,
+                  color:
+                    sweeping || scanning || selectedCount === 0
+                      ? "var(--muted-foreground)"
+                      : P.bg,
                 }}
               >
                 {sweeping ? (
@@ -306,15 +295,16 @@ export function PrivacyTab({
               </button>
             ) : (
               <div
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-500"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
                 style={{
-                  background: "color-mix(in srgb, #10b981 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, #10b981 25%, transparent)",
-                  boxShadow: "0 0 25px -5px rgba(16, 185, 129, 0.4)",
+                  color: P.good,
+                  background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${P.good} 30%, transparent)`,
                 }}
               >
                 <motion.svg
-                  className="w-4 h-4 stroke-emerald-500"
+                  className="w-4 h-4"
+                  style={{ stroke: P.good }}
                   viewBox="0 0 24 24"
                   fill="none"
                   strokeWidth="3"
@@ -333,9 +323,16 @@ export function PrivacyTab({
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center gap-2">
+          <AlertTriangle size={15} className="shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       {/* ── Trace Grid (Bento) ────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-card/80 backdrop-blur-md border border-border/40 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-border/40">
+      <div className="rounded-2xl bg-card border border-border overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">{t("Privacy Traces Found")}</h3>
           <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             {selectedCount} {t("selected")}
@@ -344,18 +341,10 @@ export function PrivacyTab({
 
         {scanning ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            {/* Animated radar scan */}
-            <div className="relative w-16 h-16 mb-4">
-              <div className="absolute inset-0 rounded-full border-2 border-border/30" />
-              <div className="absolute inset-2 rounded-full border border-border/20" />
-              <div
-                className="absolute inset-0 rounded-full border-2 border-teal-500/30 animate-ping"
-                style={{ animationDuration: "1.5s" }}
-              />
-              <Fingerprint
-                size={20}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-teal-500/60"
-              />
+            <div className="relative w-16 h-16 mb-4 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-border" />
+              <div className="absolute inset-2 rounded-full border border-border" />
+              <Fingerprint size={20} style={{ color: P.teal }} />
             </div>
             <span className="text-sm font-medium">{t("Scanning for privacy traces...")}</span>
           </div>
@@ -367,28 +356,22 @@ export function PrivacyTab({
                 <button
                   key={item.id}
                   onClick={() => toggle(item.id)}
-                  className={cn(
-                    "text-left p-3.5 rounded-xl border border-transparent transition-all duration-200 cursor-pointer select-none group bg-secondary/15 hover:bg-secondary/30"
-                  )}
+                  className="text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer select-none group"
                   style={{
                     background: isActive
-                      ? `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${P.teal} 4%, transparent))`
-                      : undefined,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `color-mix(in srgb, ${P.teal} 20%, transparent)`;
-                    e.currentTarget.style.boxShadow = `0 4px 20px -4px color-mix(in srgb, ${P.teal} 15%, transparent)`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "transparent";
-                    e.currentTarget.style.boxShadow = "none";
+                      ? `color-mix(in srgb, ${P.teal} 8%, var(--card))`
+                      : "var(--background)",
+                    borderColor: isActive
+                      ? `color-mix(in srgb, ${P.teal} 35%, var(--border))`
+                      : "var(--border)",
                   }}
                 >
                   <div className="flex items-start gap-3">
                     {/* Neutralized Icon chip container */}
                     <div
-                      className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 text-muted-foreground bg-secondary/60 border border-border/20 transition-all group-hover:text-foreground group-hover:bg-secondary/90"
+                      className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 text-muted-foreground bg-card border border-border transition-all group-hover:text-foreground"
                       title={item.label}
+                      style={isActive ? { color: P.teal } : undefined}
                     >
                       {item.icon}
                     </div>
@@ -398,7 +381,14 @@ export function PrivacyTab({
                           {t(item.label)}
                         </span>
                         {item.found && item.count > 0 && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex-shrink-0 tabular-nums bg-teal-500/10 text-teal-600 border border-teal-500/20">
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex-shrink-0 tabular-nums border"
+                            style={{
+                              color: P.warn,
+                              backgroundColor: `${P.warn}15`,
+                              borderColor: `${P.warn}30`,
+                            }}
+                          >
                             {item.count.toLocaleString()}
                           </span>
                         )}
@@ -411,9 +401,8 @@ export function PrivacyTab({
                     <div
                       className="w-4.5 h-4.5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200"
                       style={{
-                        border: isActive ? `none` : `1px solid var(--border)`,
+                        border: isActive ? "none" : "1px solid var(--border)",
                         background: isActive ? P.teal : "transparent",
-                        boxShadow: isActive ? `0 0 8px -2px ${P.teal}` : "none",
                       }}
                     >
                       <AnimatePresence>
@@ -426,9 +415,8 @@ export function PrivacyTab({
                           >
                             <Check
                               size={11}
-                              color="white"
+                              color={P.bg}
                               strokeWidth={4}
-                              className="drop-shadow-sm"
                             />
                           </motion.div>
                         )}
@@ -442,8 +430,8 @@ export function PrivacyTab({
         )}
       </div>
 
-      {/* ── Tips (Colored border cards) ────────────────────────────────────── */}
-      <div className="rounded-2xl bg-card/80 backdrop-blur-md border border-border/40 shadow-sm p-5">
+      {/* ── Tips ────────────────────────────────────────────────────────────── */}
+      <div className="rounded-2xl bg-card border border-border p-5">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <ShieldCheck size={16} className="text-muted-foreground" />
           {t("Privacy Protection Tips")}
@@ -451,7 +439,7 @@ export function PrivacyTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
           {tips.map((x, i) => (
             <div key={i} className="flex gap-3 py-2 cursor-default group">
-              <span className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-secondary/50 text-muted-foreground border border-border/20 group-hover:bg-secondary/80 group-hover:text-foreground transition-all duration-200">
+              <span className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-background text-muted-foreground border border-border group-hover:text-foreground transition-all duration-200">
                 {x.icon}
               </span>
               <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">{t(x.tip)}</p>

@@ -85,8 +85,8 @@ export function ScanAnimation({ scanning, progress }: Props) {
 
   if (!scanning && logs.length === 0)
     return (
-      <div className="h-32 flex items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/10 transition-colors duration-300">
-        <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">
+      <div className="h-32 flex items-center justify-center border border-dashed border-border rounded-xl bg-background transition-colors duration-300">
+        <p className="text-sm text-muted-foreground font-medium">
           Ready to scan your system
         </p>
       </div>
@@ -98,10 +98,9 @@ export function ScanAnimation({ scanning, progress }: Props) {
       animate={{
         opacity: 1,
         y: 0,
-        boxShadow: scanning ? "0 0 15px rgba(79, 70, 229, 0.12)" : "0 0 0px rgba(0, 0, 0, 0)",
       }}
       transition={{ duration: 0.4 }}
-      className="rounded-xl p-4 h-36 overflow-hidden font-mono text-xs space-y-1.5 transition-all duration-300 border bg-slate-950 border-slate-800 dark:bg-black/90"
+      className="rounded-xl p-4 h-36 overflow-hidden font-mono text-xs space-y-1.5 transition-all duration-300 border bg-background border-border"
     >
       <div className="space-y-1.5 h-[100px] overflow-hidden flex flex-col justify-end">
         <AnimatePresence initial={false}>
@@ -114,8 +113,8 @@ export function ScanAnimation({ scanning, progress }: Props) {
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className="flex items-center gap-2"
             >
-              <span className="text-indigo-400 font-bold">&gt;</span>
-              <span className="text-slate-300 select-all">{log.text}</span>
+              <span className="font-bold text-primary">&gt;</span>
+              <span className="text-foreground select-all">{log.text}</span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -125,10 +124,10 @@ export function ScanAnimation({ scanning, progress }: Props) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex items-center gap-2 pt-1 border-t border-slate-800/60"
+          className="flex items-center gap-2 pt-1 border-t border-border"
         >
-          <span className="text-indigo-400 animate-pulse font-bold">&gt;</span>
-          <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent font-semibold animate-pulse">
+          <span className="text-primary font-bold">&gt;</span>
+          <span className="text-primary font-semibold">
             Processing... {Math.round(progress)}%
           </span>
         </motion.div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
+import { P } from "../../design/tokens";
 
 interface RadialGaugeProps {
   value: number;
@@ -16,8 +17,8 @@ export function RadialGauge({
   value,
   max = 100,
   size = 120,
-  color = "#4f46e5",
-  trackColor = "#e2e8f0",
+  color = P.teal,
+  trackColor = P.border,
   label,
   sublabel,
   showValue = true,
@@ -59,9 +60,6 @@ export function RadialGauge({
             initial={{ strokeDasharray: `0 ${circ}` }}
             animate={{ strokeDasharray: `${dash} ${gap}` }}
             transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            style={{
-              filter: `drop-shadow(0 0 6px ${color}80)`,
-            }}
           />
         </svg>
         {showValue && (
@@ -78,7 +76,7 @@ export function RadialGauge({
         )}
       </div>
       <span className="text-xs font-medium text-center text-muted-foreground">{label}</span>
-      {sublabel && <span className="text-xs text-slate-400 text-center">{sublabel}</span>}
+      {sublabel && <span className="text-xs text-muted-foreground text-center">{sublabel}</span>}
     </div>
   );
 }

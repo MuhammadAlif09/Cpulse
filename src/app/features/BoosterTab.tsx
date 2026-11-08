@@ -22,23 +22,9 @@ import { toast } from "sonner";
 import { addHistoryLog } from "../utils/history";
 import { motion } from "motion/react";
 
-// Teal-based palette
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  violet: "#8b5cf6",
-  slate: "#64748b",
-  good: "#10b981",
-  cyan: "#06b6d4",
-  pink: "#ec4899",
-  emerald: "#10b981",
-};
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { isTauri } from "../utils/tauri";
 
 function Card({
   children,
@@ -52,7 +38,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
+        "rounded-2xl p-5 bg-card border border-border transition-all duration-200",
         className
       )}
       style={style}
@@ -69,11 +55,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
   const [mode, setMode] = useState<"balanced" | "performance" | "gaming">("balanced");
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      ((window as any).__TAURI_INTERNALS__ !== undefined ||
-        (window as any).__TAURI_IPC__ !== undefined)
-    ) {
+    if (isTauri) {
       invoke("set_power_plan", { plan: mode }).catch(console.error);
     }
   }, [mode]);
@@ -237,12 +219,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div className="space-y-4">
-      <Card
-        style={{
-          background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))`,
-          borderColor: `color-mix(in srgb, ${P.teal} 20%, var(--border))`,
-        }}
-      >
+      <Card>
         <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -255,7 +232,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
               {t("Choose how aggressively to optimize your system")}
             </p>
           </div>
-          <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
+          <div className="flex gap-1 p-1 rounded-lg bg-background border border-border">
             {(["balanced", "performance", "gaming"] as const).map((m) => (
               <button
                 key={m}
@@ -266,7 +243,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                     ? {
                         background: "var(--card)",
                         color: P.teal,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                        border: "1px solid var(--border)",
                       }
                     : { color: "var(--muted-foreground)" }
                 }
@@ -274,23 +251,17 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                 {m === "balanced" ? (
                   <Zap
                     size={13}
-                    className={
-                      mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"
-                    }
+                    style={{ color: mode === m ? P.teal : "var(--muted-foreground)" }}
                   />
                 ) : m === "performance" ? (
                   <Rocket
                     size={13}
-                    className={
-                      mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"
-                    }
+                    style={{ color: mode === m ? P.teal : "var(--muted-foreground)" }}
                   />
                 ) : (
                   <Gamepad2
                     size={13}
-                    className={
-                      mode === m ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/60"
-                    }
+                    style={{ color: mode === m ? P.teal : "var(--muted-foreground)" }}
                   />
                 )}
                 {t(m.charAt(0).toUpperCase() + m.slice(1))}
@@ -299,14 +270,13 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 bg-secondary/30 p-3 rounded-xl border border-border/50">
-          <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 bg-background p-3 rounded-xl border border-border">
+          <div className="flex-1 h-2 rounded-full bg-card overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
                 width: `${(doneCount / BOOSTS.length) * 100}%`,
                 background: P.teal,
-                boxShadow: `0 0 8px ${P.teal}`,
               }}
             />
           </div>
@@ -321,22 +291,23 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           {doneCount < totalAvailable ? (
             <button
               onClick={applyAll}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold text-white uppercase tracking-wider transition-all hover:-translate-y-0.5 active:scale-95 shadow-sm cursor-pointer"
-              style={{ background: P.teal }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              style={{ background: P.teal, color: P.bg }}
             >
               <Zap size={14} /> {t("Apply All")}
             </button>
           ) : (
             <div
-              className="flex items-center gap-1.5 text-emerald-500 text-[11px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-lg"
+              className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-lg"
               style={{
-                background: "color-mix(in srgb, #10b981 12%, transparent)",
-                border: "1px solid color-mix(in srgb, #10b981 25%, transparent)",
-                boxShadow: "0 0 25px -5px rgba(16, 185, 129, 0.4)",
+                color: P.good,
+                background: `color-mix(in srgb, ${P.good} 12%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${P.good} 30%, transparent)`,
               }}
             >
               <motion.svg
-                className="w-3.5 h-3.5 stroke-emerald-500"
+                className="w-3.5 h-3.5"
+                style={{ stroke: P.good }}
                 viewBox="0 0 24 24"
                 fill="none"
                 strokeWidth="3.5"
@@ -363,14 +334,11 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
           return (
             <div
               key={b.id}
-              className="p-4 rounded-xl border bg-card/80 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+              className="p-4 rounded-xl border bg-card transition-all duration-200 hover:-translate-y-0.5"
               style={{
                 borderColor: done
-                  ? `color-mix(in srgb, ${b.color} 30%, transparent)`
+                  ? `color-mix(in srgb, ${P.good} 35%, var(--border))`
                   : "var(--border)",
-                boxShadow: done
-                  ? `0 0 16px -4px color-mix(in srgb, ${b.color} 15%, transparent)`
-                  : "none",
               }}
             >
               <div className="flex gap-4">
@@ -378,11 +346,12 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
                     background: locked
-                      ? `color-mix(in srgb, ${P.rose} 15%, transparent)`
+                      ? `color-mix(in srgb, ${P.bad} 15%, transparent)`
                       : done
-                        ? `color-mix(in srgb, ${b.color} 15%, transparent)`
-                        : "var(--secondary)",
-                    color: locked ? P.rose : done ? b.color : "var(--muted-foreground)",
+                        ? `color-mix(in srgb, ${P.good} 15%, transparent)`
+                        : "var(--background)",
+                    color: locked ? P.bad : done ? P.good : P.teal,
+                    border: !locked && !done ? "1px solid var(--border)" : "none",
                   }}
                 >
                   {locked ? (
@@ -404,7 +373,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                     <h4 className="text-[13px] font-semibold text-foreground truncate max-w-[160px]">
                       {t(b.title)}
                     </h4>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-secondary text-muted-foreground uppercase tracking-widest flex-shrink-0">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-background border border-border text-muted-foreground uppercase tracking-widest flex-shrink-0">
                       {t(b.category)}
                     </span>
                   </div>
@@ -414,7 +383,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                   <div className="flex items-center justify-between">
                     <span
                       className="text-[11px] font-bold"
-                      style={{ color: locked ? P.rose : b.color }}
+                      style={{ color: locked ? P.bad : done ? P.good : b.color }}
                     >
                       {locked ? t("Requires Admin Privileges") : t(b.gain)}
                     </span>
@@ -438,7 +407,7 @@ export function BoosterTab({ isAdmin }: { isAdmin: boolean }) {
                       <button
                         onClick={() => restoreBoost(b.id)}
                         disabled={loading}
-                        className="text-[11px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1 bg-secondary text-muted-foreground hover:bg-secondary/80 border border-border cursor-pointer"
+                        className="text-[11px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-1 bg-background text-muted-foreground hover:text-foreground border border-border cursor-pointer"
                       >
                         {loading ? (
                           <RefreshCw size={12} className="animate-spin" />

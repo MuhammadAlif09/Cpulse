@@ -46,6 +46,7 @@ describe("Header", () => {
 
   it("shows buttons in the header", () => {
     render(<Header {...defaultProps} />);
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Open notifications/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Open settings/i })).toBeInTheDocument();
   });
 });

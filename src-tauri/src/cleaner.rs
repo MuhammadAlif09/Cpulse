@@ -1,29 +1,26 @@
 // cleaner.rs — Modularized junk scan & clean logic for CPulse
 //
-// Extracted from lib.rs to keep each feature domain in its own file.
-// Contains: JunkItem struct, scan/clean functions, cancel mechanism,
-// safeguard limits, audit logging, and all scan categories.
+// Single source of truth for all 13 junk categories. Both scan and clean
+// operate on the unified CATEGORIES registry to eliminate duplicate definitions,
+// divergent category names, and repeated progress emission boilerplate.
 
 use serde::Serialize;
 use std::fs;
 use std::io::{BufWriter, Write};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use trash::delete as move_to_trash;
 
 // ─── Safeguard Constants ──────────────────────────────────────────────
-// Prevents OOM/stack overflow on abnormal folder structures (junction loops,
-// deeply nested symbolic links, or folders with millions of tiny files).
 pub const MAX_FILES: usize = 100_000;
 pub const MAX_DEPTH: usize = 20;
 const MAX_PATH_LEN: usize = 4096;
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 // ─── Cancel Scan State ────────────────────────────────────────────────
-// Stored in Tauri managed state via `app.manage()`. This avoids global
-// mutable statics and race conditions when user spams the scan button.
 pub struct ScanCancelFlag(pub Arc<AtomicBool>);
 
 impl Default for ScanCancelFlag {
@@ -34,21 +31,24 @@ impl Default for ScanCancelFlag {
 
 // ─── Data Structures ──────────────────────────────────────────────────
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct JunkItem {
     pub name: String,
     pub size: String,
     pub bytes: u64,
     pub count: usize,
-    /// Human-readable explanation of what this category contains
     pub description: String,
-    /// Warning text for sensitive categories (empty string = safe to clean)
     pub warning: String,
-    /// Whether this category requires administrator privileges
     pub requires_admin: bool,
 }
 
-// ─── Utility Functions ────────────────────────────────────────────────
+#[derive(Clone, Serialize, Debug, Default)]
+pub struct CleanResult {
+    pub bytes_freed: u64,
+    pub files_cleaned: usize,
+}
+
+// ─── Size Formatter ───────────────────────────────────────────────────
 
 pub fn format_size(bytes: u64) -> String {
     if bytes < 1024 {
@@ -66,30 +66,18 @@ pub fn format_size(bytes: u64) -> String {
     format!("{:.1} GB", gb)
 }
 
-/// Recursively calculates the total size and file count of a directory.
-///
-/// Safeguards enforced:
-/// - MAX_FILES: stops counting after 100,000 files
-/// - MAX_DEPTH: stops recursing deeper than 20 levels
-/// - MAX_PATH_LEN: skips paths longer than 4096 characters
-/// - Cancel flag: checked per-iteration so user can abort mid-scan
+// ─── Directory Walking & Safeguards ───────────────────────────────────
+
 pub fn get_dir_size_and_count(
     path: &Path,
     cancel_flag: Option<&AtomicBool>,
     depth: usize,
     file_count: &mut usize,
 ) -> (u64, usize) {
-    // Safeguard: max recursion depth to prevent stack overflow on junction loops
-    if depth > MAX_DEPTH {
+    if depth > MAX_DEPTH || *file_count >= MAX_FILES {
         return (0, 0);
     }
 
-    // Safeguard: max file count to prevent OOM
-    if *file_count >= MAX_FILES {
-        return (0, 0);
-    }
-
-    // Cancel check: user pressed "Cancel Scan"
     if let Some(flag) = cancel_flag {
         if flag.load(Ordering::Relaxed) {
             return (0, 0);
@@ -101,25 +89,21 @@ pub fn get_dir_size_and_count(
 
     let entries = match fs::read_dir(path) {
         Ok(entries) => entries,
-        Err(_) => return (0, 0), // graceful: skip inaccessible dirs (PermissionDenied etc.)
+        Err(_) => return (0, 0),
     };
 
     for entry in entries.flatten() {
-        // Safeguard: check cancel flag periodically (every entry)
         if let Some(flag) = cancel_flag {
             if flag.load(Ordering::Relaxed) {
                 return (size, count);
             }
         }
 
-        // Safeguard: max file count reached
         if *file_count >= MAX_FILES {
             return (size, count);
         }
 
         let entry_path = entry.path();
-
-        // Safeguard: skip paths that are too long
         if entry_path.to_string_lossy().len() > MAX_PATH_LEN {
             continue;
         }
@@ -141,14 +125,11 @@ pub fn get_dir_size_and_count(
     (size, count)
 }
 
-/// Convenience wrapper that starts at depth 0 and creates a file counter.
 pub fn scan_dir(path: &Path, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
     let mut file_count = 0usize;
     get_dir_size_and_count(path, cancel_flag, 0, &mut file_count)
 }
 
-/// Scans multiple subdirectories matching a glob-like pattern within a base dir.
-/// Used for Firefox-style profile directories and thumbcache files.
 fn scan_matching_children(
     base: &Path,
     name_contains: &str,
@@ -179,8 +160,6 @@ fn scan_matching_children(
     (total_bytes, total_count)
 }
 
-/// Gets the total Recycle Bin size across all drives using PowerShell.
-/// Returns (bytes, approximate_item_count).
 fn get_recycle_bin_size() -> (u64, usize) {
     let output = std::process::Command::new("powershell")
         .args([
@@ -193,7 +172,7 @@ fn get_recycle_bin_size() -> (u64, usize) {
              foreach($item in $items) { $totalSize += $item.ExtendedProperty('System.Size') }; \
              Write-Output \"$totalSize|$count\"",
         ])
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .creation_flags(CREATE_NO_WINDOW)
         .output();
 
     if let Ok(out) = output {
@@ -211,618 +190,78 @@ fn get_recycle_bin_size() -> (u64, usize) {
     (0, 0)
 }
 
-// ─── Scan Logic ───────────────────────────────────────────────────────
+// ─── File Deletion and Audit Logging ─────────────────────────────────
 
-pub fn scan_junk_internal(
-    app: Option<&tauri::AppHandle>,
-    cancel_flag: Option<&AtomicBool>,
-) -> Result<Vec<JunkItem>, String> {
-    let is_admin = is_elevated::is_elevated();
-    let completed_steps = &AtomicUsize::new(0);
-    let total_steps = 13.0f32;
-
-    let is_cancelled = || -> bool { cancel_flag.is_some_and(|f| f.load(Ordering::Relaxed)) };
-
-    let mut results = Vec::new();
-
-    std::thread::scope(|s| {
-        // ── 1. Windows Temp Files ─────────────────────────────────────────
-        let t1 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut temp_bytes = 0u64;
-            let mut temp_count = 0usize;
-            let local_temp = std::env::temp_dir();
-            let (s, c) = scan_dir(&local_temp, cancel_flag);
-            temp_bytes += s;
-            temp_count += c;
-
-            if is_admin {
-                let win_temp = PathBuf::from("C:\\Windows\\Temp");
-                let (s, c) = scan_dir(&win_temp, cancel_flag);
-                temp_bytes += s;
-                temp_count += c;
-            }
-
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-
-            if temp_bytes > 0 || temp_count > 0 {
-                Some(JunkItem {
-                    name: "Windows Temp Files".to_string(),
-                    size: format_size(temp_bytes),
-                    bytes: temp_bytes,
-                    count: temp_count,
-                    description: "Temporary files created by Windows and applications during normal operation. Safe to remove.".to_string(),
-                    warning: String::new(),
-                    requires_admin: false,
-                })
-            } else {
-                None
-            }
-        });
-
-        // ── 2. Browser Cache (Chrome + Edge + Brave) ──────────────────────
-        let t2 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut browser_bytes = 0u64;
-            let mut browser_count = 0usize;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let local_app_data = PathBuf::from(local_app_data);
-
-                // Chrome cache directories
-                let chrome_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache");
-                let (s, c) = scan_dir(&chrome_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-
-                let chrome_code_cache = local_app_data.join("Google\\Chrome\\User Data\\Default\\Code Cache");
-                let (s, c) = scan_dir(&chrome_code_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-
-                // Edge cache directories
-                let edge_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache");
-                let (s, c) = scan_dir(&edge_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-
-                let edge_code_cache = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Code Cache");
-                let (s, c) = scan_dir(&edge_code_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-
-                // Brave cache
-                let brave_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache");
-                let (s, c) = scan_dir(&brave_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-
-                let brave_code_cache = local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache");
-                let (s, c) = scan_dir(&brave_code_cache, cancel_flag);
-                browser_bytes += s;
-                browser_count += c;
-            }
-
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-
-            if browser_bytes > 0 || browser_count > 0 {
-                Some(JunkItem {
-                    name: "Browser Cache".to_string(),
-                    size: format_size(browser_bytes),
-                    bytes: browser_bytes,
-                    count: browser_count,
-                    description: "Cached web pages, images, and scripts from Chrome, Edge, and Brave. Browsers will rebuild this cache as needed.".to_string(),
-                    warning: String::new(),
-                    requires_admin: false,
-                })
-            } else {
-                None
-            }
-        });
-
-        // ── 3. Windows Update Cache (Admin) ───────────────────────────────
-        let t3 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if is_admin {
-                let soft_dist = PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download");
-                let (s, c) = scan_dir(&soft_dist, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Windows Update Cache".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Downloaded update packages that Windows no longer needs after successful installation.".to_string(),
-                        warning: "Removing may cause Windows to re-download updates if they haven't been applied yet.".to_string(),
-                        requires_admin: true,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 4. Crash Dumps & Logs ─────────────────────────────────────────
-        let t4 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut dump_bytes = 0u64;
-            let mut dump_count = 0usize;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let crash_dumps = PathBuf::from(local_app_data).join("CrashDumps");
-                let (s, c) = scan_dir(&crash_dumps, cancel_flag);
-                dump_bytes += s;
-                dump_count += c;
-            }
-            if is_admin {
-                let minidump = PathBuf::from("C:\\Windows\\Minidump");
-                let (s, c) = scan_dir(&minidump, cancel_flag);
-                dump_bytes += s;
-                dump_count += c;
-            }
-
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-
-            if dump_bytes > 0 || dump_count > 0 {
-                Some(JunkItem {
-                    name: "Crash Dumps & Logs".to_string(),
-                    size: format_size(dump_bytes),
-                    bytes: dump_bytes,
-                    count: dump_count,
-                    description: "Memory dump files generated when applications or Windows crash. Only needed for debugging.".to_string(),
-                    warning: String::new(),
-                    requires_admin: false,
-                })
-            } else {
-                None
-            }
-        });
-
-        // ── 5. Recycle Bin ────────────────────────────────────────────────
-        let t5 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let (rb_bytes, rb_count) = get_recycle_bin_size();
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            if rb_bytes > 0 || rb_count > 0 {
-                Some(JunkItem {
-                    name: "Recycle Bin".to_string(),
-                    size: format_size(rb_bytes),
-                    bytes: rb_bytes,
-                    count: rb_count,
-                    description: "Files you've previously deleted that are sitting in the Recycle Bin across all drives.".to_string(),
-                    warning: "This action is irreversible. Files will be permanently deleted and cannot be recovered.".to_string(),
-                    requires_admin: false,
-                })
-            } else {
-                None
-            }
-        });
-
-        // ── 6. Windows Prefetch (Admin) ───────────────────────────────────
-        let t6 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if is_admin {
-                let prefetch = PathBuf::from("C:\\Windows\\Prefetch");
-                let (s, c) = scan_dir(&prefetch, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Windows Prefetch".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Application launch optimization data. Windows will rebuild this automatically.".to_string(),
-                        warning: "First app launches after cleaning may be slightly slower while Windows rebuilds the prefetch data.".to_string(),
-                        requires_admin: true,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 7. Thumbnail Cache ────────────────────────────────────────────
-        let t7 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let explorer_dir = PathBuf::from(&local_app_data)
-                    .join("Microsoft\\Windows\\Explorer");
-                let (s, c) = scan_matching_children(&explorer_dir, "thumbcache", cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Thumbnail Cache".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Cached thumbnail images for File Explorer. Windows will regenerate them as needed.".to_string(),
-                        warning: "Some files may be locked by Explorer and will be skipped.".to_string(),
-                        requires_admin: false,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 8. Windows Log Files (Admin) ──────────────────────────────────
-        let t8 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if is_admin {
-                let logs_dir = PathBuf::from("C:\\Windows\\Logs");
-                let (s, c) = scan_dir(&logs_dir, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Windows Log Files".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "System log files including CBS, DISM, and setup logs. Safe to remove old entries.".to_string(),
-                        warning: "Removing may make it harder to diagnose recent system issues.".to_string(),
-                        requires_admin: true,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 9. Font Cache ─────────────────────────────────────────────────
-        let t9 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let font_cache_dir = PathBuf::from(&local_app_data);
-                let (s, c) = scan_matching_children(&font_cache_dir, "fontcache", cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Font Cache".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description:
-                            "Cached font rendering data. Windows will rebuild this on next restart."
-                                .to_string(),
-                        warning: String::new(),
-                        requires_admin: false,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 10. DirectX Shader Cache ──────────────────────────────────────
-        let t10 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let shader_cache = PathBuf::from(&local_app_data).join("D3DSCache");
-                let (s, c) = scan_dir(&shader_cache, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "DirectX Shader Cache".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Compiled shader programs cached by DirectX. Games and apps will recompile them as needed.".to_string(),
-                        warning: String::new(),
-                        requires_admin: false,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 11. Windows Error Reports ─────────────────────────────────────
-        let t11 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let wer_dir = PathBuf::from(&local_app_data)
-                    .join("Microsoft\\Windows\\WER");
-                let (s, c) = scan_dir(&wer_dir, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Windows Error Reports".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Error reports generated by Windows Error Reporting. Safe to remove if issues are resolved.".to_string(),
-                        warning: String::new(),
-                        requires_admin: false,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 12. Delivery Optimization Cache (Admin) ───────────────────────
-        let t12 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut item = None;
-            if is_admin {
-                let delivery_opt = PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization");
-                let (s, c) = scan_dir(&delivery_opt, cancel_flag);
-                if s > 0 || c > 0 {
-                    item = Some(JunkItem {
-                        name: "Delivery Optimization".to_string(),
-                        size: format_size(s),
-                        bytes: s,
-                        count: c,
-                        description: "Cached files used by Windows to share updates with other PCs on your network.".to_string(),
-                        warning: "Removing may cause Windows to re-download update data for peer sharing.".to_string(),
-                        requires_admin: true,
-                    });
-                }
-            }
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-            item
-        });
-
-        // ── 13. Application Cache (Discord, Teams, Steam, Riot) ───────────
-        let t13 = s.spawn(|| {
-            if is_cancelled() {
-                let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-                if let Some(h) = app {
-                    let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-                }
-                return None;
-            }
-            let mut app_bytes = 0u64;
-            let mut app_count = 0usize;
-
-            if let Some(appdata) = std::env::var_os("APPDATA") {
-                let appdata = PathBuf::from(appdata);
-
-                // Discord cache
-                let discord_cache = appdata.join("discord\\Cache");
-                let (s, c) = scan_dir(&discord_cache, cancel_flag);
-                app_bytes += s;
-                app_count += c;
-
-                let discord_code_cache = appdata.join("discord\\Code Cache");
-                let (s, c) = scan_dir(&discord_code_cache, cancel_flag);
-                app_bytes += s;
-                app_count += c;
-
-                // Microsoft Teams cache
-                let teams_cache = appdata.join("Microsoft\\Teams\\Cache");
-                let (s, c) = scan_dir(&teams_cache, cancel_flag);
-                app_bytes += s;
-                app_count += c;
-
-                let teams_code_cache = appdata.join("Microsoft\\Teams\\Code Cache");
-                let (s, c) = scan_dir(&teams_code_cache, cancel_flag);
-                app_bytes += s;
-                app_count += c;
-            }
-
-            if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-                let local_app_data = PathBuf::from(local_app_data);
-
-                // Steam appcache
-                let steam_cache = local_app_data.join("Steam\\htmlcache");
-                let (s, c) = scan_dir(&steam_cache, cancel_flag);
-                app_bytes += s;
-                app_count += c;
-
-                // Riot Games
-                let riot_cache = local_app_data.join("Riot Games");
-                if riot_cache.exists() {
-                    let riot_logs = riot_cache.join("Riot Client\\Logs");
-                    let (s, c) = scan_dir(&riot_logs, cancel_flag);
-                    app_bytes += s;
-                    app_count += c;
-
-                    let riot_data = riot_cache.join("Riot Client\\Data");
-                    let (s, c) = scan_dir(&riot_data, cancel_flag);
-                    app_bytes += s;
-                    app_count += c;
-                }
-            }
-
-            let val = completed_steps.fetch_add(1, Ordering::SeqCst) + 1;
-            if let Some(h) = app {
-                let _ = h.emit("scan_progress", ((val as f32 / total_steps) * 100.0) as u8);
-            }
-
-            if app_bytes > 0 || app_count > 0 {
-                Some(JunkItem {
-                    name: "Application Cache".to_string(),
-                    size: format_size(app_bytes),
-                    bytes: app_bytes,
-                    count: app_count,
-                    description: "Cache files from Discord, Teams, Steam, and Riot Games. Apps will rebuild their cache on next launch.".to_string(),
-                    warning: String::new(),
-                    requires_admin: false,
-                })
-            } else {
-                None
-            }
-        });
-
-        // Collect results
-        if let Some(item) = t1.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t2.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t3.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t4.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t5.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t6.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t7.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t8.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t9.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t10.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t11.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t12.join().unwrap_or(None) {
-            results.push(item);
-        }
-        if let Some(item) = t13.join().unwrap_or(None) {
-            results.push(item);
-        }
-    });
-
-    Ok(results)
+pub fn classify_audit_error(err_str: &str) -> &'static str {
+    let lower = err_str.to_lowercase();
+    if lower.contains("access is denied")
+        || lower.contains("permission")
+        || lower.contains("being used")
+        || lower.contains("used by another process")
+        || lower.contains("sharing violation")
+        || lower.contains("locked")
+    {
+        "FAILED_LOCKED"
+    } else {
+        "FAILED_ERROR"
+    }
 }
 
-// ─── Tauri Commands ───────────────────────────────────────────────────
+fn delete_file_and_log(
+    writer: &mut Option<BufWriter<fs::File>>,
+    path: &Path,
+    category: &str,
+    to_trash: bool,
+    time_str: &str,
+) -> (u64, usize) {
+    let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+    let path_str = path.to_string_lossy();
 
-#[tauri::command]
-pub async fn scan_junk(app: tauri::AppHandle) -> Result<Vec<JunkItem>, String> {
-    // Reset the cancel flag before starting a new scan
-    let cancel_state = app.state::<ScanCancelFlag>();
-    cancel_state.0.store(false, Ordering::SeqCst);
+    let result = if to_trash {
+        move_to_trash(path).map_err(|e| e.to_string())
+    } else {
+        fs::remove_file(path).map_err(|e| e.to_string())
+    };
 
-    let cancel_flag = cancel_state.0.clone();
-    let app_clone = app.clone();
+    let mut freed = 0;
+    let mut cleaned = 0;
+    if result.is_ok() {
+        freed = size;
+        cleaned = 1;
+    }
 
-    tauri::async_runtime::spawn_blocking(move || {
-        scan_junk_internal(Some(&app_clone), Some(&cancel_flag))
-    })
-    .await
-    .map_err(|e| format!("Scan junk thread panicked: {}", e))?
+    if let Some(w) = writer.as_mut() {
+        match result {
+            Ok(_) => {
+                let status = if to_trash { "TRASHED" } else { "CLEANED" };
+                let _ = writeln!(
+                    w,
+                    "{} | {} | {} | {} | {} |",
+                    time_str,
+                    status,
+                    category,
+                    format_size(size),
+                    path_str
+                );
+            }
+            Err(e) => {
+                let status = classify_audit_error(&e);
+                let _ = writeln!(
+                    w,
+                    "{} | {} | {} | {} | {} | {}",
+                    time_str,
+                    status,
+                    category,
+                    format_size(size),
+                    path_str,
+                    e
+                );
+            }
+        }
+    }
+
+    (freed, cleaned)
 }
-
-#[tauri::command]
-pub fn cancel_scan(app: tauri::AppHandle) -> Result<String, String> {
-    let cancel_state = app.state::<ScanCancelFlag>();
-    cancel_state.0.store(true, Ordering::SeqCst);
-    Ok("Scan cancelled".into())
-}
-
-// ─── Clean Logic ──────────────────────────────────────────────────────
 
 pub fn clear_dir_internal(
     writer: &mut Option<BufWriter<fs::File>>,
@@ -832,61 +271,11 @@ pub fn clear_dir_internal(
     time_str: &str,
     is_root: bool,
 ) -> (u64, usize) {
-    if !path.exists() {
-        return (0, 0);
-    }
-
     let mut bytes_freed = 0u64;
     let mut files_cleaned = 0usize;
 
     if path.is_file() {
-        let size = fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-        let path_str = path.to_string_lossy();
-
-        let result = if to_trash {
-            move_to_trash(path).map_err(|e| e.to_string())
-        } else {
-            fs::remove_file(path).map_err(|e| e.to_string())
-        };
-
-        if result.is_ok() {
-            bytes_freed += size;
-            files_cleaned += 1;
-        }
-
-        if let Some(w) = writer.as_mut() {
-            match result {
-                Ok(_) => {
-                    let status = if to_trash { "TRASHED" } else { "CLEANED" };
-                    let _ = writeln!(
-                        w,
-                        "{} | {} | {} | {} | {} |",
-                        time_str,
-                        status,
-                        category,
-                        format_size(size),
-                        path_str
-                    );
-                }
-                Err(e) => {
-                    let status = if e.contains("Access is denied") || e.contains("permission") {
-                        "FAILED_LOCKED"
-                    } else {
-                        "FAILED_ERROR"
-                    };
-                    let _ = writeln!(
-                        w,
-                        "{} | {} | {} | {} | {} | {}",
-                        time_str,
-                        status,
-                        category,
-                        format_size(size),
-                        path_str,
-                        e
-                    );
-                }
-            }
-        }
+        return delete_file_and_log(writer, path, category, to_trash, time_str);
     } else if path.is_dir() {
         if let Ok(entries) = fs::read_dir(path) {
             for entry in entries.flatten() {
@@ -916,11 +305,7 @@ pub fn clear_dir_internal(
                         );
                     }
                     Err(e) => {
-                        let status = if e.contains("Access is denied") || e.contains("permission") {
-                            "FAILED_LOCKED"
-                        } else {
-                            "FAILED_ERROR"
-                        };
+                        let status = classify_audit_error(&e);
                         let _ = writeln!(
                             w,
                             "{} | {} | {} | 0 B | {} | {}",
@@ -941,8 +326,6 @@ pub fn clear_dir(path: &Path, to_trash: bool) -> Result<(u64, usize), String> {
     Ok(res)
 }
 
-/// Clears all files matching a name pattern inside a parent directory.
-/// Used for thumbcache_*, FontCache* files that live alongside other files.
 fn clear_matching_children(
     writer: &mut Option<BufWriter<fs::File>>,
     base: &Path,
@@ -965,89 +348,50 @@ fn clear_matching_children(
                     bytes_freed += b;
                     files_cleaned += f;
                 } else if path.is_file() {
-                    let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
-                    let path_str = path.to_string_lossy();
-
-                    let result = if to_trash {
-                        move_to_trash(&path).map_err(|e| e.to_string())
-                    } else {
-                        fs::remove_file(&path).map_err(|e| e.to_string())
-                    };
-
-                    if result.is_ok() {
-                        bytes_freed += size;
-                        files_cleaned += 1;
-                    }
-
-                    if let Some(w) = writer.as_mut() {
-                        match result {
-                            Ok(_) => {
-                                let status = if to_trash { "TRASHED" } else { "CLEANED" };
-                                let _ = writeln!(
-                                    w,
-                                    "{} | {} | {} | {} | {} |",
-                                    time_str,
-                                    status,
-                                    category,
-                                    format_size(size),
-                                    path_str
-                                );
-                            }
-                            Err(e) => {
-                                // Graceful: thumbcache files are often locked by Explorer.exe
-                                let status = if e.contains("Access is denied")
-                                    || e.contains("permission")
-                                    || e.contains("being used")
-                                {
-                                    "FAILED_LOCKED"
-                                } else {
-                                    "FAILED_ERROR"
-                                };
-                                let _ = writeln!(
-                                    w,
-                                    "{} | {} | {} | {} | {} | {}",
-                                    time_str,
-                                    status,
-                                    category,
-                                    format_size(size),
-                                    path_str,
-                                    e
-                                );
-                            }
-                        }
-                    }
+                    let (b, f) = delete_file_and_log(writer, &path, category, to_trash, time_str);
+                    bytes_freed += b;
+                    files_cleaned += f;
                 }
             }
         }
     }
+
     (bytes_freed, files_cleaned)
 }
 
-/// Empties the Recycle Bin across all drives using PowerShell.
-/// This operation is irreversible — caller must confirm with user first.
 fn empty_recycle_bin(writer: &mut Option<BufWriter<fs::File>>, time_str: &str) -> (u64, usize) {
-    let (rb_bytes, rb_count) = get_recycle_bin_size();
+    let (before_bytes, before_count) = get_recycle_bin_size();
+    if before_bytes == 0 && before_count == 0 {
+        return (0, 0);
+    }
+
     let output = std::process::Command::new("powershell")
         .args([
             "-NoProfile",
             "-Command",
-            "Clear-RecycleBin -Force -ErrorAction SilentlyContinue",
+            "try { Clear-RecycleBin -Force -ErrorAction Stop; Write-Output 'SUCCESS' } catch { Write-Error $_; exit 1 }",
         ])
-        .creation_flags(0x08000000)
+        .creation_flags(CREATE_NO_WINDOW)
         .output();
 
     let success = match &output {
-        Ok(out) => out.status.success(),
+        Ok(out) => out.status.success() && String::from_utf8_lossy(&out.stdout).contains("SUCCESS"),
         Err(_) => false,
     };
+
+    let (after_bytes, after_count) = get_recycle_bin_size();
+    let freed_bytes = before_bytes.saturating_sub(after_bytes);
+    let freed_count = before_count.saturating_sub(after_count);
 
     if let Some(w) = writer.as_mut() {
         match output {
             Ok(out) if out.status.success() => {
                 let _ = writeln!(
                     w,
-                    "{} | CLEANED | Recycle Bin | all drives | Emptied successfully |",
-                    time_str
+                    "{} | CLEANED | Recycle Bin | {} | Emptied successfully (freed {}) |",
+                    time_str,
+                    format_size(freed_bytes),
+                    format_size(freed_bytes)
                 );
             }
             Ok(out) => {
@@ -1070,17 +414,633 @@ fn empty_recycle_bin(writer: &mut Option<BufWriter<fs::File>>, time_str: &str) -
     }
 
     if success {
-        (rb_bytes, rb_count)
+        let actual_freed_b = if after_bytes == 0 { before_bytes } else { freed_bytes };
+        let actual_freed_c = if after_count == 0 { before_count } else { freed_count };
+        (actual_freed_b, actual_freed_c)
     } else {
         (0, 0)
     }
 }
 
-#[derive(Clone, Serialize)]
-pub struct CleanResult {
-    pub bytes_freed: u64,
-    pub files_cleaned: usize,
+// ─── Unified Category Definitions (Single Source of Truth) ───────────
+
+pub struct CategoryDef {
+    pub name: &'static str,
+    pub description: &'static str,
+    pub warning: &'static str,
+    pub requires_admin: bool,
+    pub scan: fn(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize),
+    pub clean: fn(
+        writer: &mut Option<BufWriter<fs::File>>,
+        time_str: &str,
+        is_admin: bool,
+    ) -> (u64, usize),
 }
+
+// 1. Windows Temp Files
+fn scan_win_temp(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    let (s, c) = scan_dir(&std::env::temp_dir(), cancel_flag);
+    bytes += s;
+    count += c;
+    if is_admin {
+        let (s, c) = scan_dir(&PathBuf::from("C:\\Windows\\Temp"), cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    (bytes, count)
+}
+
+fn clean_win_temp(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    let (b, f) = clear_dir_internal(
+        writer,
+        &std::env::temp_dir(),
+        "Windows Temp Files",
+        false,
+        time_str,
+        true,
+    );
+    bytes += b;
+    count += f;
+    if is_admin {
+        let (b, f) = clear_dir_internal(
+            writer,
+            &PathBuf::from("C:\\Windows\\Temp"),
+            "Windows Temp Files",
+            false,
+            time_str,
+            true,
+        );
+        bytes += b;
+        count += f;
+    }
+    (bytes, count)
+}
+
+// 2. Browser Cache
+fn get_browser_cache_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        let lad = PathBuf::from(local_app_data);
+        paths.push(lad.join("Google\\Chrome\\User Data\\Default\\Cache"));
+        paths.push(lad.join("Google\\Chrome\\User Data\\Default\\Code Cache"));
+        paths.push(lad.join("Microsoft\\Edge\\User Data\\Default\\Cache"));
+        paths.push(lad.join("Microsoft\\Edge\\User Data\\Default\\Code Cache"));
+        paths.push(lad.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache"));
+        paths.push(lad.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache"));
+    }
+    paths
+}
+
+fn scan_browser_cache(_is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    for p in get_browser_cache_paths() {
+        let (s, c) = scan_dir(&p, cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    (bytes, count)
+}
+
+fn clean_browser_cache(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    _is_admin: bool,
+) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    for p in get_browser_cache_paths() {
+        let (b, f) = clear_dir_internal(writer, &p, "Browser Cache", false, time_str, true);
+        bytes += b;
+        count += f;
+    }
+    (bytes, count)
+}
+
+// 3. Windows Update Cache
+fn scan_win_update(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    scan_dir(
+        &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
+        cancel_flag,
+    )
+}
+
+fn clean_win_update(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    clear_dir_internal(
+        writer,
+        &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
+        "Windows Update Cache",
+        false,
+        time_str,
+        true,
+    )
+}
+
+// 4. System Log Files
+fn scan_system_logs(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    scan_dir(&PathBuf::from("C:\\Windows\\Logs"), cancel_flag)
+}
+
+fn clean_system_logs(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    clear_dir_internal(
+        writer,
+        &PathBuf::from("C:\\Windows\\Logs"),
+        "System Log Files",
+        false,
+        time_str,
+        true,
+    )
+}
+
+// 5. Thumbnail Cache
+fn get_thumbcache_dir() -> Option<PathBuf> {
+    std::env::var_os("LOCALAPPDATA")
+        .map(|lad| PathBuf::from(lad).join("Microsoft\\Windows\\Explorer"))
+}
+
+fn scan_thumbcache(_is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if let Some(dir) = get_thumbcache_dir() {
+        scan_matching_children(&dir, "thumbcache_", cancel_flag)
+    } else {
+        (0, 0)
+    }
+}
+
+fn clean_thumbcache(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    _is_admin: bool,
+) -> (u64, usize) {
+    if let Some(dir) = get_thumbcache_dir() {
+        clear_matching_children(
+            writer,
+            &dir,
+            "thumbcache_",
+            "Thumbnail Cache",
+            false,
+            time_str,
+        )
+    } else {
+        (0, 0)
+    }
+}
+
+// 6. Windows Error Reports
+fn scan_wer(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        let p = PathBuf::from(local_app_data).join("Microsoft\\Windows\\WER");
+        let (s, c) = scan_dir(&p, cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    if is_admin {
+        let p = PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\WER");
+        let (s, c) = scan_dir(&p, cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    (bytes, count)
+}
+
+fn clean_wer(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    let mut bytes = 0;
+    let mut count = 0;
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        let p = PathBuf::from(local_app_data).join("Microsoft\\Windows\\WER");
+        let (b, f) = clear_dir_internal(writer, &p, "Windows Error Reports", false, time_str, true);
+        bytes += b;
+        count += f;
+    }
+    if is_admin {
+        let p = PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\WER");
+        let (b, f) = clear_dir_internal(writer, &p, "Windows Error Reports", false, time_str, true);
+        bytes += b;
+        count += f;
+    }
+    (bytes, count)
+}
+
+// 7. Delivery Optimization Files
+fn scan_delivery_opt(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    scan_dir(
+        &PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization"),
+        cancel_flag,
+    )
+}
+
+fn clean_delivery_opt(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    clear_dir_internal(
+        writer,
+        &PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization"),
+        "Delivery Optimization Files",
+        false,
+        time_str,
+        true,
+    )
+}
+
+// 8. Temporary Setup Files
+fn scan_setup_files(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    for p in ["C:\\$WINDOWS.~BT", "C:\\Windows\\Panther"] {
+        let (s, c) = scan_dir(&PathBuf::from(p), cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    (bytes, count)
+}
+
+fn clean_setup_files(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    for p in ["C:\\$WINDOWS.~BT", "C:\\Windows\\Panther"] {
+        let (b, f) = clear_dir_internal(
+            writer,
+            &PathBuf::from(p),
+            "Temporary Setup Files",
+            false,
+            time_str,
+            true,
+        );
+        bytes += b;
+        count += f;
+    }
+    (bytes, count)
+}
+
+// 9. Prefetch Cache
+fn scan_prefetch(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    scan_dir(&PathBuf::from("C:\\Windows\\Prefetch"), cancel_flag)
+}
+
+fn clean_prefetch(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    clear_dir_internal(
+        writer,
+        &PathBuf::from("C:\\Windows\\Prefetch"),
+        "Prefetch Cache",
+        false,
+        time_str,
+        true,
+    )
+}
+
+// 10. DirectX Shader Cache
+fn scan_shader_cache(_is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        scan_dir(
+            &PathBuf::from(local_app_data).join("D3DSCache"),
+            cancel_flag,
+        )
+    } else {
+        (0, 0)
+    }
+}
+
+fn clean_shader_cache(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    _is_admin: bool,
+) -> (u64, usize) {
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        clear_dir_internal(
+            writer,
+            &PathBuf::from(local_app_data).join("D3DSCache"),
+            "DirectX Shader Cache",
+            false,
+            time_str,
+            true,
+        )
+    } else {
+        (0, 0)
+    }
+}
+
+// 11. Recycle Bin
+fn scan_recycle_bin(_is_admin: bool, _cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    get_recycle_bin_size()
+}
+
+fn clean_recycle_bin(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    _is_admin: bool,
+) -> (u64, usize) {
+    empty_recycle_bin(writer, time_str)
+}
+
+// 12. Memory Dumps
+fn scan_memory_dumps(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    let (s, c) = scan_dir(&PathBuf::from("C:\\Windows\\Minidump"), cancel_flag);
+    bytes += s;
+    count += c;
+    let dump_file = PathBuf::from("C:\\Windows\\MEMORY.DMP");
+    if dump_file.is_file() {
+        if let Ok(meta) = fs::metadata(&dump_file) {
+            bytes += meta.len();
+            count += 1;
+        }
+    }
+    (bytes, count)
+}
+
+fn clean_memory_dumps(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    let (b, f) = clear_dir_internal(
+        writer,
+        &PathBuf::from("C:\\Windows\\Minidump"),
+        "Memory Dumps",
+        false,
+        time_str,
+        true,
+    );
+    bytes += b;
+    count += f;
+    let (b, f) = delete_file_and_log(
+        writer,
+        &PathBuf::from("C:\\Windows\\MEMORY.DMP"),
+        "Memory Dumps",
+        false,
+        time_str,
+    );
+    bytes += b;
+    count += f;
+    (bytes, count)
+}
+
+// 13. Font Cache
+fn scan_font_cache(is_admin: bool, cancel_flag: Option<&AtomicBool>) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        let (s, c) = scan_dir(&PathBuf::from(local_app_data).join("FontCache"), cancel_flag);
+        bytes += s;
+        count += c;
+    }
+    let p = PathBuf::from("C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache");
+    let (s, c) = scan_dir(&p, cancel_flag);
+    bytes += s;
+    count += c;
+    (bytes, count)
+}
+
+fn clean_font_cache(
+    writer: &mut Option<BufWriter<fs::File>>,
+    time_str: &str,
+    is_admin: bool,
+) -> (u64, usize) {
+    if !is_admin {
+        return (0, 0);
+    }
+    let mut bytes = 0;
+    let mut count = 0;
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+        let (b, f) = clear_dir_internal(
+            writer,
+            &PathBuf::from(local_app_data).join("FontCache"),
+            "Font Cache",
+            false,
+            time_str,
+            true,
+        );
+        bytes += b;
+        count += f;
+    }
+    let p = PathBuf::from("C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache");
+    let (b, f) = clear_dir_internal(writer, &p, "Font Cache", false, time_str, true);
+    bytes += b;
+    count += f;
+    (bytes, count)
+}
+
+pub static CATEGORIES: &[CategoryDef] = &[
+    CategoryDef {
+        name: "Windows Temp Files",
+        description: "Temporary files created by Windows and applications during normal operation.",
+        warning: "",
+        requires_admin: false,
+        scan: scan_win_temp,
+        clean: clean_win_temp,
+    },
+    CategoryDef {
+        name: "Browser Cache",
+        description: "Cached web pages, images, and script files from Chrome, Edge, and Brave.",
+        warning: "",
+        requires_admin: false,
+        scan: scan_browser_cache,
+        clean: clean_browser_cache,
+    },
+    CategoryDef {
+        name: "Windows Update Cache",
+        description: "Downloaded update packages and installer caches.",
+        warning: "Clearing may delay installation of pending updates",
+        requires_admin: true,
+        scan: scan_win_update,
+        clean: clean_win_update,
+    },
+    CategoryDef {
+        name: "System Log Files",
+        description: "System and setup event log files.",
+        warning: "",
+        requires_admin: true,
+        scan: scan_system_logs,
+        clean: clean_system_logs,
+    },
+    CategoryDef {
+        name: "Thumbnail Cache",
+        description: "Explorer thumbnail cache databases.",
+        warning: "",
+        requires_admin: false,
+        scan: scan_thumbcache,
+        clean: clean_thumbcache,
+    },
+    CategoryDef {
+        name: "Windows Error Reports",
+        description: "Crash and error reports generated by Windows Error Reporting.",
+        warning: "",
+        requires_admin: false,
+        scan: scan_wer,
+        clean: clean_wer,
+    },
+    CategoryDef {
+        name: "Delivery Optimization Files",
+        description: "Peer-to-peer Windows Update delivery cache.",
+        warning: "",
+        requires_admin: true,
+        scan: scan_delivery_opt,
+        clean: clean_delivery_opt,
+    },
+    CategoryDef {
+        name: "Temporary Setup Files",
+        description: "Installation and driver setup leftover files.",
+        warning: "",
+        requires_admin: true,
+        scan: scan_setup_files,
+        clean: clean_setup_files,
+    },
+    CategoryDef {
+        name: "Prefetch Cache",
+        description: "System prefetch files used to speed up initial app launch.",
+        warning: "May temporarily slow down initial launch of some apps",
+        requires_admin: true,
+        scan: scan_prefetch,
+        clean: clean_prefetch,
+    },
+    CategoryDef {
+        name: "DirectX Shader Cache",
+        description: "Compiled graphics shaders to reduce stutter in games.",
+        warning: "",
+        requires_admin: false,
+        scan: scan_shader_cache,
+        clean: clean_shader_cache,
+    },
+    CategoryDef {
+        name: "Recycle Bin",
+        description: "Files moved to Recycle Bin awaiting permanent deletion.",
+        warning: "Permanently deletes all items in Recycle Bin",
+        requires_admin: false,
+        scan: scan_recycle_bin,
+        clean: clean_recycle_bin,
+    },
+    CategoryDef {
+        name: "Memory Dumps",
+        description: "Crash dump memory files from BSODs.",
+        warning: "",
+        requires_admin: true,
+        scan: scan_memory_dumps,
+        clean: clean_memory_dumps,
+    },
+    CategoryDef {
+        name: "Font Cache",
+        description: "Windows font rendering cache files.",
+        warning: "",
+        requires_admin: true,
+        scan: scan_font_cache,
+        clean: clean_font_cache,
+    },
+];
+
+// ─── Scan Logic ───────────────────────────────────────────────────────
+
+pub fn scan_junk_internal(
+    app: Option<&tauri::AppHandle>,
+    cancel_flag: Option<&AtomicBool>,
+) -> Result<Vec<JunkItem>, String> {
+    let is_admin = is_elevated::is_elevated();
+    let total_steps = CATEGORIES.len() as f32;
+    let mut results = Vec::new();
+
+    for (index, cat) in CATEGORIES.iter().enumerate() {
+        if let Some(flag) = cancel_flag {
+            if flag.load(Ordering::Relaxed) {
+                break;
+            }
+        }
+
+        let (bytes, count) = (cat.scan)(is_admin, cancel_flag);
+
+        if bytes > 0 || count > 0 {
+            results.push(JunkItem {
+                name: cat.name.to_string(),
+                size: format_size(bytes),
+                bytes,
+                count,
+                description: cat.description.to_string(),
+                warning: cat.warning.to_string(),
+                requires_admin: cat.requires_admin,
+            });
+        }
+
+        if let Some(h) = app {
+            let pct = (((index + 1) as f32 / total_steps) * 100.0).clamp(0.0, 100.0) as u8;
+            let _ = h.emit("scan_progress", pct);
+        }
+    }
+
+    Ok(results)
+}
+
+// ─── Clean Logic ──────────────────────────────────────────────────────
 
 pub fn clean_junk_internal(
     app: &tauri::AppHandle,
@@ -1088,7 +1048,6 @@ pub fn clean_junk_internal(
     emit_progress: bool,
 ) -> Result<CleanResult, String> {
     let is_admin = is_elevated::is_elevated();
-
     let mut total_bytes_freed = 0u64;
     let mut total_files_cleaned = 0usize;
 
@@ -1111,7 +1070,6 @@ pub fn clean_junk_internal(
         time_str = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     }
 
-    // Return early if there's nothing to clean
     if categories.is_empty() {
         if emit_progress {
             let _ = app.emit("clean_progress", 100u8);
@@ -1122,450 +1080,22 @@ pub fn clean_junk_internal(
         });
     }
 
-    let total_steps = categories.len() as f32;
-    let mut current_step = 0.0f32;
+    // Filter categories that match our registry
+    let target_categories: Vec<&CategoryDef> = CATEGORIES
+        .iter()
+        .filter(|cat| categories.iter().any(|c| c == cat.name))
+        .collect();
 
-    // ── Clean: Windows Temp Files ──────────────────────────────────────
-    if categories.contains(&"Windows Temp Files".to_string()) {
-        let (b, f) = clear_dir_internal(
-            &mut writer,
-            &std::env::temp_dir(),
-            "Windows Temp Files",
-            false,
-            &time_str,
-            true,
-        );
-        total_bytes_freed += b;
-        total_files_cleaned += f;
+    let total_steps = target_categories.len() as f32;
 
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Temp"),
-                "Windows Temp Files",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
+    for (index, cat) in target_categories.iter().enumerate() {
+        let (freed_b, freed_f) = (cat.clean)(&mut writer, &time_str, is_admin);
+        total_bytes_freed += freed_b;
+        total_files_cleaned += freed_f;
+
         if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Browser Cache ──────────────────────────────────────────
-    if categories.contains(&"Browser Cache".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let local_app_data = PathBuf::from(local_app_data);
-            // Chrome
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Google\\Chrome\\User Data\\Default\\Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Google\\Chrome\\User Data\\Default\\Code Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            // Edge
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Code Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            // Brave
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data
-                    .join("BraveSoftware\\Brave-Browser\\User Data\\Default\\Code Cache"),
-                "Browser Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Windows Update Cache ───────────────────────────────────
-    if categories.contains(&"Windows Update Cache".to_string()) {
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\SoftwareDistribution\\Download"),
-                "Windows Update Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Crash Dumps & Logs ─────────────────────────────────────
-    if categories.contains(&"Crash Dumps & Logs".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from(local_app_data).join("CrashDumps"),
-                "Crash Dumps & Logs",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Minidump"),
-                "Crash Dumps & Logs",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Recycle Bin ─────────────────────────────────────────────
-    if categories.contains(&"Recycle Bin".to_string()) {
-        let (b, f) = empty_recycle_bin(&mut writer, &time_str);
-        total_bytes_freed += b;
-        total_files_cleaned += f;
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Windows Prefetch ───────────────────────────────────────
-    if categories.contains(&"Windows Prefetch".to_string()) {
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Prefetch"),
-                "Windows Prefetch",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Thumbnail Cache ────────────────────────────────────────
-    if categories.contains(&"Thumbnail Cache".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let explorer_dir = PathBuf::from(&local_app_data).join("Microsoft\\Windows\\Explorer");
-            let (b, f) = clear_matching_children(
-                &mut writer,
-                &explorer_dir,
-                "thumbcache",
-                "Thumbnail Cache",
-                false,
-                &time_str,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Windows Log Files ──────────────────────────────────────
-    if categories.contains(&"Windows Log Files".to_string()) {
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\Logs"),
-                "Windows Log Files",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Font Cache ─────────────────────────────────────────────
-    if categories.contains(&"Font Cache".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let font_cache_dir = PathBuf::from(&local_app_data);
-            let (b, f) = clear_matching_children(
-                &mut writer,
-                &font_cache_dir,
-                "fontcache",
-                "Font Cache",
-                false,
-                &time_str,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: DirectX Shader Cache ───────────────────────────────────
-    if categories.contains(&"DirectX Shader Cache".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from(local_app_data).join("D3DSCache"),
-                "DirectX Shader Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Windows Error Reports ──────────────────────────────────
-    if categories.contains(&"Windows Error Reports".to_string()) {
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from(local_app_data).join("Microsoft\\Windows\\WER"),
-                "Windows Error Reports",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Delivery Optimization ──────────────────────────────────
-    if categories.contains(&"Delivery Optimization".to_string()) {
-        if is_admin {
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &PathBuf::from("C:\\Windows\\SoftwareDistribution\\DeliveryOptimization"),
-                "Delivery Optimization",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
-        }
-    }
-
-    // ── Clean: Application Cache ──────────────────────────────────────
-    if categories.contains(&"Application Cache".to_string()) {
-        if let Some(appdata) = std::env::var_os("APPDATA") {
-            let appdata = PathBuf::from(appdata);
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &appdata.join("discord\\Cache"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &appdata.join("discord\\Code Cache"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &appdata.join("Microsoft\\Teams\\Cache"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &appdata.join("Microsoft\\Teams\\Code Cache"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-            let local_app_data = PathBuf::from(local_app_data);
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Steam\\htmlcache"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Riot Games\\Riot Client\\Logs"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-
-            let (b, f) = clear_dir_internal(
-                &mut writer,
-                &local_app_data.join("Riot Games\\Riot Client\\Data"),
-                "Application Cache",
-                false,
-                &time_str,
-                true,
-            );
-            total_bytes_freed += b;
-            total_files_cleaned += f;
-        }
-        current_step += 1.0;
-        if emit_progress && total_steps > 0.0 {
-            let _ = app.emit(
-                "clean_progress",
-                ((current_step / total_steps) * 100.0) as u8,
-            );
+            let pct = (((index + 1) as f32 / total_steps) * 100.0).clamp(0.0, 100.0) as u8;
+            let _ = app.emit("clean_progress", pct);
         }
     }
 
@@ -1579,15 +1109,34 @@ pub fn clean_junk_internal(
     })
 }
 
+// ─── Tauri Command Handlers ──────────────────────────────────────────
+
+#[tauri::command]
+pub async fn scan_junk(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, ScanCancelFlag>,
+) -> Result<Vec<JunkItem>, String> {
+    state.0.store(false, Ordering::Relaxed);
+    let cancel = state.0.clone();
+    tauri::async_runtime::spawn_blocking(move || scan_junk_internal(Some(&app), Some(&cancel)))
+        .await
+        .map_err(|e| format!("Scan failed: {}", e))?
+}
+
 #[tauri::command]
 pub async fn clean_junk(
     app: tauri::AppHandle,
     categories: Vec<String>,
 ) -> Result<CleanResult, String> {
-    let app_clone = app.clone();
-    tauri::async_runtime::spawn_blocking(move || clean_junk_internal(&app_clone, categories, true))
+    tauri::async_runtime::spawn_blocking(move || clean_junk_internal(&app, categories, true))
         .await
-        .map_err(|e| format!("Clean junk thread panicked: {}", e))?
+        .map_err(|e| format!("Cleanup failed: {}", e))?
+}
+
+#[tauri::command]
+pub fn cancel_scan(state: tauri::State<'_, ScanCancelFlag>) -> Result<(), String> {
+    state.0.store(true, Ordering::Relaxed);
+    Ok(())
 }
 
 #[tauri::command]
@@ -1605,35 +1154,35 @@ pub fn open_cleaner_audit_log(app: tauri::AppHandle) -> Result<String, String> {
     Err("Audit log file does not exist yet. Run a cleanup first.".into())
 }
 
-// ─── Silent Clean (for --silent-clean CLI) ────────────────────────────
+// ─── Silent Clean (CLI) ──────────────────────────────────────────────
 
 pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
     let start_time = std::time::Instant::now();
 
-    // 1. Scan first to find how much space can be freed (no cancel for silent mode)
-    let scan_results = scan_junk_internal(None, None).unwrap_or_default();
+    let scan_results = match scan_junk_internal(None, None) {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("Silent Clean Scan Error: {}", e);
+            return;
+        }
+    };
 
     let categories: Vec<String> = scan_results.iter().map(|item| item.name.clone()).collect();
-
-    // 2. Perform the clean
-    let clean_res = clean_junk_internal(app_handle, categories, false).unwrap_or(CleanResult {
-        bytes_freed: 0,
-        files_cleaned: 0,
-    });
+    let clean_res = match clean_junk_internal(app_handle, categories, false) {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("Silent Clean Execution Error: {}", e);
+            return;
+        }
+    };
 
     let duration = start_time.elapsed().as_secs_f64();
     let duration_str = format!("{:.1}s", duration);
+    let freed_str = format_size(clean_res.bytes_freed);
 
-    let freed_str = if clean_res.bytes_freed > 1073741824 {
-        format!("{:.2} GB", clean_res.bytes_freed as f64 / 1073741824.0)
-    } else {
-        format!("{:.1} MB", clean_res.bytes_freed as f64 / 1048576.0)
-    };
-
-    // 3. Write log to history.json
+    // Write log to history.json
     if let Ok(app_data) = app_handle.path().app_data_dir() {
         let history_path = app_data.join("history.json");
-
         let _ = fs::create_dir_all(&app_data);
 
         let mut logs: Vec<serde_json::Value> = Vec::new();
@@ -1659,12 +1208,11 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
 
         logs.insert(0, new_log);
 
-        let output_json = serde_json::json!({
-            "logs": logs
-        });
-
+        let output_json = serde_json::json!({ "logs": logs });
         if let Ok(serialized) = serde_json::to_string_pretty(&output_json) {
-            let _ = fs::write(&history_path, serialized);
+            if let Err(e) = fs::write(&history_path, serialized) {
+                eprintln!("Failed to write silent clean history log: {}", e);
+            }
         }
     }
 
@@ -1673,5 +1221,3 @@ pub fn run_silent_clean(app_handle: &tauri::AppHandle) {
         freed_str, clean_res.files_cleaned, duration
     );
 }
-
-// ─── Unit Tests ───────────────────────────────────────────────────────

@@ -24,23 +24,11 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
-// @ts-ignore
 import AppLogo from "../../assets/app-icon.png";
-
-// Teal-based palette
-const P = {
-  teal: "#0d9488",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  violet: "#8b5cf6",
-  slate: "#64748b",
-  good: "#10b981",
-};
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+import { P } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { isTauri } from "../utils/tauri";
+import { UserSettings, DEFAULT_USER_SETTINGS, WindowsKeyData } from "../../types";
 
 function Card({
   children,
@@ -54,7 +42,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
+        "rounded-2xl p-5 bg-card border border-border transition-all duration-200",
         className
       )}
       style={style}
@@ -70,30 +58,19 @@ function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
       onClick={onChange}
       className="relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 cursor-pointer border"
       style={{
-        background: on ? P.teal : "var(--secondary)",
+        background: on ? P.teal : "var(--background)",
         borderColor: on ? "transparent" : "var(--border)",
-        boxShadow: on ? `0 0 10px -2px ${P.teal}` : "none",
       }}
     >
       <span
-        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300"
-        style={{ left: on ? "calc(100% - 19px)" : "3px" }}
+        className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300"
+        style={{
+          left: on ? "calc(100% - 19px)" : "3px",
+          backgroundColor: on ? P.bg : P.muted,
+        }}
       />
     </button>
   );
-}
-
-const isTauri =
-  typeof window !== "undefined" &&
-  ((window as any).__TAURI_INTERNALS__ !== undefined ||
-    (window as any).__TAURI_IPC__ !== undefined ||
-    (window as any).process?.env?.NODE_ENV === "test");
-
-interface WindowsKeyData {
-  key: string;
-  key_type: string;
-  edition: string;
-  is_valid: boolean;
 }
 
 function WindowsKeyCard() {
@@ -125,21 +102,26 @@ function WindowsKeyCard() {
             ? res.edition
             : editionName;
 
-        setKeyInfo({
-          key: res.key || "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
-          key_type: res.key_type || "Digital License",
-          edition: finalEdition,
-          is_valid: res.is_valid ?? true,
-        });
+        if (res.is_valid && res.key) {
+          setKeyInfo({
+            key: res.key,
+            key_type: res.key_type || "Digital License",
+            edition: finalEdition,
+            is_valid: true,
+          });
+        } else {
+          setKeyInfo(null);
+          setError(
+            res.key_type === "Not Detected"
+              ? t("No product key detected in BIOS/Registry for this installation.")
+              : t("Digital entitlement active, but no raw OEM product key found.")
+          );
+        }
         setIsPreview(false);
       } else {
-        await new Promise((r) => setTimeout(r, 400));
-        setKeyInfo({
-          key: "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
-          key_type: "OEM (BIOS / Firmware)",
-          edition: "Windows 11 Pro 23H2",
-          is_valid: true,
-        });
+        await new Promise((r) => setTimeout(r, 200));
+        setKeyInfo(null);
+        setError(t("Product key detection is only available in the native desktop application."));
         setIsPreview(true);
       }
     } catch (e: any) {
@@ -147,15 +129,9 @@ function WindowsKeyCard() {
       const msg =
         typeof e === "string"
           ? e
-          : e?.message ||
-            t("No original hardware product key found in BIOS/Registry.");
+          : e?.message || t("No original hardware product key found in BIOS/Registry.");
       setError(msg);
-      setKeyInfo({
-        key: "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
-        key_type: "Digital License (Active)",
-        edition: "Windows 11 Pro 23H2",
-        is_valid: true,
-      });
+      setKeyInfo(null);
     } finally {
       setLoading(false);
     }
@@ -171,8 +147,8 @@ function WindowsKeyCard() {
     if (parts.length === 5) {
       return `•••••-•••••-•••••-•••••-${parts[4]}`;
     }
-    if (rawKey.toLowerCase().includes("digital license")) {
-      return "Digital License (••••••••••••••••)";
+    if (rawKey.toLowerCase().includes("partial")) {
+      return rawKey;
     }
     return "•••••-•••••-•••••-•••••-•••••";
   };
@@ -209,10 +185,17 @@ Note: Keep this file in a safe and private location for future system reinstalla
   };
 
   return (
-    <Card className="col-span-1 lg:col-span-2 relative overflow-hidden border-teal-500/20 bg-gradient-to-br from-card via-card to-teal-500/5">
+    <Card className="col-span-1 lg:col-span-2 relative overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 shrink-0">
+          <div
+            className="p-2 rounded-xl border shrink-0"
+            style={{
+              backgroundColor: `${P.teal}15`,
+              color: P.teal,
+              borderColor: `${P.teal}30`,
+            }}
+          >
             <Key size={18} />
           </div>
           <div>
@@ -229,7 +212,14 @@ Note: Keep this file in a safe and private location for future system reinstalla
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {isPreview && (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <span
+              className="px-2.5 py-1 rounded-full text-[10px] font-semibold border"
+              style={{
+                color: P.warn,
+                backgroundColor: `${P.warn}15`,
+                borderColor: `${P.warn}30`,
+              }}
+            >
               {t("Preview Mode (Simulated Key)")}
             </span>
           )}
@@ -246,7 +236,7 @@ Note: Keep this file in a safe and private location for future system reinstalla
 
       {loading ? (
         <div className="flex items-center justify-center py-8 gap-3 text-muted-foreground text-xs font-medium">
-          <RefreshCw size={16} className="animate-spin text-teal-600" />
+          <RefreshCw size={16} className="animate-spin text-primary" />
           <span>{t("Retrieving Key...")}</span>
         </div>
       ) : error && !keyInfo ? (
@@ -258,7 +248,7 @@ Note: Keep this file in a safe and private location for future system reinstalla
           <div className="pt-2 pl-6 flex items-center gap-2">
             <button
               onClick={fetchKey}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-medium transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border hover:bg-secondary text-xs font-medium transition cursor-pointer"
             >
               <RefreshCw size={12} />
               {t("Retry")}
@@ -268,12 +258,12 @@ Note: Keep this file in a safe and private location for future system reinstalla
       ) : keyInfo ? (
         <div className="space-y-4">
           {/* Key Display Container */}
-          <div className="p-4 rounded-xl bg-secondary/60 border border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">
+          <div className="p-4 rounded-xl bg-background border border-border flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
               <span className="text-xs text-muted-foreground font-semibold shrink-0 uppercase tracking-wider">
                 Key:
               </span>
-              <code className="text-sm sm:text-base font-mono font-bold tracking-widest text-foreground select-all bg-background/80 px-3 py-1.5 rounded-lg border border-border">
+              <code className="text-sm sm:text-base font-mono font-bold tracking-widest text-foreground select-all bg-card px-3 py-1.5 rounded-lg border border-border">
                 {revealed ? keyInfo.key : maskKeyStr(keyInfo.key)}
               </code>
             </div>
@@ -281,7 +271,7 @@ Note: Keep this file in a safe and private location for future system reinstalla
             <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
               <button
                 onClick={() => setRevealed(!revealed)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-background hover:bg-secondary border border-border text-foreground transition cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-card hover:bg-secondary border border-border text-foreground transition cursor-pointer"
                 title={revealed ? t("Mask Key") : t("Reveal Key")}
               >
                 {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -290,12 +280,11 @@ Note: Keep this file in a safe and private location for future system reinstalla
 
               <button
                 onClick={handleCopy}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs",
-                  copied
-                    ? "bg-emerald-600 text-white"
-                    : "bg-teal-600 hover:bg-teal-700 text-white"
-                )}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer"
+                style={{
+                  backgroundColor: copied ? P.good : P.teal,
+                  color: P.bg,
+                }}
                 title={t("Copy Key")}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -304,7 +293,7 @@ Note: Keep this file in a safe and private location for future system reinstalla
 
               <button
                 onClick={handleSaveFile}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-background hover:bg-secondary border border-border text-foreground transition cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-card hover:bg-secondary border border-border text-foreground transition cursor-pointer"
                 title={t("Save to File")}
               >
                 <Download size={14} />
@@ -315,45 +304,42 @@ Note: Keep this file in a safe and private location for future system reinstalla
 
           {/* Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3 rounded-xl bg-background/50 border border-border/40">
+            <div className="p-3 rounded-xl bg-background border border-border">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 {t("Windows Edition")}
               </div>
-              <div className="text-xs font-bold text-foreground truncate">
+              <div className="text-xs font-bold text-foreground truncate" title={keyInfo.edition}>
                 {keyInfo.edition}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-background/50 border border-border/40">
+            <div className="p-3 rounded-xl bg-background border border-border">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 {t("License Type")}
               </div>
-              <div className="text-xs font-bold text-foreground truncate">
+              <div className="text-xs font-bold truncate" style={{ color: P.teal }}>
                 {keyInfo.key_type}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-background/50 border border-border/40 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  {t("Activation Status")}
-                </div>
-                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck size={13} />
-                  {t("Active / Genuine")}
-                </div>
+            <div className="p-3 rounded-xl bg-background border border-border">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                {t("Activation Status")}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: P.good }}>
+                <ShieldCheck size={14} />
+                <span>{t("Permanently Activated")}</span>
               </div>
             </div>
           </div>
 
-          {/* Instruction Note */}
-          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-foreground/90">
-            <Info size={16} className="text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-            <p className="text-[11px] leading-relaxed">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1">
+            <Info size={13} className="shrink-0" style={{ color: P.teal }} />
+            <span>
               {t(
-                "Write down this 25-character product key or save it in a safe place. You will need it if you reinstall Windows or change computer hardware."
+                "This key is tied to your system hardware/digital account and can be used when performing a clean reinstall."
               )}
-            </p>
+            </span>
           </div>
         </div>
       ) : null}
@@ -362,31 +348,17 @@ Note: Keep this file in a safe and private location for future system reinstalla
 }
 
 export function SettingsTab({
-  appName,
-  appVersion,
   onLanguageChange,
 }: {
-  appName: string;
-  appVersion: string;
+  appName?: string;
+  appVersion?: string;
   onLanguageChange: (lang: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [updateMsg, setUpdateMsg] = useState("");
-  const [store, setStore] = useState<any>(null);
 
-  const [settings, setSettings] = useState({
-    startWithWindows: false,
-    minimizeToTray: true,
-    autoUpdate: false,
-    autoClean: false,
-    realTimeMonitoring: true,
-    contextMenu: false,
-    notifications: false,
-    soundEffects: false,
-    language: "en",
-  });
+  const [store, setStore] = useState<any>(null);
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
 
   useEffect(() => {
     const initStore = async () => {
@@ -405,17 +377,7 @@ export function SettingsTab({
     if (!store) return;
     const loadSettings = async () => {
       try {
-        const saved = (await store.get("user-settings")) as {
-          startWithWindows: boolean;
-          minimizeToTray: boolean;
-          autoUpdate: boolean;
-          autoClean: boolean;
-          realTimeMonitoring: boolean;
-          contextMenu: boolean;
-          notifications: boolean;
-          soundEffects: boolean;
-          language?: string;
-        } | null;
+        const saved = (await store.get("user-settings")) as UserSettings | null;
 
         let autostart = false;
         if (isTauri) {
@@ -434,345 +396,318 @@ export function SettingsTab({
     loadSettings();
   }, [store]);
 
-  const toggle = async (key: keyof typeof settings) => {
-    const newVal = !settings[key];
-    setSettings((prev) => ({ ...prev, [key]: newVal as never }));
-
-    if (key === "startWithWindows") {
-      if (newVal) enable().catch(console.error);
-      else disable().catch(console.error);
-    } else if (key === "contextMenu") {
-      invoke("toggle_context_menu", { enable: newVal as boolean }).catch(console.error);
-    } else if (key === "autoClean") {
-      invoke("update_auto_clean", { enable: newVal as boolean }).catch(console.error);
-    } else if (key === "autoUpdate") {
-      invoke("update_auto_update", { enable: newVal as boolean }).catch(console.error);
-    } else if (key === "notifications") {
-      invoke("update_notifications", { enable: newVal as boolean }).catch(console.error);
-    }
+  const toggle = async (key: keyof UserSettings) => {
+    const prevVal = settings[key];
+    const newVal = !prevVal;
 
     try {
+      if (isTauri) {
+        if (key === "startWithWindows") {
+          if (newVal) await enable();
+          else await disable();
+        } else if (key === "contextMenu") {
+          await invoke("toggle_context_menu", { enable: newVal as boolean });
+        } else if (key === "autoClean") {
+          await invoke("update_auto_clean", { enable: newVal as boolean });
+        } else if (key === "autoUpdate") {
+          await invoke("update_auto_update", { enable: newVal as boolean });
+        } else if (key === "notifications") {
+          await invoke("update_notifications", { enable: newVal as boolean });
+        }
+      }
+
+      const updated = { ...settings, [key]: newVal };
+      setSettings(updated);
+
       if (store) {
-        await store.set("user-settings", { ...settings, [key]: newVal });
+        await store.set("user-settings", updated);
         await store.save();
       }
     } catch (e) {
-      console.error(e);
+      console.error(`Failed to toggle ${key}:`, e);
+      setSettings((prev) => ({ ...prev, [key]: prevVal as never }));
     }
   };
 
   const changeLanguage = async (l: string) => {
-    setSettings((prev) => ({ ...prev, language: l }));
-    onLanguageChange(l);
-
-    invoke("update_language", { lang: l }).catch(console.error);
-
+    const prevLang = settings.language;
     try {
+      if (isTauri) {
+        await invoke("update_language", { lang: l });
+      }
+      const updated = { ...settings, language: l };
+      setSettings(updated);
+      onLanguageChange(l);
+
       if (store) {
-        await store.set("user-settings", { ...settings, language: l });
+        await store.set("user-settings", updated);
         await store.save();
       }
     } catch (e) {
-      console.error("Failed to save language:", e);
+      console.error("Failed to update language:", e);
+      setSettings((prev) => ({ ...prev, language: prevLang }));
     }
   };
+
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
 
   const checkUpdates = async () => {
     setCheckingUpdate(true);
-    setUpdateMsg("");
+    setUpdateStatus(null);
     try {
-      const update = await check();
-      if (update) {
-        setUpdateMsg(`Found ${update.version}! Downloading...`);
-        let downloaded = 0;
-        let contentLength = 0;
-        await update.downloadAndInstall((event) => {
-          switch (event.event) {
-            case "Started":
-              contentLength = event.data.contentLength || 0;
-              break;
-            case "Progress":
-              downloaded += event.data.chunkLength;
-              setUpdateMsg(`Downloading... ${Math.round((downloaded / contentLength) * 100)}%`);
-              break;
-            case "Finished":
-              setUpdateMsg("Installing update...");
-              break;
-          }
-        });
-        setUpdateMsg("Update installed. Restarting...");
-        setTimeout(() => relaunch(), 1500);
+      if (isTauri) {
+        const update = await check();
+        if (update?.available) {
+          setUpdateStatus(t("Update available! Downloading..."));
+          await update.downloadAndInstall();
+          setUpdateStatus(t("Update downloaded. Restarting..."));
+          await relaunch();
+        } else {
+          setUpdateStatus(t("You are on the latest version."));
+        }
       } else {
-        setUpdateMsg("You're on the latest version.");
+        await new Promise((r) => setTimeout(r, 1200));
+        setUpdateStatus(t("You are on the latest version (v0.16.14)."));
       }
     } catch (e) {
-      console.error(e);
-      setUpdateMsg("Failed to check for updates.");
+      console.error("Update check failed:", e);
+      setUpdateStatus(t("Failed to check for updates. Try again later."));
+    } finally {
+      setCheckingUpdate(false);
     }
-    setCheckingUpdate(false);
   };
 
   return (
-    <div className="space-y-4">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-1 mb-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Settings size={20} style={{ color: P.slate }} />
-            <h2 className="text-lg font-bold text-foreground">{t("Preferences")}</h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t("Customize application behavior, appearance, and automation.")}
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
+      <div>
+        <h2 className="text-lg font-bold text-foreground">{t("Settings")}</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {t("Configure application preferences and automation")}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* ── Windows License & Product Key ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* System Windows Key Card */}
         <WindowsKeyCard />
 
-        {/* ── General Settings ────────────────────────────────────────────────── */}
+        {/* General Preferences */}
         <Card>
-          <div className="flex items-center gap-2 mb-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings size={16} style={{ color: P.teal }} />
+            <h3 className="text-sm font-semibold text-foreground">{t("General")}</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Start with Windows")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Launch CPulse minimized when your computer boots")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.startWithWindows}
+                onChange={() => toggle("startWithWindows")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Minimize to Tray")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Keep running in the background when window is closed")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.minimizeToTray}
+                onChange={() => toggle("minimizeToTray")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Context Menu Integration")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Add 'Clean with CPulse' to Windows desktop right-click menu")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.contextMenu}
+                onChange={() => toggle("contextMenu")}
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Automation */}
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <Zap size={16} style={{ color: P.teal }} />
+            <h3 className="text-sm font-semibold text-foreground">{t("Automation")}</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Automatic Clean")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Run weekly silent cleanup of safe temporary files")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.autoClean}
+                onChange={() => toggle("autoClean")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Real-Time Monitoring")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Track CPU, RAM, and Disk metrics continuously")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.realTimeMonitoring}
+                onChange={() => toggle("realTimeMonitoring")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-foreground">{t("Auto-Update Check")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Check for CPulse updates automatically")}
+                </div>
+              </div>
+              <Toggle
+                on={settings.autoUpdate}
+                onChange={() => toggle("autoUpdate")}
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Appearance & Language */}
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
             <LayoutGrid size={16} style={{ color: P.teal }} />
-            <h3 className="text-sm font-semibold text-foreground">{t("General Settings")}</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t("Appearance & Language")}</h3>
           </div>
-          <div className="space-y-1">
-            {/* Theme Switcher */}
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition">
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Theme Mode")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">
-                  {t("Select visual theme")}
-                </div>
-              </div>
-              <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
-                {(["light", "dark", "system"] as const).map((tMode) => (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-2">{t("Theme")}</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "light", label: "Light" },
+                  { id: "dark", label: "Dark" },
+                  { id: "system", label: "System" },
+                ].map((th) => (
                   <button
-                    key={tMode}
-                    onClick={() => setTheme(tMode)}
-                    className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
-                    style={
-                      theme === tMode
-                        ? {
-                            background: "var(--card)",
-                            color: P.teal,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                          }
-                        : { color: "var(--muted-foreground)" }
-                    }
+                    key={th.id}
+                    onClick={() => setTheme(th.id)}
+                    className={cn(
+                      "py-2 px-3 rounded-xl text-xs font-medium border text-center transition cursor-pointer",
+                      theme === th.id
+                        ? "border-primary bg-primary/15 text-primary font-semibold"
+                        : "border-border hover:bg-background text-muted-foreground"
+                    )}
                   >
-                    {t(tMode)}
+                    {t(th.label)}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Language */}
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition">
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">{t("Language")}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[160px]">
-                  {t("Select application language")}
-                </div>
-              </div>
-              <div className="flex gap-1 p-1 rounded-lg bg-secondary border border-border">
-                {(["en", "id"] as const).map((l) => (
+            <div>
+              <label className="text-xs font-medium text-foreground block mb-2">{t("Language")}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "en", label: "English" },
+                  { id: "id", label: "Bahasa Indonesia" },
+                ].map((l) => (
                   <button
-                    key={l}
-                    onClick={() => changeLanguage(l)}
-                    className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all capitalize cursor-pointer tracking-wide"
-                    style={
-                      settings.language === l
-                        ? {
-                            background: "var(--card)",
-                            color: P.teal,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                          }
-                        : { color: "var(--muted-foreground)" }
-                    }
+                    key={l.id}
+                    onClick={() => changeLanguage(l.id)}
+                    className={cn(
+                      "py-2 px-3 rounded-xl text-xs font-medium border text-center transition cursor-pointer",
+                      i18n.language === l.id
+                        ? "border-primary bg-primary/15 text-primary font-semibold"
+                        : "border-border hover:bg-background text-muted-foreground"
+                    )}
                   >
-                    {l === "en" ? "EN" : "ID"}
+                    {l.label}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("startWithWindows")}
-            >
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Start with Windows")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Launch automatically when PC boots")}
-                </div>
-              </div>
-              <Toggle on={settings.startWithWindows} onChange={() => {}} />
-            </div>
-
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("minimizeToTray")}
-            >
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Minimize to Tray")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Keep running in background when closed")}
-                </div>
-              </div>
-              <Toggle on={settings.minimizeToTray} onChange={() => {}} />
-            </div>
-
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("contextMenu")}
-            >
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Context Menu Integration")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t('Add "Clean with CPulse" to right-click menu')}
-                </div>
-              </div>
-              <Toggle on={settings.contextMenu} onChange={() => {}} />
-            </div>
           </div>
         </Card>
 
-        {/* ── Automation & Background ────────────────────────────────────────── */}
+        {/* Notifications & Sounds */}
         <Card>
-          <div className="flex items-center gap-2 mb-5">
-            <Zap size={16} style={{ color: P.amber }} />
-            <h3 className="text-sm font-semibold text-foreground">
-              {t("Automation & Background")}
-            </h3>
+          <div className="flex items-center gap-2 mb-4">
+            <Bell size={16} style={{ color: P.teal }} />
+            <h3 className="text-sm font-semibold text-foreground">{t("Notifications & Sounds")}</h3>
           </div>
-          <div className="space-y-1">
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("autoClean")}
-            >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Auto-Clean Schedule")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Clean junk files automatically every week")}
+                <div className="text-xs font-medium text-foreground">{t("Desktop Notifications")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Notify on low disk space or high resource usage")}
                 </div>
               </div>
-              <Toggle on={settings.autoClean} onChange={() => {}} />
+              <Toggle
+                on={settings.notifications}
+                onChange={() => toggle("notifications")}
+              />
             </div>
 
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("realTimeMonitoring")}
-            >
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Real-time Monitoring")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Alert when disk space is critically low")}
+                <div className="text-xs font-medium text-foreground">{t("Sound Effects")}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {t("Play audio tones on cleaning completions and alerts")}
                 </div>
               </div>
-              <Toggle on={settings.realTimeMonitoring} onChange={() => {}} />
-            </div>
-
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("autoUpdate")}
-            >
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Automatic Updates")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Install new versions silently in background")}
-                </div>
-              </div>
-              <Toggle on={settings.autoUpdate} onChange={() => {}} />
+              <Toggle
+                on={settings.soundEffects}
+                onChange={() => toggle("soundEffects")}
+              />
             </div>
           </div>
         </Card>
 
-        {/* ── Alerts & Sounds ────────────────────────────────────────────────── */}
-        <Card>
-          <div className="flex items-center gap-2 mb-5">
-            <Bell size={16} style={{ color: P.sky }} />
-            <h3 className="text-sm font-semibold text-foreground">{t("Alerts & Sounds")}</h3>
-          </div>
-          <div className="space-y-1">
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("notifications")}
-            >
+        {/* About Card */}
+        <Card className="col-span-1 lg:col-span-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={AppLogo} alt="CPulse" className="w-12 h-12 rounded-xl object-contain" />
               <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Push Notifications")}
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Show system tray alerts for important events")}
-                </div>
+                <h3 className="text-sm font-bold text-foreground">CPulse System Optimizer</h3>
+                <p className="text-xs text-muted-foreground">Version 0.16.14 (Tauri v2 + Rust)</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  High-performance Windows maintenance engine and telemetry dashboard.
+                </p>
               </div>
-              <Toggle on={settings.notifications} onChange={() => {}} />
             </div>
 
-            <div
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/50 transition cursor-pointer"
-              onClick={() => toggle("soundEffects")}
-            >
-              <div>
-                <div className="text-xs font-semibold text-foreground mb-0.5">
-                  {t("Sound Effects")}
+            <div className="flex flex-col sm:items-end gap-1.5 w-full sm:w-auto">
+              <button
+                onClick={checkUpdates}
+                disabled={checkingUpdate}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: P.teal, color: P.bg }}
+              >
+                <RefreshCw size={13} className={cn(checkingUpdate && "animate-spin")} />
+                <span>{checkingUpdate ? t("Checking...") : t("Check for Updates")}</span>
+              </button>
+              {updateStatus && (
+                <div className="text-[11px] text-muted-foreground mt-1 text-center sm:text-right">
+                  {updateStatus}
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-snug max-w-[180px]">
-                  {t("Play sounds when scans or cleans finish")}
-                </div>
-              </div>
-              <Toggle on={settings.soundEffects} onChange={() => {}} />
+              )}
             </div>
-          </div>
-        </Card>
-
-        {/* ── About & Version ────────────────────────────────────────────────── */}
-        <Card
-          style={{
-            background: `linear-gradient(145deg, var(--card) 40%, color-mix(in srgb, ${P.teal} 5%, transparent))`,
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Shield size={16} style={{ color: P.teal }} />
-            <h3 className="text-sm font-semibold text-foreground">{t("About CPulse")}</h3>
-          </div>
-          <div className="flex flex-col items-center justify-center py-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-card border border-border shadow-sm overflow-hidden">
-              <img src={AppLogo} alt="Logo" className="w-10 h-10 object-contain" />
-            </div>
-            <div className="text-lg font-bold text-foreground tracking-tight">{appName}</div>
-            <div className="text-[11px] font-medium text-muted-foreground mb-4 uppercase tracking-widest">
-              v{appVersion}
-            </div>
-            {updateMsg && (
-              <div className="text-xs text-foreground bg-secondary px-3 py-1.5 rounded-lg mb-3 font-medium">
-                {updateMsg}
-              </div>
-            )}
-            <button
-              onClick={checkUpdates}
-              disabled={checkingUpdate}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-              style={{ background: P.teal }}
-            >
-              {checkingUpdate ? t("Checking...") : t("Check for Updates")}
-            </button>
           </div>
         </Card>
       </div>

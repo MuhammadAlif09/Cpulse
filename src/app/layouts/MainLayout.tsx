@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Header } from "../components/Header";
-import { Sidebar } from "../components/Sidebar";
+import { Header, HeaderProps } from "../components/Header";
+import { Sidebar, SidebarProps } from "../components/Sidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  headerProps: any;
-  sidebarProps: any;
+  headerProps: HeaderProps;
+  sidebarProps: SidebarProps;
 }
 
 export function MainLayout({ children, headerProps, sidebarProps }: MainLayoutProps) {
@@ -58,19 +58,10 @@ export function MainLayout({ children, headerProps, sidebarProps }: MainLayoutPr
         </div>
 
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-8 relative w-full min-w-0">
-          {/* Ambient glow background */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-20"
-            style={{
-              background:
-                "radial-gradient(ellipse 60% 40% at 70% 10%, var(--glow-teal, rgba(20,184,166,0.10)), transparent 70%)",
-            }}
-          />
-          <div className="relative w-full max-w-7xl mx-auto space-y-4 sm:space-y-6">{children}</div>
+        <main className="flex-1 overflow-y-auto min-w-0 bg-background flex flex-col">
+          {children}
         </main>
       </div>
     </div>
   );
 }
-

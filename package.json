@@ -13,7 +13,10 @@
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "version": "node scripts/bump-version.js && git add src-tauri/tauri.conf.json src/app/App.tsx"
+    "version": "node scripts/bump-version.js && git add src-tauri/tauri.conf.json src/app/App.tsx",
+    "rune:dev": "cargo run --manifest-path src-rune/Cargo.toml",
+    "rune:build": "cargo build --release --manifest-path src-rune/Cargo.toml",
+    "rune:snap": "cargo run --manifest-path src-rune/Cargo.toml -- --snap dashboard.png --scene dashboard"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

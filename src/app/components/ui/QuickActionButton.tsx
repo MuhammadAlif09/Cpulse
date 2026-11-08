@@ -1,6 +1,7 @@
 import React from "react";
 import { RefreshCw, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { P } from "../../../design/tokens";
 
 interface QuickActionButtonProps {
   id: string;
@@ -23,21 +24,15 @@ export function QuickActionButton({
   isLoading = false,
   done = false,
 }: QuickActionButtonProps) {
-  const activeColor = done ? "#10b981" : color;
+  const activeColor = done ? P.good : color;
 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 p-3.5 rounded-xl text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-[0.99] backdrop-blur-sm"
+      className="flex items-center gap-3 p-3.5 rounded-xl text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
       style={{
-        border: `1px solid color-mix(in srgb, ${activeColor} 20%, transparent)`,
-        background: `color-mix(in srgb, ${activeColor} 5%, var(--card))`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 4px 16px -4px color-mix(in srgb, ${activeColor} 25%, transparent)`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = `none`;
+        border: `1px solid color-mix(in srgb, ${activeColor} 25%, var(--border))`,
+        background: `color-mix(in srgb, ${activeColor} 6%, var(--card))`,
       }}
     >
       <div

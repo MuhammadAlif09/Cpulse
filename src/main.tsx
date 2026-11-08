@@ -1,7 +1,3 @@
-if (typeof window !== "undefined") {
-  (window as any).__TAURI_INTERNALS__ = (window as any).__TAURI_INTERNALS__ || {};
-}
-
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
 import "./styles/index.css";
@@ -11,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import * as Sentry from "@sentry/react";
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
-if (sentryDsn) {
+if (sentryDsn && sentryDsn !== "YOUR_SENTRY_DSN" && sentryDsn.startsWith("http")) {
   Sentry.init({
     dsn: sentryDsn,
     integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],

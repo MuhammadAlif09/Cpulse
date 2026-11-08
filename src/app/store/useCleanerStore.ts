@@ -2,16 +2,9 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { addHistoryLog } from "../utils/history";
+import { JunkItem, CleanResult } from "../../types";
 
-export interface JunkItem {
-  name: string;
-  size: string;
-  bytes: number;
-  count: number;
-  description: string;
-  warning: string;
-  requires_admin: boolean;
-}
+export type { JunkItem, CleanResult };
 
 interface CleanerState {
   scanning: boolean;
@@ -30,6 +23,7 @@ interface CleanerState {
   startScan: () => Promise<void>;
   cancelScan: () => Promise<void>;
   doClean: () => Promise<void>;
+  quickClean: () => Promise<CleanResult>;
   setSelected: (selected: Record<string, boolean>) => void;
   toggleSelectedCategory: (name: string) => void;
   selectAllCategories: () => void;
@@ -42,7 +36,6 @@ let scanUnlisten: UnlistenFn | null = null;
 let cleanUnlisten: UnlistenFn | null = null;
 
 const setupListeners = async (setProgress: (progress: number) => void) => {
-  // Clean up existing listeners if any
   if (scanUnlisten) scanUnlisten();
   if (cleanUnlisten) cleanUnlisten();
 
@@ -53,6 +46,13 @@ const setupListeners = async (setProgress: (progress: number) => void) => {
   cleanUnlisten = await listen<number>("clean_progress", (event) => {
     setProgress(event.payload);
   });
+};
+
+const formatBytes = (b: number): string => {
+  if (b > 1073741824) return (b / 1073741824).toFixed(2) + " GB";
+  if (b > 1048576) return (b / 1048576).toFixed(1) + " MB";
+  if (b > 1024) return (b / 1024).toFixed(1) + " KB";
+  return b + " B";
 };
 
 export const useCleanerStore = create<CleanerState>((set, get) => ({
@@ -126,7 +126,6 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
     });
 
     const startTime = Date.now();
-
     await setupListeners((progress) => set({ progress }));
 
     try {
@@ -176,19 +175,10 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
     const startTime = Date.now();
 
     try {
-      const cleanResult = await invoke<{ bytes_freed: number; files_cleaned: number }>(
-        "clean_junk",
-        { categories: selectedCats }
-      );
+      const cleanResult = await invoke<CleanResult>("clean_junk", {
+        categories: selectedCats,
+      });
       const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
-
-      const formatBytes = (b: number) => {
-        if (b > 1073741824) return (b / 1073741824).toFixed(2) + " GB";
-        if (b > 1048576) return (b / 1048576).toFixed(1) + " MB";
-        if (b > 1024) return (b / 1024).toFixed(1) + " KB";
-        return b + " B";
-      };
-
       const freedStr = formatBytes(cleanResult.bytes_freed);
 
       // Update junkCats to mark selected categories as 0 size
@@ -221,6 +211,60 @@ export const useCleanerStore = create<CleanerState>((set, get) => ({
     } catch (e: any) {
       console.error("Clean failed:", e);
       set({ error: typeof e === "string" ? e : String(e) });
+    } finally {
+      set({ cleaning: false });
+    }
+  },
+
+  quickClean: async () => {
+    let { junkCats } = get();
+    const startTime = Date.now();
+
+    if (junkCats.length === 0) {
+      await get().startScan();
+      junkCats = get().junkCats;
+    }
+
+    const safeCategories = junkCats
+      .filter((c) => !c.warning && c.bytes > 0)
+      .map((c) => c.name);
+
+    if (safeCategories.length === 0) {
+      return { bytes_freed: 0, files_cleaned: 0 };
+    }
+
+    set({ cleaning: true, progress: 0 });
+    try {
+      const result = await invoke<CleanResult>("clean_junk", {
+        categories: safeCategories,
+      });
+
+      const updatedJunkCats = junkCats.map((cat) => {
+        if (safeCategories.includes(cat.name)) {
+          return { ...cat, bytes: 0, count: 0, size: "0 B" };
+        }
+        return cat;
+      });
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+      const freedStr = formatBytes(result.bytes_freed);
+
+      set({
+        cleaned: true,
+        progress: 100,
+        cleanedBytes: result.bytes_freed,
+        cleanedFiles: result.files_cleaned,
+        junkCats: updatedJunkCats,
+      });
+
+      addHistoryLog({
+        type: "Quick Clean",
+        freed: freedStr,
+        fixed: result.files_cleaned,
+        duration,
+      });
+
+      return result;
     } finally {
       set({ cleaning: false });
     }

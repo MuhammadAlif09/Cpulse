@@ -22,38 +22,10 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { addHistoryLog } from "../utils/history";
 import { DiskRow } from "../components/ui/DiskRow";
-
-// ─── palette ──────────────────────────────────────────────────────────────────
-const P = {
-  teal: "#0d9488",
-  tealLt: "#14b8a6",
-  sky: "#0ea5e9",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  violet: "#8b5cf6",
-  slate: "#64748b",
-  good: "#10b981", // score ≥ 80
-  warn: "#f59e0b", // score 50–79
-  bad: "#f43f5e", // score < 50
-};
-
-function scoreColor(score: number) {
-  if (score >= 80) return P.good;
-  if (score >= 50) return P.warn;
-  return P.bad;
-}
-
-function scoreLabel(score: number) {
-  if (score >= 90) return "Excellent";
-  if (score >= 80) return "Good";
-  if (score >= 60) return "Fair";
-  if (score >= 40) return "Poor";
-  return "Critical";
-}
-
-function cn(...classes: (string | undefined | false)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+import { P, scoreColor, scoreLabel } from "../../design/tokens";
+import { cn } from "../components/ui/utils";
+import { useCleanerStore } from "../store/useCleanerStore";
+import { SystemMetrics, DiskInfo, JunkItem, StartupItem } from "../../types";
 
 // ─── Card shell ───────────────────────────────────────────────────────────────
 function Card({
@@ -68,7 +40,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl p-5 bg-card/80 backdrop-blur-md border border-border/40 shadow-sm transition-all duration-200",
+        "rounded-2xl p-5 bg-card border border-border transition-all duration-200",
         className
       )}
       style={style}
@@ -113,7 +85,6 @@ function StatCard({
 
   const W = dimensions.width;
   const H = dimensions.height;
-  const R = 16;
 
   // Symmetrical split paths starting from middle of the left edge (2, H/2) with 2px offset to prevent clipping
   const topPath =
@@ -128,11 +99,7 @@ function StatCard({
   return (
     <div
       ref={cardRef}
-      className="rounded-2xl p-4 bg-card/80 backdrop-blur-md shadow-sm relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group cursor-default"
-      style={{
-        border: "1px solid var(--border)",
-        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 4%, transparent))`,
-      }}
+      className="rounded-2xl p-4 bg-card border border-border relative transition-all duration-200 hover:-translate-y-0.5 group cursor-default"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -198,7 +165,7 @@ function ActionBtn({
   icon,
   label,
   sub,
-  color,
+  isAccent = false,
   onClick,
   isLoading,
   done,
@@ -206,31 +173,46 @@ function ActionBtn({
   icon: React.ReactNode;
   label: string;
   sub: string;
-  color: string;
+  isAccent?: boolean;
   onClick: () => void;
   isLoading?: boolean;
   done?: boolean;
 }) {
+  const borderColor = done
+    ? `color-mix(in srgb, ${P.good} 35%, var(--border))`
+    : isAccent
+      ? `color-mix(in srgb, ${P.teal} 35%, var(--border))`
+      : "var(--border)";
+
+  const bgColor = done
+    ? `color-mix(in srgb, ${P.good} 8%, var(--card))`
+    : isAccent
+      ? `color-mix(in srgb, ${P.teal} 8%, var(--card))`
+      : "var(--card)";
+
+  const iconBg = done
+    ? `color-mix(in srgb, ${P.good} 15%, transparent)`
+    : isAccent
+      ? `color-mix(in srgb, ${P.teal} 15%, transparent)`
+      : "var(--background)";
+
+  const iconColor = done ? P.good : isAccent ? P.teal : "var(--muted-foreground)";
+
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 p-3.5 rounded-xl border text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+      className="flex items-center gap-3 p-3.5 rounded-xl border text-left w-full cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]"
       style={{
-        borderColor: done
-          ? `color-mix(in srgb, ${P.good} 30%, transparent)`
-          : `color-mix(in srgb, ${color} 25%, transparent)`,
-        background: done
-          ? `color-mix(in srgb, ${P.good} 8%, var(--card))`
-          : `color-mix(in srgb, ${color} 6%, var(--card))`,
+        borderColor,
+        background: bgColor,
       }}
     >
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200"
         style={{
-          background: done
-            ? `color-mix(in srgb, ${P.good} 15%, transparent)`
-            : `color-mix(in srgb, ${color} 12%, transparent)`,
-          color: done ? P.good : color,
+          background: iconBg,
+          color: iconColor,
+          border: !done && !isAccent ? "1px solid var(--border)" : "none",
         }}
       >
         <AnimatePresence mode="wait">
@@ -265,7 +247,12 @@ function ActionBtn({
         </AnimatePresence>
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-foreground truncate">{label}</div>
+        <div
+          className="text-sm font-semibold truncate"
+          style={{ color: done ? P.good : isAccent ? P.teal : "var(--foreground)" }}
+        >
+          {label}
+        </div>
         <div className="text-[11px] text-muted-foreground truncate mt-0.5">{sub}</div>
       </div>
     </button>
@@ -287,7 +274,6 @@ function MiniChart({
   dataKey?: string;
 }) {
   const gradId = `grad-${title.replace(/\s/g, "")}`;
-  const glowId = `glow-${title.replace(/\s/g, "")}`;
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between mb-3">
@@ -299,13 +285,9 @@ function MiniChart({
           <AreaChart data={data} margin={{ top: 2, right: 0, left: -30, bottom: 0 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.35} />
+                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
-              <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
             </defs>
             <XAxis dataKey="t" hide />
             <YAxis domain={[0, 100]} hide />
@@ -314,9 +296,7 @@ function MiniChart({
                 fontSize: 11,
                 borderRadius: 10,
                 border: "1px solid var(--border)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
                 background: "var(--popover)",
-                backdropFilter: "blur(12px)",
                 color: "var(--foreground)",
               }}
               labelStyle={{ display: "none" }}
@@ -328,7 +308,6 @@ function MiniChart({
               stroke={color}
               strokeWidth={2}
               fill={`url(#${gradId})`}
-              filter={`url(#${glowId})`}
               dot={false}
               activeDot={{ r: 4, fill: color, strokeWidth: 2, stroke: "var(--card)" }}
             />
@@ -343,12 +322,12 @@ function MiniChart({
 interface DashboardTabProps {
   lang?: string;
   setTab: (
-    tab: "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings"
+    tab: "dashboard" | "cleaner" | "booster" | "startup" | "privacy" | "history" | "settings" | "diagnostics"
   ) => void;
-  metrics?: any;
-  junkItems?: any[];
-  setJunkItems?: any;
-  startupItems?: any[];
+  metrics?: SystemMetrics | null;
+  junkItems?: JunkItem[];
+  setJunkItems?: (items: JunkItem[]) => void;
+  startupItems?: StartupItem[];
   score: number;
   issues: string[];
   healthText: string;
@@ -377,8 +356,8 @@ export function DashboardTab({
 
   const activeStartup = startupItems?.filter((i) => i.enabled).length ?? 0;
 
-  const totalDiskUsed = metrics?.disks?.reduce((a: number, d: any) => a + d.used, 0) ?? 0;
-  const totalDiskSize = metrics?.disks?.reduce((a: number, d: any) => a + d.total, 0) ?? 1;
+  const totalDiskUsed = metrics?.disks?.reduce((a: number, d: DiskInfo) => a + d.used, 0) ?? 0;
+  const totalDiskSize = metrics?.disks?.reduce((a: number, d: DiskInfo) => a + d.total, 0) ?? 1;
   const diskPct = metrics ? Math.round((totalDiskUsed / totalDiskSize) * 100) : 0;
 
   const totalJunkBytes = junkItems?.reduce((a, c) => a + c.bytes, 0) ?? 0;
@@ -391,39 +370,17 @@ export function DashboardTab({
   const handleClean = async () => {
     if (cleanState !== "idle") return;
     setCleanState("scanning");
-    const t0 = Date.now();
     try {
-      const results: any[] = await invoke("scan_junk");
-      const bytes = results.reduce((a, c) => a + c.bytes, 0);
-      if (bytes > 0) {
-        setCleanState("cleaning");
-        const res = await invoke<{ bytes_freed: number; files_cleaned: number }>("clean_junk", {
-          categories: results.map((r) => r.name),
-        });
-        const freed =
-          res.bytes_freed > 1073741824
-            ? (res.bytes_freed / 1073741824).toFixed(2) + " GB"
-            : (res.bytes_freed / 1048576).toFixed(1) + " MB";
-        setCleanedSize(freed);
-        addHistoryLog({
-          type: "Quick Clean",
-          freed,
-          fixed: res.files_cleaned,
-          duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
-        });
-      } else {
-        setCleanedSize("0 MB");
-        addHistoryLog({
-          type: "Quick Clean",
-          freed: "0 MB",
-          fixed: 0,
-          duration: ((Date.now() - t0) / 1000).toFixed(1) + "s",
-        });
-      }
+      const res = await useCleanerStore.getState().quickClean();
+      const freed =
+        res.bytes_freed > 1073741824
+          ? (res.bytes_freed / 1073741824).toFixed(2) + " GB"
+          : (res.bytes_freed / 1048576).toFixed(1) + " MB";
+      setCleanedSize(res.bytes_freed > 0 ? freed : "0 MB");
       setCleanState("cleaned");
       setTimeout(() => setCleanState("idle"), 4000);
     } catch (e) {
-      console.error(e);
+      console.error("Quick clean error:", e);
       setCleanState("idle");
     }
   };
@@ -459,14 +416,6 @@ export function DashboardTab({
     <div className="space-y-4">
       {/* ── Hero: health score ──────────────────────────────────────────────── */}
       <Card className="relative overflow-hidden" style={{ padding: "1.5rem" }}>
-        {/* subtle teal glow top-right */}
-        <div
-          className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
-          style={{
-            background: `radial-gradient(circle, color-mix(in srgb, ${sc} 12%, transparent) 0%, transparent 70%)`,
-          }}
-        />
-
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           {/* left: score */}
           <div>
@@ -534,7 +483,7 @@ export function DashboardTab({
             </div>
           </div>
 
-          {/* right: gauges */}
+          {/* right: gauges (all use unified accent color P.teal) */}
           <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-4 items-center justify-center sm:justify-end w-full sm:w-auto">
             <RadialGauge
               value={metrics ? Math.round(metrics.cpu_usage) : 0}
@@ -546,14 +495,14 @@ export function DashboardTab({
             <RadialGauge
               value={metrics ? Math.round(metrics.ram_usage) : 0}
               label="RAM"
-              color={P.violet}
+              color={P.teal}
               trackColor="var(--border)"
               size={76}
             />
             <RadialGauge
               value={diskPct}
               label="Disk"
-              color={P.amber}
+              color={P.teal}
               trackColor="var(--border)"
               size={76}
             />
@@ -561,7 +510,7 @@ export function DashboardTab({
         </div>
       </Card>
 
-      {/* ── Stat cards ─────────────────────────────────────────────────────── */}
+      {/* ── Stat cards (all use unified accent color P.teal) ────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<Cpu size={15} />}
@@ -579,7 +528,7 @@ export function DashboardTab({
               ? `${metrics.used_ram.toFixed(1)} / ${metrics.total_ram.toFixed(1)} GB`
               : t("Waiting for data")
           }
-          color={P.violet}
+          color={P.teal}
         />
         <StatCard
           icon={<HardDrive size={15} />}
@@ -590,7 +539,7 @@ export function DashboardTab({
               ? `${totalDiskUsed.toFixed(1)} / ${totalDiskSize.toFixed(1)} GB`
               : t("Waiting for data")
           }
-          color={P.amber}
+          color={P.teal}
         />
         <StatCard
           icon={<Wifi size={15} />}
@@ -601,7 +550,7 @@ export function DashboardTab({
               ? `↑ ${metrics.network_up.toFixed(1)}  ↓ ${metrics.network_down.toFixed(1)}`
               : t("Waiting for data")
           }
-          color={P.sky}
+          color={P.teal}
         />
       </div>
 
@@ -617,7 +566,7 @@ export function DashboardTab({
           title={t("RAM History")}
           subtitle={t("Last 20s")}
           data={ramData}
-          color={P.violet}
+          color={P.teal}
         />
 
         {/* Disk list */}
@@ -629,8 +578,8 @@ export function DashboardTab({
             </span>
           </div>
           <div className="space-y-3 max-h-24 overflow-y-auto pr-0.5">
-            {metrics?.disks?.length > 0 ? (
-              metrics.disks.map((disk: any) => <DiskRow key={disk.name} disk={disk} t={t} />)
+            {metrics?.disks && metrics.disks.length > 0 ? (
+              metrics.disks.map((disk: DiskInfo) => <DiskRow key={disk.name} disk={disk} t={t} />)
             ) : (
               <div className="text-xs text-muted-foreground py-5 text-center">
                 {t("Loading disks...")}
@@ -640,7 +589,7 @@ export function DashboardTab({
         </Card>
       </div>
 
-      {/* ── Quick actions ──────────────────────────────────────────────────── */}
+      {/* ── Quick actions (neutral except Clean Junk) ──────────────────────── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp size={14} className="text-muted-foreground" />
@@ -665,7 +614,7 @@ export function DashboardTab({
                   ? t("Please wait...")
                   : junkStr
             }
-            color={P.teal}
+            isAccent={true}
             onClick={handleClean}
             isLoading={cleanState === "scanning" || cleanState === "cleaning"}
             done={cleanState === "cleaned"}
@@ -686,7 +635,6 @@ export function DashboardTab({
                   ? t("Freeing memory...")
                   : t("Optimize memory")
             }
-            color={P.violet}
             onClick={handleBoost}
             isLoading={boostState === "running"}
             done={boostState === "boosted"}
@@ -695,14 +643,12 @@ export function DashboardTab({
             icon={<PackageX size={18} />}
             label={t("Fix Startup")}
             sub={`${activeStartup} ${t("items active")}`}
-            color={P.amber}
             onClick={() => setTab("startup")}
           />
           <ActionBtn
             icon={<Lock size={18} />}
             label={t("Privacy Sweep")}
             sub={t("Traces found")}
-            color={P.rose}
             onClick={() => setTab("privacy")}
           />
         </div>

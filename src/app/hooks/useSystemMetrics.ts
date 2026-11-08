@@ -1,38 +1,11 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { SystemMetrics, DiskInfo } from "../../types";
+import { isTauri } from "../utils/tauri";
 
-export interface DiskInfo {
-  name: string;
-  used: number;
-  total: number;
-  disk_type: string;
-  model: string;
-}
-
-export interface SystemMetrics {
-  cpu_usage: number;
-  cpu_temp: number;
-  cpu_name: string;
-  cpu_cores: number[];
-  ram_usage: number;
-  total_ram: number;
-  used_ram: number;
-  disks: DiskInfo[];
-  network_up: number;
-  network_down: number;
-  disk_read_speed: number;
-  disk_write_speed: number;
-  uptime: number;
-  process_count: number;
-}
+export type { SystemMetrics, DiskInfo };
 
 const INITIAL_HISTORY = Array.from({ length: 20 }, (_, i) => ({ t: i, v: 0 }));
-
-const isTauri =
-  typeof window !== "undefined" &&
-  ((window as any).__TAURI_INTERNALS__ !== undefined ||
-    (window as any).__TAURI_IPC__ !== undefined ||
-    (window as any).process?.env?.NODE_ENV === "test");
 
 export function useSystemMetrics() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);

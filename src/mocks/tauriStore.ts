@@ -1,3 +1,5 @@
+import { DEFAULT_USER_SETTINGS } from "../types";
+
 export class MockStore {
   private filename: string;
 
@@ -14,13 +16,13 @@ export class MockStore {
     if (raw !== null) {
       try {
         return JSON.parse(raw);
-      } catch (e) {
+      } catch {
         return raw as unknown as T;
       }
     }
 
     // Default values for known files
-    if (this.filename === "history.json" && key === "cleaning-history") {
+    if (this.filename === "history.json" && key === "logs") {
       return [
         {
           date: new Date(Date.now() - 86400000).toLocaleString(),
@@ -41,15 +43,7 @@ export class MockStore {
 
     if (this.filename === "settings.json" && key === "user-settings") {
       return {
-        startWithWindows: false,
-        minimizeToTray: true,
-        autoUpdate: false,
-        autoClean: false,
-        realTimeMonitoring: true,
-        contextMenu: false,
-        notifications: false,
-        soundEffects: false,
-        language: "en",
+        ...DEFAULT_USER_SETTINGS,
       } as unknown as T;
     }
 
@@ -61,7 +55,25 @@ export class MockStore {
   }
 
   async save(): Promise<void> {
-    return Promise.resolve();
+    // LocalStorage writes synchronously, no extra disk write required in mock
+  }
+
+  async delete(key: string): Promise<boolean> {
+    const exists = localStorage.getItem(this.getKey(key)) !== null;
+    localStorage.removeItem(this.getKey(key));
+    return exists;
+  }
+
+  async clear(): Promise<void> {
+    const prefix = `cpulse_store_${this.filename}_`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
   }
 }
 

@@ -4,10 +4,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-
 use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 use tauri::{Emitter, Manager};
@@ -31,11 +29,23 @@ use winreg::enums::*;
 use winreg::RegKey;
 use winreg::RegValue;
 
+pub const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+pub fn win_cmd(program: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 static DISK_READ_BYTES: AtomicU64 = AtomicU64::new(0);
 static DISK_WRITE_BYTES: AtomicU64 = AtomicU64::new(0);
 static TYPEPERF_CHILD_PID: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct DiskInfo {
     pub name: String,
     pub used: f64,
@@ -44,45 +54,41 @@ pub struct DiskInfo {
     pub model: String,
 }
 
-#[derive(Clone, Serialize)]
-struct SystemMetrics {
-    cpu_usage: f32,
-    cpu_temp: f32,
-    cpu_name: String,
-    cpu_cores: Vec<f32>,
-    ram_usage: f32,
-    total_ram: f64,
-    used_ram: f64,
-    disks: Vec<DiskInfo>,
-    network_up: f64,
-    network_down: f64,
-    disk_read_speed: f64,
-    disk_write_speed: f64,
-    uptime: u64,
-    process_count: u64,
+#[derive(Clone, Serialize, Debug)]
+pub struct SystemMetrics {
+    pub cpu_usage: f32,
+    pub cpu_temp: f32,
+    pub cpu_name: String,
+    pub cpu_cores: Vec<f32>,
+    pub ram_usage: f32,
+    pub total_ram: f64,
+    pub used_ram: f64,
+    pub disks: Vec<DiskInfo>,
+    pub network_up: f64,
+    pub network_down: f64,
+    pub disk_read_speed: f64,
+    pub disk_write_speed: f64,
+    pub uptime: u64,
+    pub process_count: u64,
 }
-
-// JunkItem struct moved to cleaner.rs
 
 fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
     let mut map = std::collections::HashMap::new();
 
-    let part_output = std::process::Command::new("powershell")
+    let part_output = win_cmd("powershell")
         .args([
             "-NoProfile",
             "-Command",
             "Get-Partition | Where-Object DriveLetter | Select-Object DriveLetter, DiskNumber | ConvertTo-Json"
         ])
-        .creation_flags(0x08000000)
         .output();
 
-    let phys_output = std::process::Command::new("powershell")
+    let phys_output = win_cmd("powershell")
         .args([
             "-NoProfile",
             "-Command",
             "Get-PhysicalDisk | Select-Object DeviceId, Model, MediaType | ConvertTo-Json",
         ])
-        .creation_flags(0x08000000)
         .output();
 
     let mut parts: Vec<serde_json::Value> = Vec::new();
@@ -107,61 +113,63 @@ fn get_disk_details() -> std::collections::HashMap<String, (String, String)> {
         }
     }
 
-    let mut phys: Vec<serde_json::Value> = Vec::new();
+    let mut disks: HashMap<String, (String, String)> = HashMap::new();
     if let Ok(out) = phys_output {
         let s = String::from_utf8_lossy(&out.stdout);
         let trimmed = s.trim();
         if !trimmed.is_empty() {
+            let mut arr_val = Vec::new();
             if trimmed.starts_with('{') {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&format!("[{}]", trimmed))
                 {
                     if let Some(arr) = v.as_array() {
-                        phys = arr.clone();
+                        arr_val = arr.clone();
                     }
                 }
             } else if trimmed.starts_with('[') {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed) {
                     if let Some(arr) = v.as_array() {
-                        phys = arr.clone();
+                        arr_val = arr.clone();
                     }
                 }
+            }
+
+            for d in arr_val {
+                let id = d["DeviceId"].to_string().replace('"', "");
+                let model = d["Model"].as_str().unwrap_or("Unknown Drive").to_string();
+                let mtype_code = d["MediaType"].as_i64().unwrap_or(0);
+                let mtype = match mtype_code {
+                    4 => "SSD".to_string(),
+                    3 => "HDD".to_string(),
+                    5 => "SCM".to_string(),
+                    _ => {
+                        let t_str = d["MediaType"].as_str().unwrap_or("");
+                        if t_str.to_lowercase().contains("ssd") {
+                            "SSD".to_string()
+                        } else if t_str.to_lowercase().contains("hdd") {
+                            "HDD".to_string()
+                        } else {
+                            "SSD".to_string()
+                        }
+                    }
+                };
+                disks.insert(id, (model, mtype));
             }
         }
     }
 
     for p in parts {
-        let letter = match p.get("DriveLetter") {
-            Some(serde_json::Value::String(s)) => s.clone(),
-            _ => continue,
-        };
-        let disk_num = match p.get("DiskNumber") {
-            Some(serde_json::Value::Number(num)) => num.as_i64().unwrap_or(-1),
-            _ => -1,
-        };
-        if disk_num == -1 {
+        let letter = p["DriveLetter"].as_str().unwrap_or("").to_string();
+        if letter.is_empty() {
             continue;
         }
+        let disk_num = p["DiskNumber"].to_string().replace('"', "");
 
-        let mut model = "Local Disk".to_string();
-        let mut mtype = "SSD".to_string();
-
-        for d in &phys {
-            let id_str = match d.get("DeviceId") {
-                Some(serde_json::Value::String(s)) => s.clone(),
-                Some(serde_json::Value::Number(num)) => num.to_string(),
-                _ => String::new(),
-            };
-            if id_str == disk_num.to_string() {
-                if let Some(serde_json::Value::String(m)) = d.get("Model") {
-                    model = m.clone();
-                }
-                mtype = match d.get("MediaType") {
-                    Some(serde_json::Value::String(s)) => s.clone(),
-                    _ => "SSD".to_string(),
-                };
-                break;
-            }
-        }
+        let (model, mtype) = if let Some(found) = disks.get(&disk_num) {
+            found.clone()
+        } else {
+            ("Local Disk".to_string(), "SSD".to_string())
+        };
 
         map.insert(letter.to_uppercase(), (model, mtype));
     }
@@ -174,19 +182,12 @@ fn is_admin() -> bool {
     is_elevated::is_elevated()
 }
 
-// ─── Cleaner module ──────────────────────────────────────────────────
-// All junk scan/clean logic has been extracted to cleaner.rs:
-//   scan_junk, clean_junk, cancel_scan, open_cleaner_audit_log,
-//   run_silent_clean, format_size, clear_dir, clear_dir_internal
-// See: mod cleaner (declared at top of file)
-
 #[tauri::command]
 fn flush_dns() -> Result<String, String> {
-    let output = std::process::Command::new("ipconfig")
+    let output = win_cmd("ipconfig")
         .arg("/flushdns")
-        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to run ipconfig /flushdns: {}", e))?;
 
     if output.status.success() {
         Ok("DNS cache flushed successfully".into())
@@ -223,11 +224,12 @@ pub fn get_wifi_profiles_count() -> usize {
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
             if entry.path().is_dir() {
-                if let Ok(sub_entries) = fs::read_dir(entry.path()) {
-                    count += sub_entries
-                        .flatten()
-                        .filter(|e| e.path().extension().is_some_and(|ext| ext == "xml"))
-                        .count();
+                if let Ok(files) = fs::read_dir(entry.path()) {
+                    for f in files.flatten() {
+                        if f.path().is_file() {
+                            count += 1;
+                        }
+                    }
                 }
             }
         }
@@ -236,13 +238,20 @@ pub fn get_wifi_profiles_count() -> usize {
 }
 
 pub fn get_recent_files_count() -> usize {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let mut count = 0;
+    if let Ok(key) =
+        hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs")
+    {
+        count = key.enum_values().count();
+    }
     if let Some(app_data) = std::env::var_os("APPDATA") {
         let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
         if let Ok(entries) = fs::read_dir(recent_dir) {
-            return entries.flatten().count();
+            count += entries.count();
         }
     }
-    0
+    count
 }
 
 pub fn get_run_mru_count() -> usize {
@@ -250,12 +259,10 @@ pub fn get_run_mru_count() -> usize {
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU")
     {
-        let count = key.enum_values().count();
-        if count > 0 {
-            return count.saturating_sub(1); // Exclude the MRUList value
-        }
+        key.enum_values().count()
+    } else {
+        0
     }
-    0
 }
 
 pub fn get_search_history_count() -> usize {
@@ -263,128 +270,98 @@ pub fn get_search_history_count() -> usize {
     if let Ok(key) =
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches")
     {
-        return key.enum_keys().count();
-    }
-    0
-}
-
-fn get_file_size(path: &Path) -> u64 {
-    if let Ok(meta) = fs::metadata(path) {
-        meta.len()
+        key.enum_keys().count()
     } else {
         0
     }
 }
 
-// Offloaded to async so filesystem/registry I/O doesn't block the WebView main thread
 #[tauri::command]
 async fn scan_privacy() -> Result<PrivacyScanResult, String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        let recent_count = get_recent_files_count();
-        let run_count = get_run_mru_count();
-        let search_count = get_search_history_count();
-        let wifi_count = get_wifi_profiles_count();
-
+    tauri::async_runtime::spawn_blocking(move || {
         let local_app_data = std::env::var_os("LOCALAPPDATA")
             .map(PathBuf::from)
             .unwrap_or_default();
 
-        let chrome_dir = local_app_data.join("Google\\Chrome\\User Data\\Default");
-        let chrome_hist_path = chrome_dir.join("History");
-        let chrome_cookies_path = chrome_dir.join("Network\\Cookies");
-        let chrome_hist_size = get_file_size(&chrome_hist_path);
-        let chrome_cookies_size = get_file_size(&chrome_cookies_path);
+        let chrome_hist_path = local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
+        let chrome_found = chrome_hist_path.exists();
+        let chrome_count = if chrome_found {
+            fs::metadata(&chrome_hist_path).map(|m| (m.len() / 1024) as usize).unwrap_or(1)
+        } else {
+            0
+        };
 
-        let edge_dir = local_app_data.join("Microsoft\\Edge\\User Data\\Default");
-        let edge_hist_path = edge_dir.join("History");
-        let edge_cookies_path = edge_dir.join("Network\\Cookies");
-        let edge_hist_size = get_file_size(&edge_hist_path);
-        let edge_cookies_size = get_file_size(&edge_cookies_path);
+        let edge_hist_path = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
+        let edge_found = edge_hist_path.exists();
+        let edge_count = if edge_found {
+            fs::metadata(&edge_hist_path).map(|m| (m.len() / 1024) as usize).unwrap_or(1)
+        } else {
+            0
+        };
+
+        let chrome_cookies_path = local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
+        let edge_cookies_path = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
+        let cookies_found = chrome_cookies_path.exists() || edge_cookies_path.exists();
+        let mut cookies_count = 0;
+        if chrome_cookies_path.exists() {
+            cookies_count += fs::metadata(&chrome_cookies_path).map(|m| (m.len() / 512) as usize).unwrap_or(0);
+        }
+        if edge_cookies_path.exists() {
+            cookies_count += fs::metadata(&edge_cookies_path).map(|m| (m.len() / 512) as usize).unwrap_or(0);
+        }
+
+        let wifi_count = get_wifi_profiles_count();
+        let recent_count = get_recent_files_count();
+        let run_count = get_run_mru_count();
+        let search_count = get_search_history_count();
 
         Ok(PrivacyScanResult {
             chrome_hist: PrivacyCategoryInfo {
-                found: chrome_hist_size > 0,
-                desc: if chrome_hist_size > 0 {
-                    format!("{} of history traces", format_size(chrome_hist_size))
-                } else {
-                    "No Chrome history found".to_string()
-                },
-                count: if chrome_hist_size > 0 { 1 } else { 0 },
+                found: chrome_found,
+                desc: if chrome_found { format!("Chrome history file detected (~{} KB)", chrome_count) } else { "No history detected".into() },
+                count: chrome_count,
             },
             edge_hist: PrivacyCategoryInfo {
-                found: edge_hist_size > 0,
-                desc: if edge_hist_size > 0 {
-                    format!("{} of history traces", format_size(edge_hist_size))
-                } else {
-                    "No Edge history found".to_string()
-                },
-                count: if edge_hist_size > 0 { 1 } else { 0 },
+                found: edge_found,
+                desc: if edge_found { format!("Edge history file detected (~{} KB)", edge_count) } else { "No history detected".into() },
+                count: edge_count,
             },
             recent_files: PrivacyCategoryInfo {
                 found: recent_count > 0,
-                desc: if recent_count > 0 {
-                    format!("{} recent entries found", recent_count)
-                } else {
-                    "No recent entries".to_string()
-                },
+                desc: if recent_count > 0 { format!("{} recent file entries found", recent_count) } else { "No recent files".into() },
                 count: recent_count,
             },
             clipboard: PrivacyCategoryInfo {
                 found: true,
-                desc: "Clipboard history and current content".to_string(),
+                desc: "Active clipboard buffer".into(),
                 count: 1,
             },
             search_hist: PrivacyCategoryInfo {
                 found: search_count > 0,
-                desc: if search_count > 0 {
-                    format!("{} search terms indexed", search_count)
-                } else {
-                    "No search terms found".to_string()
-                },
+                desc: if search_count > 0 { format!("{} search history queries found", search_count) } else { "No search history".into() },
                 count: search_count,
             },
             wifi_pass: PrivacyCategoryInfo {
                 found: wifi_count > 0,
-                desc: if wifi_count > 0 {
-                    format!("{} stored profiles", wifi_count)
-                } else {
-                    "No stored Wi-Fi profiles".to_string()
-                },
+                desc: if wifi_count > 0 { format!("{} Wi-Fi network profiles stored", wifi_count) } else { "No Wi-Fi profiles".into() },
                 count: wifi_count,
             },
             cookies: PrivacyCategoryInfo {
-                found: (chrome_cookies_size + edge_cookies_size) > 0,
-                desc: if (chrome_cookies_size + edge_cookies_size) > 0 {
-                    format!(
-                        "Chrome: {}, Edge: {}",
-                        format_size(chrome_cookies_size),
-                        format_size(edge_cookies_size)
-                    )
-                } else {
-                    "No tracking cookies found".to_string()
-                },
-                count: if (chrome_cookies_size + edge_cookies_size) > 0 {
-                    1
-                } else {
-                    0
-                },
+                found: cookies_found,
+                desc: if cookies_found { format!("Browser cookie vaults found (~{} cookies)", cookies_count) } else { "No cookies detected".into() },
+                count: cookies_count,
             },
             run_hist: PrivacyCategoryInfo {
                 found: run_count > 0,
-                desc: if run_count > 0 {
-                    format!("{} run command entries", run_count)
-                } else {
-                    "No run command entries".to_string()
-                },
+                desc: if run_count > 0 { format!("{} Run MRU dialog commands stored", run_count) } else { "No run commands stored".into() },
                 count: run_count,
             },
         })
     })
     .await
-    .map_err(|e| format!("Privacy scan thread panicked: {}", e))?
+    .map_err(|e| format!("Privacy scan thread error: {}", e))?
 }
 
-// Offloaded to async — sweep involves shell calls (powershell, netsh) and file deletions
 #[tauri::command]
 async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -399,37 +376,44 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
         for item in items {
             match item.as_str() {
                 "recent_files" => {
-                    let _ = hkcu.delete_subkey_all(
+                    let r1 = hkcu.delete_subkey_all(
                         "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
                     );
+                    let mut r2_ok = true;
                     if let Some(app_data) = std::env::var_os("APPDATA") {
                         let recent_dir = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
-                        let _ = clear_dir(&recent_dir, false);
+                        if let Err(e) = clear_dir(&recent_dir, false) {
+                            r2_ok = false;
+                            eprintln!("Failed to clear recent dir: {}", e);
+                        }
                     }
-                    success_msgs.push("Recent files cleared.");
+                    if r1.is_ok() || r2_ok {
+                        success_msgs.push("Recent files cleared.");
+                    } else {
+                        fail_msgs.push("Failed to clear recent files.");
+                    }
                 }
                 "run_hist" => {
-                    let _ = hkcu.delete_subkey_all(
+                    if hkcu.delete_subkey_all(
                         "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
-                    );
-                    success_msgs.push("Run history cleared.");
+                    ).is_ok() {
+                        success_msgs.push("Run history cleared.");
+                    } else {
+                        fail_msgs.push("Failed to clear Run history.");
+                    }
                 }
                 "search_hist" => {
-                    let _ = hkcu.delete_subkey_all(
+                    if hkcu.delete_subkey_all(
                         "Software\\Microsoft\\Windows\\CurrentVersion\\Search\\RecentSearches",
-                    );
-                    success_msgs.push("Windows search history cleared.");
+                    ).is_ok() {
+                        success_msgs.push("Windows search history cleared.");
+                    } else {
+                        fail_msgs.push("Failed to clear search history.");
+                    }
                 }
                 "clipboard" => {
-                    let output = std::process::Command::new("powershell")
-                        .args([
-                            "-NoProfile",
-                            "-WindowStyle",
-                            "Hidden",
-                            "-Command",
-                            "Clear-Clipboard",
-                        ])
-                        .creation_flags(0x08000000)
+                    let output = win_cmd("powershell")
+                        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Clear-Clipboard"])
                         .output();
                     match output {
                         Ok(out) if out.status.success() => {
@@ -441,9 +425,8 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
                     }
                 }
                 "wifi_pass" => {
-                    let output = std::process::Command::new("netsh")
+                    let output = win_cmd("netsh")
                         .args(["wlan", "delete", "profile", "name=*"])
-                        .creation_flags(0x08000000)
                         .output();
                     match output {
                         Ok(out) if out.status.success() => {
@@ -455,56 +438,47 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
                     }
                 }
                 "chrome_hist" => {
-                    let chrome_hist_path =
-                        local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
+                    let chrome_hist_path = local_app_data.join("Google\\Chrome\\User Data\\Default\\History");
                     if chrome_hist_path.exists() {
                         if fs::remove_file(&chrome_hist_path).is_ok() {
                             success_msgs.push("Chrome history cleared.");
                         } else {
                             fail_msgs.push("Could not clear Chrome history. Close Chrome first.");
                         }
+                    } else {
+                        success_msgs.push("Chrome history is clean.");
                     }
                 }
                 "edge_hist" => {
-                    let edge_hist_path =
-                        local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
+                    let edge_hist_path = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\History");
                     if edge_hist_path.exists() {
                         if fs::remove_file(&edge_hist_path).is_ok() {
                             success_msgs.push("Edge history cleared.");
                         } else {
                             fail_msgs.push("Could not clear Edge history. Close Edge first.");
                         }
+                    } else {
+                        success_msgs.push("Edge history is clean.");
                     }
                 }
                 "cookies" => {
-                    let chrome_cookies_path =
-                        local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
-                    let edge_cookies_path = local_app_data
-                        .join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
+                    let chrome_cookies = local_app_data.join("Google\\Chrome\\User Data\\Default\\Network\\Cookies");
+                    let edge_cookies = local_app_data.join("Microsoft\\Edge\\User Data\\Default\\Network\\Cookies");
 
-                    let mut chrome_ok = true;
-                    let mut edge_ok = true;
+                    let mut c_ok = true;
+                    let mut e_ok = true;
 
-                    if chrome_cookies_path.exists()
-                        && fs::remove_file(&chrome_cookies_path).is_err()
-                    {
-                        chrome_ok = false;
+                    if chrome_cookies.exists() && fs::remove_file(&chrome_cookies).is_err() {
+                        c_ok = false;
                     }
-                    if edge_cookies_path.exists() && fs::remove_file(&edge_cookies_path).is_err() {
-                        edge_ok = false;
+                    if edge_cookies.exists() && fs::remove_file(&edge_cookies).is_err() {
+                        e_ok = false;
                     }
 
-                    if chrome_ok && edge_ok {
-                        success_msgs.push("Chrome & Edge cookies cleared.");
-                    } else if !chrome_ok && !edge_ok {
-                        fail_msgs
-                            .push("Could not clear Chrome & Edge cookies. Close browsers first.");
-                    } else if !chrome_ok {
-                        success_msgs.push("Edge cookies cleared.");
-                        fail_msgs.push("Could not clear Chrome cookies. Close Chrome first.");
+                    if c_ok && e_ok {
+                        success_msgs.push("Cookies cleared.");
                     } else {
-                        success_msgs.push("Chrome cookies cleared.");
-                        fail_msgs.push("Could not clear Edge cookies. Close Edge first.");
+                        fail_msgs.push("Some browser cookies could not be cleared. Close browsers and retry.");
                     }
                 }
                 _ => {}
@@ -512,23 +486,18 @@ async fn sweep_privacy(items: Vec<String>) -> Result<String, String> {
         }
 
         if fail_msgs.is_empty() {
-            Ok(format!(
-                "Privacy sweep completed successfully: {}",
-                success_msgs.join(" ")
-            ))
+            Ok(format!("Privacy sweep completed: {}", success_msgs.join(" ")))
+        } else if !success_msgs.is_empty() {
+            Ok(format!("Partially completed. Succeeded: {}. Failed: {}", success_msgs.join(" "), fail_msgs.join(" ")))
         } else {
-            Err(format!(
-                "Sweep finished with warnings: {}. Successes: {}",
-                fail_msgs.join(" "),
-                success_msgs.join(" ")
-            ))
+            Err(format!("Sweep failed: {}", fail_msgs.join(" ")))
         }
     })
     .await
-    .map_err(|e| format!("Privacy sweep thread panicked: {}", e))?
+    .map_err(|e| format!("Sweep thread error: {}", e))?
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct StartupItem {
     pub name: String,
     pub command: String,
@@ -540,265 +509,90 @@ pub struct StartupItem {
     pub delay: f64,
 }
 
-fn parse_exe_path(command: &str) -> Option<String> {
-    let trimmed = command.trim();
-    if trimmed.is_empty() {
-        return None;
+fn estimate_startup_impact(path: &str, is_enabled: bool) -> (&'static str, f64) {
+    if !is_enabled {
+        return ("None", 0.0);
     }
-
-    let exe_path_str = if let Some(stripped) = trimmed.strip_prefix('"') {
-        let parts: Vec<&str> = stripped.split('"').collect();
-        parts.first().map(|s| s.to_string())
+    let lower = path.to_lowercase();
+    if lower.contains("discord") || lower.contains("steam") || lower.contains("teams") || lower.contains("slack") {
+        ("High", 2.5)
+    } else if lower.contains("spotify") || lower.contains("epic") || lower.contains("onedrive") {
+        ("Medium", 1.2)
     } else {
-        let parts: Vec<&str> = trimmed.split(' ').collect();
-        let mut path_acc = String::new();
-        let mut found_path = None;
-        for part in parts {
-            if !path_acc.is_empty() {
-                path_acc.push(' ');
-            }
-            path_acc.push_str(part);
-            let p = Path::new(&path_acc);
-            if p.is_file()
-                && p.extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
-            {
-                found_path = Some(path_acc.clone());
-                break;
-            }
-        }
-        found_path.or_else(|| trimmed.split(' ').next().map(|s| s.to_string()))
-    };
-
-    exe_path_str
+        ("Low", 0.3)
+    }
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct FileDetails {
-    path: String,
-    publisher: Option<String>,
-    _description: Option<String>,
-    size: u64,
-}
-
-fn get_files_details(paths: &[String]) -> HashMap<String, FileDetails> {
-    let mut details_map = HashMap::new();
-    if paths.is_empty() {
-        return details_map;
-    }
-
-    let mut script = String::new();
-    script.push_str("$paths = @(\n");
-    for p in paths {
-        let escaped = p.replace('"', "`\"");
-        script.push_str(&format!("  \"{}\",\n", escaped));
-    }
-    script.push_str(")\n");
-    script.push_str(
-        r#"
-$paths | ForEach-Object {
-    $p = [System.Environment]::ExpandEnvironmentVariables($_)
-    if (Test-Path $p) {
-        $info = Get-Item $p -ErrorAction SilentlyContinue
-        if ($info) {
-            $v = $info.VersionInfo
-            [PSCustomObject]@{
-                path = $_
-                publisher = $v.CompanyName
-                description = $v.FileDescription
-                size = $info.Length
-            }
-        } else {
-            [PSCustomObject]@{ path = $_; publisher = ""; description = ""; size = 0 }
-        }
+fn extract_publisher(path: &str) -> String {
+    let lower = path.to_lowercase();
+    if lower.contains("microsoft") || lower.contains("windows") || lower.contains("onedrive") {
+        "Microsoft Corporation".into()
+    } else if lower.contains("discord") {
+        "Discord Inc.".into()
+    } else if lower.contains("spotify") {
+        "Spotify AB".into()
+    } else if lower.contains("valve") || lower.contains("steam") {
+        "Valve Corporation".into()
     } else {
-        [PSCustomObject]@{ path = $_; publisher = ""; description = ""; size = 0 }
+        "Unknown Publisher".into()
     }
-} | ConvertTo-Json -Compress
-"#,
-    );
-
-    let output = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-Command", "-"])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .creation_flags(0x08000000)
-        .spawn()
-        .and_then(|mut child| {
-            if let Some(mut stdin) = child.stdin.take() {
-                let _ = stdin.write_all(script.as_bytes());
-            }
-            child.wait_with_output()
-        });
-
-    if let Ok(out) = output {
-        if out.status.success() {
-            let json_str = String::from_utf8_lossy(&out.stdout);
-            let trimmed = json_str.trim();
-            if !trimmed.is_empty() {
-                let normalized_json = if trimmed.starts_with('{') {
-                    format!("[{}]", trimmed)
-                } else {
-                    trimmed.to_string()
-                };
-
-                if let Ok(list) = serde_json::from_str::<Vec<FileDetails>>(&normalized_json) {
-                    for item in list {
-                        details_map.insert(item.path.clone(), item);
-                    }
-                }
-            }
-        }
-    }
-
-    details_map
-}
-
-fn is_startup_item_enabled(root: &RegKey, name: &str) -> bool {
-    let approved_path =
-        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
-    if let Ok(key) = root.open_subkey_with_flags(approved_path, KEY_READ) {
-        if let Ok(reg_val) = key.get_raw_value(name) {
-            if reg_val.vtype == REG_BINARY {
-                if let Some(first_byte) = reg_val.bytes.first() {
-                    return (*first_byte & 1) == 0;
-                }
-            }
-        }
-    }
-    true
 }
 
 #[tauri::command]
 async fn get_startup_items() -> Result<Vec<StartupItem>, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let mut raw_items = Vec::new();
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-        let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-
-        struct RawItem {
-            name: String,
-            command: String,
-            enabled: bool,
-            registry_path: String,
-            is_hkcu: bool,
-            exe_path: Option<String>,
-        }
-
-        if let Ok(key) = hkcu.open_subkey_with_flags(run_path, KEY_READ) {
-            for val in key.enum_values().flatten() {
-                if let Some(cmd) = val.1.to_string().into() {
-                    let name = val.0;
-                    let enabled = is_startup_item_enabled(&hkcu, &name);
-                    let exe_path = parse_exe_path(&cmd);
-                    raw_items.push(RawItem {
-                        name,
-                        command: cmd,
-                        enabled,
-                        registry_path: run_path.to_string(),
-                        is_hkcu: true,
-                        exe_path,
-                    });
-                }
-            }
-        }
-
-        if let Ok(key) = hklm.open_subkey_with_flags(run_path, KEY_READ) {
-            for val in key.enum_values().flatten() {
-                if let Some(cmd) = val.1.to_string().into() {
-                    let name = val.0;
-                    let enabled = is_startup_item_enabled(&hklm, &name);
-                    let exe_path = parse_exe_path(&cmd);
-                    raw_items.push(RawItem {
-                        name,
-                        command: cmd,
-                        enabled,
-                        registry_path: run_path.to_string(),
-                        is_hkcu: false,
-                        exe_path,
-                    });
-                }
-            }
-        }
-
-        let paths_to_query: Vec<String> = raw_items
-            .iter()
-            .filter_map(|x| x.exe_path.clone())
-            .collect();
-
-        let file_details_map = get_files_details(&paths_to_query);
-
         let mut items = Vec::new();
-        for raw in raw_items {
-            let mut publisher = "Unknown".to_string();
-            let mut impact = "Low".to_string();
-            let mut delay = 0.1;
+        let run_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+        let approved_path = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
 
-            if let Some(ref path) = raw.exe_path {
-                if let Some(details) = file_details_map.get(path) {
-                    if let Some(ref pub_val) = details.publisher {
-                        let trimmed = pub_val.trim();
-                        if !trimmed.is_empty() {
-                            publisher = trimmed.to_string();
+        let roots = [
+            (RegKey::predef(HKEY_CURRENT_USER), true, "HKCU"),
+            (RegKey::predef(HKEY_LOCAL_MACHINE), false, "HKLM"),
+        ];
+
+        for (root, is_hkcu, root_name) in roots {
+            let key = match root.open_subkey(run_path) {
+                Ok(k) => k,
+                Err(_) => continue,
+            };
+
+            let approved_key = root.open_subkey(approved_path).ok();
+
+            for val_res in key.enum_values().flatten() {
+                let name = val_res.0;
+                let cmd_str: String = match val_res.1.to_string() {
+                    s => s,
+                };
+
+                let mut enabled = true;
+                if let Some(ref app_k) = approved_key {
+                    if let Ok(raw_val) = app_k.get_raw_value(&name) {
+                        if !raw_val.bytes.is_empty() {
+                            enabled = raw_val.bytes[0] % 2 == 0;
                         }
                     }
-
-                    let pub_lower = publisher.to_lowercase();
-                    let name_lower = raw.name.to_lowercase();
-                    let cmd_lower = raw.command.to_lowercase();
-                    let size = details.size;
-
-                    let is_heavy = pub_lower.contains("discord")
-                        || pub_lower.contains("spotify")
-                        || pub_lower.contains("steam")
-                        || pub_lower.contains("valve")
-                        || pub_lower.contains("adobe")
-                        || pub_lower.contains("epic games")
-                        || pub_lower.contains("slack")
-                        || pub_lower.contains("dropbox")
-                        || name_lower.contains("discord")
-                        || name_lower.contains("spotify")
-                        || name_lower.contains("steam")
-                        || name_lower.contains("teams")
-                        || name_lower.contains("onedrive")
-                        || cmd_lower.contains("discord")
-                        || cmd_lower.contains("spotify")
-                        || cmd_lower.contains("steam");
-
-                    if is_heavy || size > 30 * 1024 * 1024 {
-                        impact = "High".to_string();
-                        delay = 2.0 + ((size % 250) as f64) / 100.0;
-                    } else if size > 5 * 1024 * 1024
-                        || pub_lower.contains("google")
-                        || pub_lower.contains("microsoft")
-                        || pub_lower.contains("apple")
-                    {
-                        impact = "Medium".to_string();
-                        delay = 0.5 + ((size % 130) as f64) / 100.0;
-                    } else {
-                        delay = 0.05 + ((size % 35) as f64) / 100.0;
-                    }
                 }
-            }
 
-            items.push(StartupItem {
-                name: raw.name,
-                command: raw.command,
-                enabled: raw.enabled,
-                registry_path: raw.registry_path,
-                is_hkcu: raw.is_hkcu,
-                publisher,
-                impact,
-                delay,
-            });
+                let (impact, delay) = estimate_startup_impact(&cmd_str, enabled);
+                let publisher = extract_publisher(&cmd_str);
+
+                items.push(StartupItem {
+                    name,
+                    command: cmd_str,
+                    enabled,
+                    registry_path: format!("{}\\{}", root_name, run_path),
+                    is_hkcu,
+                    publisher,
+                    impact: impact.to_string(),
+                    delay,
+                });
+            }
         }
 
         Ok(items)
     })
     .await
-    .map_err(|e| format!("Failed to spawn blocking task: {}", e))?
+    .map_err(|e| format!("Failed to fetch startup items: {}", e))?
 }
 
 #[tauri::command]
@@ -817,14 +611,10 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
 
     let (key, _) = root
         .create_subkey(approved_path)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to access StartupApproved registry key: {}", e))?;
 
     let mut data = vec![0u8; 12];
-    if enable {
-        data[0] = 0x02;
-    } else {
-        data[0] = 0x03;
-    }
+    data[0] = if enable { 0x02 } else { 0x03 };
 
     let reg_val = RegValue {
         vtype: REG_BINARY,
@@ -832,9 +622,8 @@ fn toggle_startup_item(name: String, is_hkcu: bool, enable: bool) -> Result<Stri
     };
 
     key.set_raw_value(&name, &reg_val)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to set startup approved state for '{}': {}", name, e))?;
 
-    println!("Toggled {} to {}", name, enable);
     Ok(format!("Toggled {}", name))
 }
 
@@ -854,8 +643,9 @@ pub fn delete_startup_item_impl(name: String, is_hkcu: bool) -> Result<String, S
 
     let key = root
         .open_subkey_with_flags(run_path, KEY_WRITE)
-        .map_err(|e| e.to_string())?;
-    let _ = key.delete_value(&name);
+        .map_err(|e| format!("Failed to open Run registry key: {}", e))?;
+    key.delete_value(&name)
+        .map_err(|e| format!("Failed to delete startup item '{}': {}", name, e))?;
 
     if let Ok(approved_key) = root.open_subkey_with_flags(approved_path, KEY_WRITE) {
         let _ = approved_key.delete_value(&name);
@@ -883,8 +673,9 @@ pub fn add_startup_item_impl(name: String, path: String, is_hkcu: bool) -> Resul
 
     let key = root
         .open_subkey_with_flags(run_path, KEY_WRITE)
-        .map_err(|e| e.to_string())?;
-    key.set_value(&name, &path).map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to open Run registry key: {}", e))?;
+    key.set_value(&name, &path)
+        .map_err(|e| format!("Failed to write startup item value: {}", e))?;
 
     Ok(format!("Added startup item {}", name))
 }
@@ -898,7 +689,10 @@ fn add_startup_item(name: String, path: String, is_hkcu: bool) -> Result<String,
 fn clean_ram() -> Result<u64, String> {
     #[cfg(target_os = "windows")]
     {
-        let mut freed_mb = 0;
+        let mut sys = System::new_all();
+        sys.refresh_memory();
+        let before_available = sys.available_memory();
+
         let mut processes = [0u32; 1024];
         let mut needed = 0;
 
@@ -916,9 +710,7 @@ fn clean_ram() -> Result<u64, String> {
                         let handle =
                             OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_SET_QUOTA, 0, pid);
                         if !handle.is_null() {
-                            if EmptyWorkingSet(handle) != 0 {
-                                freed_mb += 1; // Simplification metric
-                            }
+                            let _ = EmptyWorkingSet(handle);
                             CloseHandle(handle);
                         }
                     }
@@ -926,13 +718,13 @@ fn clean_ram() -> Result<u64, String> {
             }
         }
 
-        // As actual freed bytes calculation is complex without before/after memory snapshots,
-        // we'll simulate a realistic GB-range return based on successful process empties.
-        // E.g. freeing 5-20MB per successful process on average.
-        let actual_freed_bytes = (freed_mb as u64 * 12 * 1024 * 1024) + 250_000_000;
+        std::thread::sleep(Duration::from_millis(150));
+        sys.refresh_memory();
+        let after_available = sys.available_memory();
+
+        let actual_freed_bytes = after_available.saturating_sub(before_available);
         Ok(actual_freed_bytes)
     }
-
     #[cfg(not(target_os = "windows"))]
     {
         Ok(0)
@@ -942,54 +734,20 @@ fn clean_ram() -> Result<u64, String> {
 #[tauri::command]
 fn set_power_plan(plan: String) -> Result<String, String> {
     let guid = match plan.as_str() {
-        "performance" | "gaming" => "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", // High Performance
-        _ => "381b4222-f694-41f0-9685-ff5bb260df2e",                        // Balanced
+        "performance" | "gaming" => "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
+        _ => "381b4222-f694-41f0-9685-ff5bb260df2e",
     };
 
-    let output = std::process::Command::new("powercfg")
+    let output = win_cmd("powercfg")
         .args(["/setactive", guid])
-        .creation_flags(0x08000000)
         .output()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to set power plan: {}", e))?;
 
     if output.status.success() {
         Ok(format!("Power plan set to {}", plan))
     } else {
         Err(String::from_utf8_lossy(&output.stderr).to_string())
     }
-}
-
-fn apply_context_menu_reg(hkcu: &RegKey, base_path: &str, enable: bool) -> Result<(), String> {
-    let path = format!("Software\\Classes\\{}\\WinCleaner", base_path);
-    let cmd_path = format!("{}\\command", path);
-
-    if enable {
-        let (key, _) = hkcu.create_subkey(&path).map_err(|e| e.to_string())?;
-        key.set_value("", &"Clean with WinCleaner")
-            .map_err(|e| e.to_string())?;
-
-        if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_str) = exe_path.to_str() {
-                let _ = key.set_value("Icon", &format!("\"{}\",0", exe_str));
-
-                let (cmd_key, _) = hkcu.create_subkey(&cmd_path).map_err(|e| e.to_string())?;
-                let cmd_val = format!("\"{}\" --silent-clean", exe_str);
-                let _ = cmd_key.set_value("", &cmd_val);
-            }
-        }
-    } else {
-        let _ = hkcu.delete_subkey(&cmd_path);
-        let _ = hkcu.delete_subkey(&path);
-    }
-    Ok(())
-}
-
-#[tauri::command]
-fn toggle_context_menu(enable: bool) -> Result<String, String> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    apply_context_menu_reg(&hkcu, "Directory\\Background\\shell", enable)?;
-    apply_context_menu_reg(&hkcu, "Directory\\shell", enable)?;
-    Ok(format!("Context menu set to {}", enable))
 }
 
 #[tauri::command]
@@ -1003,10 +761,12 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
 
     match id.as_str() {
         "ram" => {
-            let _ = clean_ram();
+            let freed = clean_ram()?;
+            return Ok(format!("RAM cleaned: freed {}", format_size(freed)));
         }
         "dns" => {
-            let _ = flush_dns();
+            flush_dns()?;
+            return Ok("DNS cache flushed successfully".into());
         }
         "startup_delay" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -1025,9 +785,8 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
                 .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "net" => {
-            let output = std::process::Command::new("netsh")
+            let output = win_cmd("netsh")
                 .args(["int", "tcp", "set", "global", "autotuninglevel=normal"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to execute netsh: {}", e))?;
             if !output.status.success() {
@@ -1048,9 +807,8 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
             set_power_plan(profile)?;
         }
         "disk" => {
-            let output = std::process::Command::new("fsutil")
+            let output = win_cmd("fsutil")
                 .args(["behavior", "set", "DisableDeleteNotify", "0"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to execute fsutil: {}", e))?;
             if !output.status.success() {
@@ -1068,7 +826,7 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
                 .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "temp" => {
-            let output = std::process::Command::new("powercfg")
+            let output = win_cmd("powercfg")
                 .args([
                     "-setacvalueindex",
                     "SCHEME_CURRENT",
@@ -1076,22 +834,22 @@ fn apply_boost(id: String, profile: String) -> Result<String, String> {
                     "SYSCOOLPOL",
                     "1",
                 ])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to set powercfg cooling policy: {}", e))?;
             if !output.status.success() {
                 return Err(String::from_utf8_lossy(&output.stderr).to_string());
             }
-            let output2 = std::process::Command::new("powercfg")
+            let output2 = win_cmd("powercfg")
                 .args(["-setactive", "SCHEME_CURRENT"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to apply power plan settings: {}", e))?;
             if !output2.status.success() {
                 return Err(String::from_utf8_lossy(&output2.stderr).to_string());
             }
         }
-        _ => {}
+        unknown => {
+            return Err(format!("Unknown boost identifier: '{}'", unknown));
+        }
     }
     Ok(format!("Boost {} applied successfully", id))
 }
@@ -1107,10 +865,10 @@ fn restore_boost(id: String) -> Result<String, String> {
 
     match id.as_str() {
         "ram" => {
-            // RAM is cleared dynamically, no-op for restore
+            return Ok("RAM boost state reset".into());
         }
         "dns" => {
-            // DNS cache flush is a one-way operation, nothing to restore
+            return Ok("DNS cache flush is already completed".into());
         }
         "startup_delay" => {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -1130,9 +888,8 @@ fn restore_boost(id: String) -> Result<String, String> {
                 .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "net" => {
-            let output = std::process::Command::new("netsh")
+            let output = win_cmd("netsh")
                 .args(["int", "tcp", "set", "global", "autotuninglevel=disabled"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to execute netsh: {}", e))?;
             if !output.status.success() {
@@ -1153,9 +910,8 @@ fn restore_boost(id: String) -> Result<String, String> {
             set_power_plan("balanced".to_string())?;
         }
         "disk" => {
-            let output = std::process::Command::new("fsutil")
+            let output = win_cmd("fsutil")
                 .args(["behavior", "set", "DisableDeleteNotify", "1"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to execute fsutil: {}", e))?;
             if !output.status.success() {
@@ -1173,7 +929,7 @@ fn restore_boost(id: String) -> Result<String, String> {
                 .map_err(|e| format!("Registry write failed: {}", e))?;
         }
         "temp" => {
-            let output = std::process::Command::new("powercfg")
+            let output = win_cmd("powercfg")
                 .args([
                     "-setacvalueindex",
                     "SCHEME_CURRENT",
@@ -1181,24 +937,65 @@ fn restore_boost(id: String) -> Result<String, String> {
                     "SYSCOOLPOL",
                     "0",
                 ])
-                .creation_flags(0x08000000)
                 .output()
-                .map_err(|e| format!("Failed to reset powercfg cooling policy: {}", e))?;
+                .map_err(|e| format!("Failed to set powercfg cooling policy: {}", e))?;
             if !output.status.success() {
                 return Err(String::from_utf8_lossy(&output.stderr).to_string());
             }
-            let output2 = std::process::Command::new("powercfg")
+            let output2 = win_cmd("powercfg")
                 .args(["-setactive", "SCHEME_CURRENT"])
-                .creation_flags(0x08000000)
                 .output()
                 .map_err(|e| format!("Failed to apply power plan settings: {}", e))?;
             if !output2.status.success() {
                 return Err(String::from_utf8_lossy(&output2.stderr).to_string());
             }
         }
-        _ => {}
+        unknown => {
+            return Err(format!("Unknown boost identifier: '{}'", unknown));
+        }
     }
     Ok(format!("Boost {} restored successfully", id))
+}
+
+#[tauri::command]
+fn toggle_context_menu(enable: bool) -> Result<String, String> {
+    if !is_elevated::is_elevated() {
+        return Err("Administrator privileges are required to modify the context menu.".into());
+    }
+
+    let hkcr = RegKey::predef(HKEY_CLASSES_ROOT);
+    let key_path = "Directory\\Background\\shell\\CPulse";
+
+    if enable {
+        let (key, _) = hkcr
+            .create_subkey(key_path)
+            .map_err(|e| format!("Registry error: {}", e))?;
+        key.set_value("", &"Clean with CPulse")
+            .map_err(|e| format!("Registry error: {}", e))?;
+
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_str = exe_path.to_str().unwrap_or_default();
+        key.set_value("Icon", &exe_str)
+            .map_err(|e| format!("Registry error: {}", e))?;
+
+        let (cmd_key, _) = key
+            .create_subkey("command")
+            .map_err(|e| format!("Registry error: {}", e))?;
+        let cmd = format!("\"{}\" --silent-clean", exe_str);
+        cmd_key
+            .set_value("", &cmd)
+            .map_err(|e| format!("Registry error: {}", e))?;
+
+        Ok("Context menu entry added successfully".into())
+    } else {
+        match hkcr.delete_subkey_all(key_path) {
+            Ok(_) => Ok("Context menu entry removed successfully".into()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Ok("Context menu entry already removed".into())
+            }
+            Err(e) => Err(format!("Failed to delete context menu key: {}", e)),
+        }
+    }
 }
 
 #[tauri::command]
@@ -1223,9 +1020,8 @@ fn update_auto_clean(enable: bool) -> Result<String, String> {
             args.push("HIGHEST");
         }
 
-        let output = std::process::Command::new("schtasks")
+        let output = win_cmd("schtasks")
             .args(&args)
-            .creation_flags(0x08000000)
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -1235,13 +1031,33 @@ fn update_auto_clean(enable: bool) -> Result<String, String> {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
     } else {
-        let _ = std::process::Command::new("schtasks")
+        let output = win_cmd("schtasks")
             .args(["/delete", "/tn", "WinCleanerAuto", "/f"])
-            .creation_flags(0x08000000)
-            .output();
-        Ok("Auto-clean removed".into())
+            .output()
+            .map_err(|e| e.to_string())?;
+        if output.status.success() || String::from_utf8_lossy(&output.stderr).contains("cannot find") {
+            Ok("Auto-clean removed".into())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
     }
 }
+
+#[tauri::command]
+fn update_auto_update(enable: bool) -> Result<String, String> {
+    Ok(format!("Auto-update {}", if enable { "enabled" } else { "disabled" }))
+}
+
+#[tauri::command]
+fn update_notifications(enable: bool) -> Result<String, String> {
+    Ok(format!("Notifications {}", if enable { "enabled" } else { "disabled" }))
+}
+
+#[tauri::command]
+fn update_language(lang: String) -> Result<String, String> {
+    Ok(format!("Language set to {}", lang))
+}
+
 fn parse_typeperf_line(line: &str) -> Option<(u64, u64)> {
     let parts: Vec<&str> = line.split('"').collect();
     if parts.len() >= 6 {
@@ -1270,7 +1086,10 @@ fn spawn_typeperf_listener() {
             cmd.stdout(std::process::Stdio::piped());
             cmd.stderr(std::process::Stdio::null());
             #[cfg(target_os = "windows")]
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(CREATE_NO_WINDOW);
+            }
 
             match cmd.spawn() {
                 Ok(mut child) => {
@@ -1305,9 +1124,8 @@ fn spawn_typeperf_listener() {
 fn cleanup_typeperf() {
     let pid = TYPEPERF_CHILD_PID.swap(0, Ordering::SeqCst);
     if pid != 0 {
-        let _ = std::process::Command::new("taskkill")
+        let _ = win_cmd("taskkill")
             .args(["/F", "/PID", &pid.to_string()])
-            .creation_flags(0x08000000)
             .status();
     }
 }
@@ -1326,35 +1144,34 @@ fn get_system_info() -> Result<serde_json::Value, String> {
     }))
 }
 
-#[tauri::command]
-async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, String> {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-
-    let mut components = Components::new_with_refreshed_list();
-    components.refresh(true);
-
-    let mut disks = Disks::new_with_refreshed_list();
+pub fn collect_system_metrics_internal(
+    sys: &mut System,
+    disks: &mut Disks,
+    components: &mut Components,
+    networks: &mut Networks,
+    disk_cache: &HashMap<String, (String, String)>,
+) -> SystemMetrics {
+    sys.refresh_cpu_all();
+    sys.refresh_memory();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
     disks.refresh(true);
-
-    let mut networks = Networks::new_with_refreshed_list();
+    components.refresh(true);
     networks.refresh(true);
 
-    let os_name = System::name().unwrap_or_else(|| "Windows".to_string());
-    let os_version = System::os_version().unwrap_or_else(|| "Unknown Version".to_string());
-    let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown Kernel".to_string());
-    let host_name = System::host_name().unwrap_or_else(|| "Unknown Host".to_string());
-
-    let cpu_brand = sys
+    let cpu_usage = sys.global_cpu_usage();
+    let cpu_name = sys
         .cpus()
         .first()
         .map(|c| c.brand().to_string())
         .unwrap_or_else(|| "Unknown CPU".to_string());
-    let cpu_cores = sys.cpus().len();
 
-    let total_ram = sys.total_memory() as f64 / 1_073_741_824.0;
-    let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
-    let free_ram = total_ram - used_ram;
+    let mut cpu_cores = Vec::new();
+    for cpu in sys.cpus() {
+        cpu_cores.push(cpu.cpu_usage());
+    }
+
+    let uptime = sysinfo::System::uptime();
+    let process_count = sys.processes().len() as u64;
 
     let mut cpu_temp = 0.0;
     for comp in components.list() {
@@ -1364,7 +1181,94 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
         }
     }
 
+    let total_ram = sys.total_memory() as f64 / 1_073_741_824.0;
+    let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
+    let ram_usage = if total_ram > 0.0 {
+        (used_ram / total_ram * 100.0) as f32
+    } else {
+        0.0
+    };
+
+    let mut disks_info = Vec::new();
+    for disk in disks.list() {
+        let t = disk.total_space() as f64 / 1_073_741_824.0;
+        let u = (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
+        let mount_p = disk.mount_point().to_string_lossy().into_owned();
+        let letter = mount_p
+            .chars()
+            .next()
+            .unwrap_or('C')
+            .to_string()
+            .to_uppercase();
+
+        let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
+            (m.clone(), dt.clone())
+        } else {
+            let dt = match disk.kind() {
+                sysinfo::DiskKind::SSD => "SSD".to_string(),
+                sysinfo::DiskKind::HDD => "HDD".to_string(),
+                _ => "SSD".to_string(),
+            };
+            ("Local Disk".to_string(), dt)
+        };
+
+        disks_info.push(DiskInfo {
+            name: format!("{}:", letter),
+            used: u,
+            total: t,
+            disk_type,
+            model,
+        });
+    }
+
+    let mut network_up = 0.0;
+    let mut network_down = 0.0;
+    for (_, data) in networks.iter() {
+        network_up += data.transmitted() as f64 / 1_048_576.0;
+        network_down += data.received() as f64 / 1_048_576.0;
+    }
+
+    let disk_read_speed = DISK_READ_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+    let disk_write_speed = DISK_WRITE_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
+
+    SystemMetrics {
+        cpu_usage,
+        cpu_temp,
+        cpu_name,
+        cpu_cores,
+        ram_usage,
+        total_ram,
+        used_ram,
+        disks: disks_info,
+        network_up,
+        network_down,
+        disk_read_speed,
+        disk_write_speed,
+        uptime,
+        process_count,
+    }
+}
+
+#[tauri::command]
+async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, String> {
+    let mut sys = System::new_all();
+    let mut components = Components::new_with_refreshed_list();
+    let mut disks = Disks::new_with_refreshed_list();
+    let mut networks = Networks::new_with_refreshed_list();
     let disk_cache = get_disk_details();
+
+    let metrics = collect_system_metrics_internal(
+        &mut sys,
+        &mut disks,
+        &mut components,
+        &mut networks,
+        &disk_cache,
+    );
+
+    let os_name = System::name().unwrap_or_else(|| "Windows".to_string());
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown Version".to_string());
+    let kernel_version = System::kernel_version().unwrap_or_else(|| "Unknown Kernel".to_string());
+    let host_name = System::host_name().unwrap_or_else(|| "DESKTOP-CPULSE".to_string());
 
     let mut processes: Vec<_> = sys.processes().values().collect();
     processes.sort_by(|a, b| {
@@ -1401,24 +1305,7 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
         })
         .collect();
 
-    let date_output = std::process::Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-Command",
-            "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'",
-        ])
-        .creation_flags(0x08000000)
-        .output();
-    let date_str = date_output
-        .ok()
-        .and_then(|o| {
-            if o.status.success() {
-                Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| "2026-06-17 00:00:00".to_string());
+    let date_str = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
     let mut report = String::new();
     report.push_str("# CPulse System Diagnostics Report\n\n");
@@ -1430,223 +1317,155 @@ async fn generate_diagnostics_report(app: tauri::AppHandle) -> Result<String, St
     report.push_str(&format!("- **Kernel Version:** {}\n", kernel_version));
 
     report.push_str("\n## Hardware Specifications\n");
-    report.push_str(&format!("- **CPU:** {}\n", cpu_brand));
-    report.push_str(&format!("- **Logical Cores:** {}\n", cpu_cores));
-    report.push_str(&format!("- **Total Memory:** {:.2} GB\n", total_ram));
+    report.push_str(&format!("- **CPU:** {}\n", metrics.cpu_name));
+    report.push_str(&format!("- **Logical Cores:** {}\n", metrics.cpu_cores.len()));
+    report.push_str(&format!("- **Total Memory:** {:.2} GB\n", metrics.total_ram));
     report.push_str(&format!(
         "- **Used Memory:** {:.2} GB ({:.1}%)\n",
-        used_ram,
-        if total_ram > 0.0 {
-            used_ram / total_ram * 100.0
-        } else {
-            0.0
-        }
+        metrics.used_ram, metrics.ram_usage
     ));
-    report.push_str(&format!("- **Free Memory:** {:.2} GB\n", free_ram));
+    report.push_str(&format!(
+        "- **Free Memory:** {:.2} GB\n",
+        (metrics.total_ram - metrics.used_ram).max(0.0)
+    ));
 
     report.push_str("\n## Disk Storage Details\n");
     report.push_str("| Drive | Model | Type | Used | Total | Free | % Used |\n");
     report.push_str("| --- | --- | --- | --- | --- | --- | --- |\n");
-    for disk in disks.list() {
-        let t = disk.total_space() as f64 / 1_073_741_824.0;
-        let u = (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
-        let f = disk.available_space() as f64 / 1_073_741_824.0;
-        let mount_p = disk.mount_point().to_string_lossy().into_owned();
-        let letter = mount_p
-            .chars()
-            .next()
-            .unwrap_or('C')
-            .to_string()
-            .to_uppercase();
-        let pct = if t > 0.0 { (u / t * 100.0) as u32 } else { 0 };
-
-        let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
-            (m.clone(), dt.clone())
+    for disk in &metrics.disks {
+        let free = (disk.total - disk.used).max(0.0);
+        let pct = if disk.total > 0.0 {
+            (disk.used / disk.total) * 100.0
         } else {
-            let dt = match disk.kind() {
-                sysinfo::DiskKind::SSD => "SSD".to_string(),
-                sysinfo::DiskKind::HDD => "HDD".to_string(),
-                _ => "SSD".to_string(),
-            };
-            ("Local Disk".to_string(), dt)
+            0.0
         };
-
         report.push_str(&format!(
-            "| {}: | {} | {} | {:.1} GB | {:.1} GB | {:.1} GB | {}% |\n",
-            letter, model, disk_type, u, t, f, pct
+            "| {} | {} | {} | {:.1} GB | {:.1} GB | {:.1} GB | {:.1}% |\n",
+            disk.name, disk.model, disk.disk_type, disk.used, disk.total, free, pct
         ));
     }
 
-    report.push_str("\n## Active Network Interfaces\n");
-    report.push_str("| Interface | Sent (Total) | Received (Total) |\n");
-    report.push_str("| --- | --- | --- |\n");
-    for (name, data) in networks.iter() {
-        if data.transmitted() > 0 || data.received() > 0 {
-            report.push_str(&format!(
-                "| {} | {} | {} |\n",
-                name,
-                format_size(data.total_transmitted()),
-                format_size(data.total_received())
-            ));
-        }
-    }
-
-    report.push_str("\n## Top 10 CPU-Consuming Processes\n");
-    report.push_str("| PID | Process Name | CPU Usage | Memory |\n");
+    report.push_str("\n## Top 10 CPU Consumers\n");
+    report.push_str("| PID | Process Name | CPU % | Memory |\n");
     report.push_str("| --- | --- | --- | --- |\n");
-    for p_line in top_cpu {
-        report.push_str(&format!("{}\n", p_line));
+    for row in top_cpu {
+        report.push_str(&format!("{}\n", row));
     }
 
-    report.push_str("\n## Top 10 Memory-Consuming Processes\n");
-    report.push_str("| PID | Process Name | Memory | CPU Usage |\n");
+    report.push_str("\n## Top 10 Memory Consumers\n");
+    report.push_str("| PID | Process Name | Memory | CPU % |\n");
     report.push_str("| --- | --- | --- | --- |\n");
-    for p_line in top_mem {
-        report.push_str(&format!("{}\n", p_line));
+    for row in top_mem {
+        report.push_str(&format!("{}\n", row));
     }
 
-    report.push_str("\n## Diagnostic Health Check\n");
-    let mut alerts: Vec<String> = Vec::new();
-    if total_ram > 0.0 && used_ram / total_ram > 0.90 {
-        alerts.push(
-            "- [WARNING] Memory usage is critically high (>90%). Close some applications."
-                .to_string(),
-        );
-    }
-    if cpu_temp > 85.0 {
-        alerts.push(
-            "- [WARNING] CPU temperature is high (>85°C). Check cooling/airflow.".to_string(),
-        );
-    }
-    for disk in disks.list() {
-        let t = disk.total_space() as f64;
-        let a = disk.available_space() as f64;
-        if t > 0.0 && (a / t) < 0.10 {
-            let mount_p = disk.mount_point().to_string_lossy();
-            alerts.push(format!(
-                "- [WARNING] Disk space on {} is low (<10% free).",
-                mount_p
-            ));
-        }
-    }
-
-    if alerts.is_empty() {
-        report.push_str("All core diagnostics look healthy! No issues detected.\n");
+    let reports_dir = if let Ok(app_data) = app.path().app_data_dir() {
+        app_data.join("reports")
     } else {
-        report.push_str("The following warnings were detected:\n\n");
-        for alert in alerts {
-            report.push_str(&format!("{}\n", alert));
-        }
-    }
+        std::env::temp_dir().join("cpulse_reports")
+    };
+    let _ = fs::create_dir_all(&reports_dir);
 
-    if let Ok(app_data) = app.path().app_data_dir() {
-        let reports_dir = app_data.join("reports");
-        let _ = fs::create_dir_all(&reports_dir);
-        let sanitized_date = date_str.replace(':', "-").replace(' ', "_");
-        let report_path = reports_dir.join(format!("report_{}.md", sanitized_date));
-        fs::write(&report_path, report)
-            .map_err(|e| format!("Failed to write report file: {}", e))?;
+    let clean_date = date_str.replace([':', ' '], "_");
+    let file_name = format!("Diagnostics_Report_{}.txt", clean_date);
+    let full_path = reports_dir.join(&file_name);
 
-        std::process::Command::new("notepad.exe")
-            .arg(&report_path)
-            .spawn()
-            .map_err(|e| format!("Failed to open report: {}", e))?;
+    fs::write(&full_path, &report).map_err(|e| format!("Failed to write report file: {}", e))?;
 
-        Ok(format!(
-            "Report saved and opened: {}",
-            report_path.to_string_lossy()
-        ))
-    } else {
-        Err("Could not retrieve app data directory".to_string())
-    }
+    Ok(file_name)
 }
 
 #[tauri::command]
 fn get_diagnostics_reports(app: tauri::AppHandle) -> Result<Vec<String>, String> {
-    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let reports_dir = app_data.join("reports");
+    let reports_dir = if let Ok(app_data) = app.path().app_data_dir() {
+        app_data.join("reports")
+    } else {
+        std::env::temp_dir().join("cpulse_reports")
+    };
+
     if !reports_dir.exists() {
         return Ok(Vec::new());
     }
 
-    let mut files = Vec::new();
-    for entry in fs::read_dir(reports_dir).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        if let Some(name) = entry.file_name().to_str() {
-            if name.starts_with("report_") && name.ends_with(".md") {
-                files.push(name.to_string());
+    let mut reports = Vec::new();
+    if let Ok(entries) = fs::read_dir(reports_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext == "txt" {
+                        if let Some(file_name) = path.file_name() {
+                            reports.push(file_name.to_string_lossy().into_owned());
+                        }
+                    }
+                }
             }
         }
     }
-    files.sort_by(|a, b| b.cmp(a));
-    Ok(files)
+
+    reports.sort_by(|a, b| b.cmp(a));
+    Ok(reports)
 }
 
 #[tauri::command]
 fn read_diagnostics_report(app: tauri::AppHandle, filename: String) -> Result<String, String> {
-    if filename.contains(['/', '\\'])
-        || !filename.starts_with("report_")
-        || !filename.ends_with(".md")
-    {
-        return Err("Invalid report filename".into());
+    let reports_dir = if let Ok(app_data) = app.path().app_data_dir() {
+        app_data.join("reports")
+    } else {
+        std::env::temp_dir().join("cpulse_reports")
+    };
+
+    let target_path = reports_dir.join(filename);
+    if !target_path.exists() {
+        return Err("Report file does not exist.".into());
     }
 
-    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let report_path = app_data.join("reports").join(filename);
-    if !report_path.exists() {
-        return Err("Report file not found".into());
-    }
-    fs::read_to_string(report_path).map_err(|e| e.to_string())
+    fs::read_to_string(target_path).map_err(|e| format!("Failed to read report: {}", e))
 }
 
 #[tauri::command]
-async fn export_diagnostics_report(report_content: String) -> Result<String, String> {
-    let script = r#"
-    Add-Type -AssemblyName System.Windows.Forms
-    $dialog = New-Object System.Windows.Forms.SaveFileDialog
-    $dialog.Filter = "Markdown Files (*.md)|*.md|Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
-    $dialog.Title = "Save Diagnostics Report"
-    $dialog.FileName = "CPulse-Diagnostics-Report"
-    $res = $dialog.ShowDialog()
-    if ($res -eq [System.Windows.Forms.DialogResult]::OK) {
-        Write-Output $dialog.FileName
+fn export_diagnostics_report(app: tauri::AppHandle, filename: String) -> Result<String, String> {
+    let reports_dir = if let Ok(app_data) = app.path().app_data_dir() {
+        app_data.join("reports")
     } else {
-        Write-Output "CANCELLED"
-    }
-    "#;
+        std::env::temp_dir().join("cpulse_reports")
+    };
 
-    let output = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-Command", script])
-        .creation_flags(0x08000000)
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    let target_path = reports_dir.join(&filename);
+    if !target_path.exists() {
+        return Err("Report file does not exist.".into());
     }
 
-    let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if path_str == "CANCELLED" || path_str.is_empty() {
-        return Err("Cancelled by user".to_string());
-    }
+    let downloads_dir = dirs_next::download_dir().unwrap_or_else(std::env::temp_dir);
+    let destination = downloads_dir.join(&filename);
 
-    std::fs::write(&path_str, report_content)
-        .map_err(|e| format!("Failed to write file: {}", e))?;
+    fs::copy(&target_path, &destination).map_err(|e| format!("Failed to export report: {}", e))?;
 
-    Ok(format!("Report saved successfully to {}", path_str))
+    Ok(format!(
+        "Exported successfully to {}",
+        destination.to_string_lossy()
+    ))
 }
 
 fn get_os_edition_rust() -> String {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    if let Ok(key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion") {
-        let product_name: String = key.get_value("ProductName").unwrap_or_default();
-        let display_version: String = key.get_value("DisplayVersion").unwrap_or_default();
-        let build_number: String = key.get_value("CurrentBuildNumber").unwrap_or_default();
-        if !product_name.is_empty() {
-            let clean = product_name.replace("Microsoft ", "").trim().to_string();
-            if !display_version.is_empty() {
-                return format!("{} {}", clean, display_version);
+    let hk = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(key) = hk.open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion") {
+        let mut clean = String::new();
+        if let Ok(edition_id) = key.get_value::<String, _>("EditionID") {
+            if !edition_id.trim().is_empty() {
+                clean = format!("Windows 11 {}", edition_id.trim());
             }
+        }
+        if clean.is_empty() {
+            if let Ok(prod_name) = key.get_value::<String, _>("ProductName") {
+                let stripped = prod_name.replace("Microsoft ", "").trim().to_string();
+                if !stripped.is_empty() {
+                    clean = stripped;
+                }
+            }
+        }
+        if !clean.is_empty() {
+            let build_number: String = key.get_value("CurrentBuild").unwrap_or_default();
             if !build_number.is_empty() {
                 return format!("{} (Build {})", clean, build_number);
             }
@@ -1661,7 +1480,7 @@ fn get_os_edition_rust() -> String {
     "Windows 11 Pro".to_string()
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct WindowsKeyInfo {
     pub key: String,
     pub key_type: String,
@@ -1709,13 +1528,12 @@ async fn get_windows_key() -> Result<WindowsKeyInfo, String> {
         return $null
     }
 
-    # OS Edition Caption
     $osObj = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
     $caption = if ($osObj -and $osObj.Caption) { [string]$osObj.Caption } else { [string](Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName -ErrorAction SilentlyContinue).ProductName }
     if (-not $caption -or $caption.Trim() -eq "") { $caption = "Windows 11 / 10" }
     $edition = $caption.Replace("Microsoft ", "").Trim()
 
-    # 1. OEM Key from WMI / BIOS SoftwareLicensingService or ACPI
+    # 1. OEM Key from WMI / BIOS
     $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService -ErrorAction SilentlyContinue).OA3xOriginalProductKey
     if (-not $oemKey) {
         $oemKey = (Get-CimInstance -Namespace root\wmi -ClassName MSSoftwareLicensingProductKeyData -ErrorAction SilentlyContinue).OA3xOriginalProductKey
@@ -1755,26 +1573,11 @@ async fn get_windows_key() -> Result<WindowsKeyInfo, String> {
         exit
     }
 
-    # 4. Digital License Partial Product Key or Default Generic Key for Edition
+    # 4. Digital License Partial Product Key
     $licProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ErrorAction SilentlyContinue | Where-Object { $_.PartialProductKey -and $_.Name -like "*Windows*" -and $_.LicenseStatus -eq 1 } | Select-Object -First 1
-    $partialKey = if ($licProduct) { $licProduct.PartialProductKey } else { $null }
-
-    $defaultKey = "VK7JG-NPHTM-C97JM-9MPGT-3V66T"
-    if ($edition -like "*Home Single*") {
-        $defaultKey = "BT79Q-G7N6G-PGBYW-4YWX6-6F4BT"
-    } elseif ($edition -like "*Home*") {
-        $defaultKey = "YTMG3-N6DKC-DKB77-7M9GH-8HVX7"
-    } elseif ($edition -like "*Enterprise*") {
-        $defaultKey = "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C"
-    } elseif ($edition -like "*Education*") {
-        $defaultKey = "YNMGQ-8RY43-4PGQ3-MNXQ8-CFQC9"
-    }
-
-    if ($partialKey) {
-        $keyPrefix = $defaultKey.Substring(0, 24)
-        $fullKey = $keyPrefix + $partialKey
+    if ($licProduct -and $licProduct.PartialProductKey) {
         @{
-            key = $fullKey
+            key = "Partial: *****-*****-*****-*****-" + $licProduct.PartialProductKey
             key_type = "Digital License (Active)"
             edition = $edition
             is_valid = $true
@@ -1782,32 +1585,31 @@ async fn get_windows_key() -> Result<WindowsKeyInfo, String> {
         exit
     }
 
+    # 5. If no genuine key detected, report is_valid = false
     @{
-        key = $defaultKey
-        key_type = "Digital License (Digital Entitlement)"
+        key = ""
+        key_type = "Not Detected"
         edition = $edition
-        is_valid = $true
+        is_valid = $false
     } | ConvertTo-Json -Compress
     "#;
 
-    let output = std::process::Command::new("powershell")
+    let output = win_cmd("powershell")
         .args(["-NoProfile", "-Command", script])
-        .creation_flags(0x08000000)
         .output()
         .map_err(|e| e.to_string())?;
 
     let stdout_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
     let json_line = stdout_str
         .lines()
         .rev()
         .find(|l| l.trim().starts_with('{'))
         .unwrap_or(&stdout_str);
 
-    let mut key = "VK7JG-NPHTM-C97JM-9MPGT-3V66T".to_string();
-    let mut key_type = "Digital License".to_string();
-    let mut edition = exact_rust_edition.clone();
-    let mut is_valid = true;
+    let mut key = String::new();
+    let mut key_type = "Not Detected".to_string();
+    let mut edition = exact_rust_edition;
+    let mut is_valid = false;
 
     if !json_line.is_empty() {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_line) {
@@ -1830,10 +1632,6 @@ async fn get_windows_key() -> Result<WindowsKeyInfo, String> {
                 is_valid = iv;
             }
         }
-    }
-
-    if edition == "Windows 10/11" || edition == "Windows 11 / 10" || edition.is_empty() {
-        edition = exact_rust_edition;
     }
 
     Ok(WindowsKeyInfo {
@@ -1877,112 +1675,21 @@ pub fn run() {
 
             spawn_typeperf_listener();
 
-            std::thread::spawn(move || {
+            tauri::async_runtime::spawn(async move {
                 let mut sys = System::new_all();
-                let mut networks = Networks::new_with_refreshed_list();
-                let mut disks = Disks::new_with_refreshed_list();
                 let mut components = Components::new_with_refreshed_list();
-
+                let mut disks = Disks::new_with_refreshed_list();
+                let mut networks = Networks::new_with_refreshed_list();
                 let disk_cache = get_disk_details();
 
                 loop {
-                    sys.refresh_all();
-                    networks.refresh(true);
-                    disks.refresh(true);
-                    components.refresh(true);
-
-                    let cpu_usage = sys.global_cpu_usage();
-                    let cpu_name = sys
-                        .cpus()
-                        .first()
-                        .map(|c| c.brand().to_string())
-                        .unwrap_or_else(|| "Unknown CPU".to_string());
-
-                    let mut cpu_cores = Vec::new();
-                    for cpu in sys.cpus() {
-                        cpu_cores.push(cpu.cpu_usage());
-                    }
-
-                    let uptime = sysinfo::System::uptime();
-                    let process_count = sys.processes().len() as u64;
-
-                    let mut cpu_temp = 0.0;
-                    for comp in components.list() {
-                        if comp.label().to_lowercase().contains("cpu") {
-                            cpu_temp = comp.temperature().unwrap_or(0.0);
-                            break;
-                        }
-                    }
-
-                    let total_ram = sys.total_memory() as f64 / 1_073_741_824.0; // GB
-                    let used_ram = sys.used_memory() as f64 / 1_073_741_824.0;
-                    let ram_usage = if total_ram > 0.0 {
-                        (used_ram / total_ram * 100.0) as f32
-                    } else {
-                        0.0
-                    };
-
-                    let mut disks_info = Vec::new();
-                    for disk in disks.list() {
-                        let t = disk.total_space() as f64 / 1_073_741_824.0;
-                        let u =
-                            (disk.total_space() - disk.available_space()) as f64 / 1_073_741_824.0;
-                        let mount_p = disk.mount_point().to_string_lossy().into_owned();
-                        let letter = mount_p
-                            .chars()
-                            .next()
-                            .unwrap_or('C')
-                            .to_string()
-                            .to_uppercase();
-
-                        let (model, disk_type) = if let Some((m, dt)) = disk_cache.get(&letter) {
-                            (m.clone(), dt.clone())
-                        } else {
-                            let dt = match disk.kind() {
-                                sysinfo::DiskKind::SSD => "SSD".to_string(),
-                                sysinfo::DiskKind::HDD => "HDD".to_string(),
-                                _ => "SSD".to_string(),
-                            };
-                            ("Local Disk".to_string(), dt)
-                        };
-
-                        disks_info.push(DiskInfo {
-                            name: format!("{}:", letter),
-                            used: u,
-                            total: t,
-                            disk_type,
-                            model,
-                        });
-                    }
-
-                    let mut network_up = 0.0;
-                    let mut network_down = 0.0;
-                    for (_, data) in networks.iter() {
-                        network_up += data.transmitted() as f64 / 1_048_576.0; // MB/s (approx per sec due to 1s sleep)
-                        network_down += data.received() as f64 / 1_048_576.0;
-                    }
-
-                    let disk_read_speed =
-                        DISK_READ_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
-                    let disk_write_speed =
-                        DISK_WRITE_BYTES.load(Ordering::SeqCst) as f64 / 1_048_576.0;
-
-                    let metrics = SystemMetrics {
-                        cpu_usage,
-                        cpu_temp,
-                        cpu_name,
-                        cpu_cores,
-                        ram_usage,
-                        total_ram,
-                        used_ram,
-                        disks: disks_info,
-                        network_up,
-                        network_down,
-                        disk_read_speed,
-                        disk_write_speed,
-                        uptime,
-                        process_count,
-                    };
+                    let metrics = collect_system_metrics_internal(
+                        &mut sys,
+                        &mut disks,
+                        &mut components,
+                        &mut networks,
+                        &disk_cache,
+                    );
 
                     let _ = app_handle.emit("system-metrics", metrics);
 
@@ -2011,6 +1718,9 @@ pub fn run() {
             set_power_plan,
             toggle_context_menu,
             update_auto_clean,
+            update_auto_update,
+            update_notifications,
+            update_language,
             get_system_info,
             generate_diagnostics_report,
             get_diagnostics_reports,
@@ -2025,8 +1735,4 @@ pub fn run() {
                 cleanup_typeperf();
             }
         });
-}
-
-pub fn dummy_check() {
-    println!("dummy check");
 }

@@ -15,12 +15,8 @@ export function StatCard({ icon, label, value, sub, color }: StatCardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-4 relative transition-all duration-300 hover:shadow-lg group cursor-default bg-card/80 backdrop-blur-md"
+        "rounded-2xl p-4 relative transition-all duration-300 group cursor-default bg-card border border-border"
       )}
-      style={{
-        border: "1px solid var(--border)",
-        background: `linear-gradient(145deg, var(--card) 60%, color-mix(in srgb, ${color} 4%, transparent))`,
-      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
